@@ -13,3 +13,9 @@ include(CTest)
 
 find_package(CutefishToolkit REQUIRED)
 find_package(CutefishFiles REQUIRED)
+
+add_library(preview-core STATIC
+    src/previewsettings.cpp
+)
+target_include_directories(preview-core PUBLIC src)
+target_link_libraries(preview-core PUBLIC Cutefish::Toolkit)
