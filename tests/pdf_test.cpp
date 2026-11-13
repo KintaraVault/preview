@@ -652,8 +652,9 @@ TEST_F(PdfUiTest, TheSidebarResizesWithinItsRangeAndIsKept)
     EXPECT_EQ(settings.sidebarWidth(0), 250);
     EXPECT_EQ(PreviewSettings(directory.filePath("preview.conf")).sidebarWidth(0), 250);
 
-    // What hangs on its edge follows: the name and the content beside it.
-    EXPECT_EQ(window.titleGeometry().x, 250 + 9);
+    // What hangs on its edge follows: the name at the page margin, in line
+    // with the page at fit, and the content beside it.
+    EXPECT_EQ(window.titleGeometry().x, 250 + PdfView::kMargin);
     PdfView* view = window.pdfPage()->view();
     EXPECT_EQ(view->mapToWindow({}).x, 250);
     EXPECT_EQ(view->mapToWindow(view->pageRect(0).topLeft()).x, 250 + PdfView::kMargin);

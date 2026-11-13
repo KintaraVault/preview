@@ -174,6 +174,9 @@ protected:
         const ui::SizeF hint = title->sizeHint();
         title->setColor(ui::ColorId::Text);
         if (subtitle->isVisible()) {
+            // In line with the page's left edge at fit.
+            if (sidebarWidth > 0)
+                x = std::max(x, sidebarWidth + PdfView::kMargin);
             const ui::SizeF below = subtitle->sizeHint();
             const double width = std::max(0.0, right - 8 - x);
             const double y = centeredStart(height, std::ceil(hint.height) + std::ceil(below.height));
