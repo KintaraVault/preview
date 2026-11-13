@@ -58,6 +58,11 @@ PdfPage::~PdfPage()
 
 void PdfPage::load(const std::string& path)
 {
+    m_keepsView = path == m_path && isReady() && !m_view->isFitted();
+    if (m_keepsView) {
+        m_keptZoom = m_view->zoom();
+        m_keptPosition = m_view->scrollPosition();
+    }
     m_path = path;
     m_view->setDocument(nullptr);
     m_subscriptions.clear();
@@ -105,6 +110,11 @@ void PdfPage::stateChanged()
         if (m_password)
             m_password->close();
         m_view->setDocument(m_document.get());
+        if (m_keepsView) {
+            m_keepsView = false;
+            m_view->zoomTo(m_keptZoom, m_view->center(), false);
+            m_view->setScrollPosition(m_keptPosition);
+        }
         if (m_find->isVisible() && !m_find->text().empty())
             m_document->setSearch(m_find->text(), m_view->currentPage());
         break;

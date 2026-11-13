@@ -32,7 +32,8 @@ public:
     PdfPage();
     ~PdfPage() override;
 
-    // Opens the file on a worker; onStateChanged tells how it went.
+    // Opens the file on a worker; onStateChanged tells how it went. Keeps
+    // the zoom and the place when it is the file shown, written over.
     void load(const std::string& path);
     void clear();
     void retranslate();
@@ -79,4 +80,9 @@ private:
     cutefish::ui::Label* m_message;
     cutefish::ui::DialogButton* m_unlock;
     std::unique_ptr<PasswordDialog> m_password;
+    // To keep across a reload of the file shown.
+    bool m_keepsView = false;
+    double m_keptZoom = 0;
+    bool m_keptFitted = true;
+    cutefish::ui::PointF m_keptPosition;
 };

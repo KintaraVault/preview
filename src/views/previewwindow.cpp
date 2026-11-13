@@ -806,6 +806,10 @@ void PreviewWindow::turnWritten(const std::string& path, int error)
 void PreviewWindow::currentWritten()
 {
     const std::string path = m_sequence->currentPath();
+    if (m_kind == DocumentKind::Pdf) {
+        m_root->pdf->load(path);
+        return;
+    }
     const TurnSaver& saver = m_application.turnSaver();
     // Our own writes: each brings its reload.
     if (saver.unwrittenTurns(path) != 0 || saver.writtenStamp(path) == TurnSaver::fileStamp(path))
