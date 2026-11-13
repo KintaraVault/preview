@@ -5,6 +5,7 @@
 #include "application.h"
 #include "imagepage.h"
 #include "imagesequence.h"
+#include "rotation.h"
 #include "shortcutsdialog.h"
 #include "sidebar.h"
 #include "welcomepage.h"
@@ -100,6 +101,7 @@ public:
         title->setElide(ui::Label::Elide::Middle);
         zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
         zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
+        rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
     }
 
     ui::HeaderButton* sidebar;
@@ -109,6 +111,7 @@ public:
     ui::Label* title;
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
+    ui::HeaderButton* rotate;
     double sidebarWidth = 0;
 
 protected:
@@ -131,6 +134,8 @@ protected:
             x += hint.width;
         }
         double right = geometry().width - 4;
+        rotate->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
+        right -= kButtonSize;
         zoomIn->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         right -= kButtonSize;
         zoomOut->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
@@ -331,8 +336,7 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequenceConnections.clear();
     m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
-    m_sequenceConnections.push_back(
-            m_sequence->currentWritten.connect([this] { m_root->image->load(m_sequence->currentPath()); }));
+    m_sequenceConnections.push_back(m_sequence->currentWritten.connect([this] { currentWritten(); }));
     m_sidebarShown = m_application.settings().sidebarShown(kind());
     m_opened = std::set<std::string>(paths.begin(), paths.end());
     m_mapPending = !m_mapped;
@@ -433,6 +437,8 @@ void PreviewWindow::updateHeader()
     row->zoomIn->setVisible(document);
     row->zoomOut->setEnabled(image);
     row->zoomIn->setEnabled(image);
+    row->rotate->setVisible(document);
+    row->rotate->setEnabled(canRotate());
     m_root->sidebar->setCurrent(index);
     row->requestLayout();
 }
@@ -573,6 +579,70 @@ void PreviewWindow::copy()
                 data.setUrls({base::url::fromLocalFile(path)});
                 ui::Clipboard::setMimeData(data);
             });
+}
+
+bool PreviewWindow::canRotate() const
+{
+    const ShownFile& file = m_root->image->shown();
+    return !isWelcome() && m_root->image->showsImage() && !file.info.animated
+            && rotation::canTurn(file.path, file.mimeType);
+}
+
+// The picture turns at once; the file follows on the save thread, a press
+// after another adding to what is still to be written.
+void PreviewWindow::rotate(int delta)
+{
+    if (!canRotate())
+        return;
+    const ShownFile& file = m_root->image->shown();
+    ImageViewer* viewer = m_root->image->viewer();
+    viewer->setQuarterTurns(viewer->quarterTurns() + delta);
+    PendingTurn& pending = m_turns[file.path];
+    pending.mimeType = file.mimeType;
+    pending.quarterTurns += delta;
+    saveTurns();
+}
+
+// One save at a time in the process, so no two writes of a file interleave.
+static base::ThreadPool& savePool()
+{
+    static base::ThreadPool pool(1);
+    return pool;
+}
+
+void PreviewWindow::saveTurns()
+{
+    if (m_turnJob.isPending() || m_turns.empty())
+        return;
+    const auto it = m_turns.begin();
+    const std::string path = it->first;
+    const PendingTurn turn = it->second;
+    m_turns.erase(it);
+    m_savingPath = path;
+    m_turnJob = savePool().run([path, turn] { return rotation::turn(path, turn.mimeType, turn.quarterTurns); },
+                               [this, path](int error) { turnSaved(path, error); });
+}
+
+void PreviewWindow::turnSaved(const std::string& path, int error)
+{
+    m_savingPath.clear();
+    const bool more = m_turns.contains(path);
+    if (!more || error) {
+        // Decoded again as the file is now, which shows as it did; the turn
+        // on screen goes with it in the same frame.
+        if (m_root->image->shown().path == path)
+            m_root->image->load(path);
+    }
+    saveTurns();
+}
+
+void PreviewWindow::currentWritten()
+{
+    const std::string path = m_sequence->currentPath();
+    // Our own save: its reload is under way already.
+    if (m_savingPath == path || m_turns.contains(path))
+        return;
+    m_root->image->load(path);
 }
 
 void PreviewWindow::showInFiles()
@@ -841,6 +911,8 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('0'), [this] { zoomToFit(); });
     window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
     window.addShortcut(ctrl, ui::key::letter('c'), [this] { copy(); });
+    window.addShortcut(ctrl, ui::key::letter('l'), [this] { rotate(-1); });
+    window.addShortcut(ctrl, ui::key::letter('r'), [this] { rotate(1); });
     window.addShortcut(none, ui::key::Delete, [this] { moveToTrash(); });
     window.addShortcut(ctrl, ui::key::BackSpace, [this] {
         if (ui::commandKeys())

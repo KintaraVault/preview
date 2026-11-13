@@ -10,6 +10,7 @@
 #include "base/timer.h"
 #include "ui/geometry.h"
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -71,6 +72,10 @@ public:
     void toggleFullScreen();
     // The image and its file's URL.
     void copy();
+    // A JPEG or PNG that may be written, still.
+    bool canRotate() const;
+    // Quarters clockwise; -1 turns left.
+    void rotate(int delta);
     void showInFiles();
     void moveToTrash();
     void openDialog();
@@ -95,6 +100,9 @@ private:
     void shown();
     void sequenceChanged();
     void preloadNeighbours();
+    void saveTurns();
+    void turnSaved(const std::string& path, int error);
+    void currentWritten();
     void updateHeader();
     void updateTitle();
     void updateBackground();
@@ -125,6 +133,15 @@ private:
     bool m_mapPending = false;
     std::string m_activationToken;
     cutefish::base::Job m_copy;
+    // Turns pressed but not written yet, by file; one save runs at a time.
+    struct PendingTurn
+    {
+        std::string mimeType;
+        int quarterTurns = 0;
+    };
+    std::map<std::string, PendingTurn> m_turns;
+    std::string m_savingPath;
+    cutefish::base::Job m_turnJob;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     std::unique_ptr<cutefish::ui::AboutDialog> m_about;
