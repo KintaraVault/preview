@@ -88,6 +88,8 @@ private:
     void keepVisibleThumbnails();
     // A document's rows follow its pages' shape and the window's scale.
     void updateRowHeight();
+    // A page number's height, whole pixels.
+    double numberHeight(double ratio);
 
     double m_headerHeight;
     cutefish::ui::ListView* m_list;
@@ -106,4 +108,7 @@ private:
     double m_pageHeight = 0;
     double m_pageAspect = 0;
     bool m_resizing = false;
+    double m_numberHeight = 0;
+    double m_numberRatio = 0;
+    std::string m_numberFont;
 };

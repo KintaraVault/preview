@@ -62,6 +62,9 @@ static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
+// From the sidebar toggle to a title after it: room for text, which the
+// buttons' own plates do not give.
+static constexpr double kTitleGap = 12;
 // What the content keeps beside a shown sidebar at the window's minimum size,
 // as in Files: the sidebar grows only as the window does.
 static constexpr double kMinimumContentWidthBesideSidebar = kMinimumContentWidth - Sidebar::kDefaultWidth;
@@ -177,6 +180,8 @@ protected:
             // In line with the page's left edge at fit.
             if (sidebarWidth > 0)
                 x = std::max(x, sidebarWidth + PdfView::kMargin);
+            else
+                x = sidebar->geometry().right() + kTitleGap;
             const ui::SizeF below = subtitle->sizeHint();
             const double width = std::max(0.0, right - 8 - x);
             const double y = centeredStart(height, std::ceil(hint.height) + std::ceil(below.height));
@@ -185,7 +190,10 @@ protected:
             subtitle->setGeometry({x, y + std::ceil(hint.height), width, std::ceil(below.height)});
             return;
         }
-        const double left = x + 8;
+        // A lone title after the toggle keeps the same room as a PDF's.
+        const double left = !previous->isVisible() && !position->isVisible() && sidebarWidth <= 0
+                ? sidebar->geometry().right() + kTitleGap
+                : x + 8;
         title->setGeometry({left, centeredStart(height, hint.height), std::max(0.0, right - 8 - left), hint.height});
     }
 

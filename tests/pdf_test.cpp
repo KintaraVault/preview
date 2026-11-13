@@ -514,7 +514,7 @@ TEST_F(PdfUiTest, PagesRestBelowTheHeaderAndScrollUnderItsBackdrop)
     EXPECT_EQ(top * 2, std::round(top * 2));
 }
 
-// A PDF has no arrows; its name and page line start where an image's first arrow does.
+// A PDF has no arrows; its name and page line start a little past where an image's first arrow does.
 TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
 {
     std::filesystem::create_directory(directory.filePath("images"));
@@ -536,9 +536,10 @@ TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
     if (pdf.sidebarShown())
         pdf.toggleSidebar();
     pdf.window().grab();
-    // The name and the page line start where an image's first arrow does.
-    EXPECT_EQ(pdf.titleGeometry().x, arrow.x);
-    EXPECT_EQ(pdf.subtitleGeometry().x, arrow.x);
+    // The name and the page line keep room for text past the toggle, 8
+    // further than an image's first arrow starts.
+    EXPECT_EQ(pdf.titleGeometry().x, arrow.x + 8);
+    EXPECT_EQ(pdf.subtitleGeometry().x, arrow.x + 8);
     EXPECT_EQ(pdf.titleGeometry().x, std::round(pdf.titleGeometry().x));
 }
 
@@ -698,4 +699,30 @@ TEST_F(PdfUiTest, PageThumbnailsFollowTheSidebarsWidth)
         return image && image->width() == int(std::round(thumbnail.width * scale))
                 && image->height() == int(std::round(thumbnail.height * scale));
     }));
+}
+
+// With the sidebar hidden a PDF's title and a lone image's start 12 past the
+// sidebar toggle, at 1x and 2x.
+TEST_F(PdfUiTest, TitlesKeepRoomAfterTheSidebarToggle)
+{
+    const std::string image = writePng(directory.filePath("single.png"), 40, 30);
+    application.open({image});
+    PreviewWindow& images = *application.windows().front();
+    ASSERT_TRUE(waitFor(loop(), [&] { return images.imagePage()->shown().path == image; }));
+    PreviewWindow& pdf = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    if (pdf.sidebarShown())
+        pdf.toggleSidebar();
+    ASSERT_FALSE(images.sidebarShown());
+    ASSERT_FALSE(images.showsArrows());
+    for (const double scale : {1.0, 2.0}) {
+        for (PreviewWindow* window : {&images, &pdf}) {
+            window->window().setScale(scale);
+            window->window().grab();
+            const View* toggle = window->sidebarButton();
+            const double toggleRight = toggle->mapToWindow({}).x + toggle->geometry().width;
+            EXPECT_EQ(window->titleGeometry().x, toggleRight + 12);
+            EXPECT_EQ(window->titleGeometry().x * scale, std::round(window->titleGeometry().x * scale));
+        }
+        EXPECT_EQ(pdf.subtitleGeometry().x, pdf.titleGeometry().x);
+    }
 }

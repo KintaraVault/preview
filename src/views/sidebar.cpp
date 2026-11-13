@@ -472,11 +472,23 @@ void Sidebar::updateRowHeight()
         // On whole device pixels, so the tallest page fills its box exactly.
         m_pageWidth = std::max(1.0, width - 2 * (plateInset(this) + kPageGap));
         m_pageHeight = std::round(std::min(m_pageAspect, kPageMaximumAspect) * m_pageWidth * ratio) / ratio;
-        ui::Label number("0");
-        number.setFontSize(kNumberFontSize);
-        height = kPageGap + m_pageHeight + kNumberGap + std::ceil(number.sizeHint().height) + kPageGap;
+        height = kPageGap + m_pageHeight + kNumberGap + numberHeight(ratio) + kPageGap;
     }
     m_list->setRowHeight(height);
+}
+
+// Measured again only for another scale or font.
+double Sidebar::numberHeight(double ratio)
+{
+    const ui::Theme& theme = ui::Theme::current();
+    if (m_numberHeight <= 0 || ratio != m_numberRatio || theme.fontFamily != m_numberFont) {
+        ui::Label number("0");
+        number.setFontSize(kNumberFontSize);
+        m_numberHeight = std::ceil(number.sizeHint().height);
+        m_numberRatio = ratio;
+        m_numberFont = theme.fontFamily;
+    }
+    return m_numberHeight;
 }
 
 void Sidebar::setResizing(bool resizing)
