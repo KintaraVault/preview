@@ -11,6 +11,7 @@
 
 #include "ui/application.h"
 #include "ui/clipboard.h"
+#include "ui/image_info.h"
 #include "ui/keys.h"
 #include "ui/test_input.h"
 #include "ui/theme.h"
@@ -165,16 +166,38 @@ TEST_F(UiTest, TheSidebarIsKeptForImages)
     EXPECT_TRUE(settings.sidebarShown(DocumentKind::Image));
 }
 
-TEST_F(UiTest, CopyOffersTheImageAndItsUrl)
+TEST_F(UiTest, CopyOffersPngTheFilesOwnTypeAndItsUrl)
 {
-    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
-    application.open({path});
+    const std::string png = writePng(directory.filePath("a.png"), 40, 30);
+    // A 4 x 3 true colour TGA, written by hand.
+    std::string tga = std::string("\0\0\2", 3) + std::string(9, '\0') + std::string("\4\0\3\0\x18\0", 6);
+    tga += std::string(4 * 3 * 3, '\x40');
+    const std::string other = writeFile(directory.filePath("b.tga"), tga);
+    application.open({png, other});
     PreviewWindow& window = onlyWindow();
-    ASSERT_TRUE(showing(window, path));
+    ASSERT_TRUE(showing(window, png));
+
+    const auto offers = [](const std::string& type) {
+        const std::vector<std::string> types = Clipboard::mimeTypes();
+        return std::find(types.begin(), types.end(), type) != types.end();
+    };
     press(window, key::letter('c'), ControlModifier);
-    const std::vector<std::string> types = Clipboard::mimeTypes();
-    EXPECT_NE(std::find(types.begin(), types.end(), "image/png"), types.end());
-    EXPECT_NE(std::find(types.begin(), types.end(), "text/uri-list"), types.end());
+    ASSERT_TRUE(waitFor(loop(), [&] { return offers("image/png"); }));
+    EXPECT_TRUE(offers("text/uri-list"));
+    EXPECT_EQ(Clipboard::mimeTypes().size(), 2u);
+
+    press(window, key::Right);
+    ASSERT_TRUE(showing(window, other));
+    press(window, key::letter('c'), ControlModifier);
+    ASSERT_TRUE(waitFor(loop(), [&] { return offers("image/x-tga"); }));
+    EXPECT_TRUE(offers("image/png"));
+    EXPECT_TRUE(offers("text/uri-list"));
+    std::string pasted;
+    Clipboard::requestData("image/png", [&pasted](std::optional<std::string> data) { pasted = data.value_or(""); });
+    ASSERT_TRUE(waitFor(loop(), [&] { return !pasted.empty(); }));
+    const ImageInfo info = readImageInfo(writeFile(directory.filePath("pasted.png"), pasted), "image/png");
+    EXPECT_EQ(info.width, 4);
+    EXPECT_EQ(info.height, 3);
 }
 
 TEST_F(UiTest, ASwipeOnAFittedImageStepsOnce)

@@ -6,6 +6,7 @@
 #include "previewsettings.h"
 
 #include "base/signal.h"
+#include "base/thread_pool.h"
 #include "base/timer.h"
 #include "ui/geometry.h"
 
@@ -120,6 +121,7 @@ private:
     // Shown once its first file is ready, which sizes it.
     bool m_mapPending = false;
     std::string m_activationToken;
+    cutefish::base::Job m_copy;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     std::unique_ptr<cutefish::ui::AboutDialog> m_about;

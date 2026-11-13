@@ -24,6 +24,7 @@
 #include "ui/file_chooser.h"
 #include "ui/file_drop_area.h"
 #include "ui/header_button.h"
+#include "ui/image.h"
 #include "ui/keys.h"
 #include "ui/label.h"
 #include "ui/menu.h"
@@ -544,16 +545,37 @@ void PreviewWindow::toggleFullScreen()
         m_window->setFullScreen(!isFullScreen());
 }
 
+// Image as PNG for any program to paste, as the file's own type besides, and
+// the file; read and encoded on a worker.
 void PreviewWindow::copy()
 {
     if (!m_root->image->showsImage())
         return;
     const ShownFile& file = m_root->image->shown();
-    ui::MimeData data;
-    if (const std::optional<std::string> bytes = base::file::read(file.path))
-        data.setData(file.mimeType, *bytes);
-    data.setUrls({base::url::fromLocalFile(file.path)});
-    ui::Clipboard::setMimeData(data);
+    struct Copied
+    {
+        std::string png;
+        std::string own;
+    };
+    m_copy = base::ThreadPool::global().run(
+            [path = file.path, type = file.mimeType] {
+                Copied copied;
+                copied.own = base::file::read(path).value_or(std::string());
+                if (type == "image/png")
+                    copied.png = std::exchange(copied.own, std::string());
+                else
+                    copied.png = ui::Image::fromFile(path).encodePng();
+                return copied;
+            },
+            [path = file.path, type = file.mimeType](Copied copied) {
+                ui::MimeData data;
+                if (!copied.png.empty())
+                    data.setData("image/png", std::move(copied.png));
+                if (!copied.own.empty())
+                    data.setData(type, std::move(copied.own));
+                data.setUrls({base::url::fromLocalFile(path)});
+                ui::Clipboard::setMimeData(data);
+            });
 }
 
 void PreviewWindow::showInFiles()
