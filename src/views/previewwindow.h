@@ -64,6 +64,8 @@ public:
     // Images or pages.
     void step(int delta);
     void goTo(int index);
+    // An image, or a screenful of a PDF.
+    void pageStep(int delta);
     void zoomIn();
     void zoomOut();
     void zoomToFit();

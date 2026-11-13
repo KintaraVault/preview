@@ -601,6 +601,14 @@ void PreviewWindow::goTo(int index)
         m_sequence->setCurrentIndex(index);
 }
 
+void PreviewWindow::pageStep(int delta)
+{
+    if (m_kind == DocumentKind::Pdf && m_sequence)
+        m_root->pdf->view()->scrollScreen(delta);
+    else
+        step(delta);
+}
+
 void PreviewWindow::zoomIn()
 {
     PdfView* pages = m_root->pdf->view();
@@ -1007,10 +1015,10 @@ void PreviewWindow::bindShortcuts()
     const uint32_t shift = ui::ShiftModifier;
     window.addShortcut(none, ui::key::Left, [this] { step(-1); });
     window.addShortcut(none, ui::key::Right, [this] { step(1); });
-    window.addShortcut(none, ui::key::PageUp, [this] { step(-1); });
-    window.addShortcut(none, ui::key::PageDown, [this] { step(1); });
-    window.addShortcut(shift, ui::key::Space, [this] { step(-1); });
-    window.addShortcut(none, ui::key::Space, [this] { step(1); });
+    window.addShortcut(none, ui::key::PageUp, [this] { pageStep(-1); });
+    window.addShortcut(none, ui::key::PageDown, [this] { pageStep(1); });
+    window.addShortcut(shift, ui::key::Space, [this] { pageStep(-1); });
+    window.addShortcut(none, ui::key::Space, [this] { pageStep(1); });
     window.addShortcut(none, ui::key::Home, [this] { goTo(0); });
     window.addShortcut(none, ui::key::End, [this] { goTo(count() - 1); });
     window.addShortcut(ctrl, ui::key::letter('='), [this] { zoomIn(); });
