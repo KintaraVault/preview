@@ -3,10 +3,15 @@
 
 #include "imagesequence.h"
 #include "testutil.h"
+#include "waitfor.h"
+
+#include "ui/application.h"
 
 #include <gtest/gtest.h>
 
 #include <filesystem>
+
+using cutefish::ui::Application;
 
 TEST(ImageSequenceTest, AFolderIsItsImagesInNumericOrder)
 {
@@ -39,4 +44,60 @@ TEST(ImageSequenceTest, FilesKeepTheOrderGiven)
     const auto sequence = ImageSequence::files({c, a});
     EXPECT_EQ(sequence->paths(), (std::vector<std::string> {c, a}));
     EXPECT_EQ(sequence->currentPath(), c);
+}
+
+TEST(ImageSequenceTest, RemovingTheCurrentGoesToTheNextThenThePrevious)
+{
+    TemporaryDir directory;
+    const std::string a = writeFile(directory.filePath("a.png"));
+    const std::string b = writeFile(directory.filePath("b.png"));
+    const std::string c = writeFile(directory.filePath("c.png"));
+    const auto sequence = ImageSequence::files({a, b, c});
+    sequence->setCurrentIndex(1);
+    sequence->remove(b);
+    EXPECT_EQ(sequence->currentPath(), c);
+    sequence->remove(c);
+    EXPECT_EQ(sequence->currentPath(), a);
+    sequence->remove(a);
+    EXPECT_TRUE(sequence->isEmpty());
+    EXPECT_EQ(sequence->currentPath(), std::string());
+}
+
+TEST(ImageSequenceTest, TheFolderIsFollowed)
+{
+    auto& loop = Application::instance()->loop();
+    TemporaryDir directory;
+    const std::string a = writeFile(directory.filePath("a.png"));
+    const std::string c = writeFile(directory.filePath("c.png"));
+    const auto sequence = ImageSequence::folderOf(a);
+    int written = 0;
+    const auto subscription = sequence->currentWritten.connect([&written] { ++written; });
+
+    const std::string b = writeFile(directory.filePath("b.png"));
+    EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 3; }));
+    EXPECT_EQ(sequence->paths()[1], b);
+    std::filesystem::remove(c);
+    EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 2; }));
+
+    writeFile(a, "again\n");
+    EXPECT_TRUE(waitFor(loop, [&] { return written > 0; }));
+    EXPECT_EQ(sequence->currentPath(), a);
+
+    // The current one gone: the next takes its place.
+    std::filesystem::remove(a);
+    EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 1; }));
+    EXPECT_EQ(sequence->currentPath(), b);
+}
+
+TEST(ImageSequenceTest, GivenFilesLeaveWhenRemoved)
+{
+    auto& loop = Application::instance()->loop();
+    TemporaryDir directory;
+    const std::string a = writeFile(directory.filePath("a.png"));
+    const std::string b = writeFile(directory.filePath("b.png"));
+    const auto sequence = ImageSequence::files({a, b});
+    writeFile(directory.filePath("c.png"));
+    std::filesystem::remove(b);
+    EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 1; }));
+    EXPECT_EQ(sequence->paths(), (std::vector<std::string> {a}));
 }
