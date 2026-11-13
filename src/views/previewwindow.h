@@ -1,0 +1,82 @@
+// SPDX-FileCopyrightText: 2026 Reion Wong <reionwong@gmail.com>
+// SPDX-License-Identifier: BSD-3-Clause
+
+#pragma once
+
+#include "previewsettings.h"
+
+#include "base/signal.h"
+#include "ui/geometry.h"
+
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace cutefish::ui {
+class Window;
+}
+
+class Application;
+class ImagePage;
+class ImageSequence;
+
+// A window of one document, or of a sequence of images: the header, the
+// content under it and its keys.
+class PreviewWindow
+{
+public:
+    static constexpr double kHeaderHeight = 40;
+
+    explicit PreviewWindow(Application& application);
+    ~PreviewWindow();
+
+    PreviewWindow(const PreviewWindow&) = delete;
+    PreviewWindow& operator=(const PreviewWindow&) = delete;
+
+    cutefish::ui::Window& window() const { return *m_window; }
+    bool isWelcome() const { return !m_sequence; }
+    // The file on screen; empty on the welcome page.
+    std::string currentPath() const;
+    // The shown file's place in the sequence, from 0; -1 on the welcome page.
+    int currentIndex() const;
+    int count() const;
+    DocumentKind kind() const { return DocumentKind::Image; }
+
+    // One image: it and the other images of its folder. Several files, or a
+    // file that is not an image: exactly those, in this order.
+    void show(const std::vector<std::string>& paths);
+    // Shows and activates the window.
+    void raise(const std::string& activationToken);
+
+    void step(int delta);
+    void goTo(int index);
+    void zoomIn();
+    void zoomOut();
+    void zoomToFit();
+    void zoomToActualSize();
+    bool isFullScreen() const;
+    void close();
+
+    ImagePage* imagePage() const;
+    // The header's "3 of 24" and file name.
+    std::string positionText() const;
+    std::string titleText() const;
+
+private:
+    class HeaderRow;
+    class Root;
+    friend class Root;
+
+    void bindShortcuts();
+    void shown();
+    void sequenceChanged();
+    void updateHeader();
+    void updateTitle();
+    void updateBackground();
+
+    Application& m_application;
+    std::unique_ptr<cutefish::ui::Window> m_window;
+    Root* m_root = nullptr;
+    std::unique_ptr<ImageSequence> m_sequence;
+    std::vector<cutefish::base::Subscription> m_sequenceConnections;
+};

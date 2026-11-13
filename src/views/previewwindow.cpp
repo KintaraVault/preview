@@ -1,0 +1,375 @@
+// SPDX-FileCopyrightText: 2026 Reion Wong <reionwong@gmail.com>
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include "previewwindow.h"
+#include "application.h"
+#include "imagepage.h"
+#include "imagesequence.h"
+
+#include "base/i18n.h"
+#include "ui/cell_layout.h"
+#include "ui/application.h"
+#include "ui/color_provider.h"
+#include "ui/header_button.h"
+#include "ui/keys.h"
+#include "ui/label.h"
+#include "ui/painter.h"
+#include "ui/theme.h"
+#include "ui/window.h"
+#include "ui/window_header.h"
+
+#include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <utility>
+
+using namespace cutefish;
+using namespace std::chrono_literals;
+using cutefish::i18n::format;
+using cutefish::i18n::tr;
+using ui::rounding::centeredStart;
+
+static constexpr double kButtonSize = 32;
+static constexpr double kMinimumContentWidth = 480;
+static constexpr double kMinimumContentHeight = 360;
+static constexpr double kZoomStep = 1.5;
+
+namespace {
+
+// The header's strip: the window's colour over the content, so the header
+// stays readable over a full screen image, and a hairline along its bottom.
+class HeaderBar : public ui::View
+{
+public:
+    explicit HeaderBar(double height)
+    {
+        header = addChild<ui::WindowHeader>(height);
+        header->setButtonMargin(4);
+        header->setButtonsCentered(true);
+        header->setContentUnderButtons(true);
+    }
+
+    ui::WindowHeader* header;
+    // Where the content starts, past the sidebar.
+    double contentLeft = 0;
+
+protected:
+    void layout() override { header->setGeometry(localRect()); }
+
+    void paint(ui::Painter& painter) override
+    {
+        const ui::RectF rect = localRect();
+        painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::Theme::current().background);
+        const double line = 1 / painter.scale();
+        painter.drawRoundedRect({contentLeft, rect.height - line, rect.width - contentLeft, line}, {0},
+                                ui::color(ui::ColorId::HeaderSeparator));
+    }
+};
+
+} // namespace
+
+// The header's own part: the arrows with the place in the sequence and the
+// file name after the window buttons, the zoom buttons at the end.
+class PreviewWindow::HeaderRow : public ui::View
+{
+public:
+    explicit HeaderRow(PreviewWindow& owner, ui::WindowHeader* header)
+        : m_header(header)
+    {
+        previous = addButton("chevron-left", [&owner] { owner.step(-1); });
+        next = addButton("chevron-right", [&owner] { owner.step(1); });
+        position = addChild<ui::Label>();
+        title = addChild<ui::Label>();
+        title->setWeight(700);
+        title->setElide(ui::Label::Elide::Middle);
+        zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
+        zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
+    }
+
+    ui::HeaderButton* previous;
+    ui::HeaderButton* next;
+    ui::Label* position;
+    ui::Label* title;
+    ui::HeaderButton* zoomOut;
+    ui::HeaderButton* zoomIn;
+
+protected:
+    void layout() override
+    {
+        const double height = geometry().height;
+        const double top = centeredStart(height, kButtonSize);
+        double x = m_header->leadingInset() + 4;
+        if (previous->isVisible()) {
+            previous->setGeometry({x, top, kButtonSize, kButtonSize});
+            x += kButtonSize;
+            next->setGeometry({x, top, kButtonSize, kButtonSize});
+            x += kButtonSize + 4;
+            const ui::SizeF hint = position->sizeHint();
+            position->setColor(ui::ColorId::Text);
+            position->setGeometry({x, centeredStart(height, hint.height), hint.width, hint.height});
+            x += hint.width;
+        }
+        double right = geometry().width - 4;
+        zoomIn->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
+        right -= kButtonSize;
+        zoomOut->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
+        right -= kButtonSize;
+        const double left = x + 8;
+        const ui::SizeF hint = title->sizeHint();
+        title->setColor(ui::ColorId::Text);
+        title->setGeometry({left, centeredStart(height, hint.height), std::max(0.0, right - 8 - left), hint.height});
+    }
+
+private:
+    ui::HeaderButton* addButton(const char* glyph, std::function<void()> action)
+    {
+        auto* button = addChild<ui::HeaderButton>(std::string(), kButtonSize);
+        button->setGlyph(glyph, 16);
+        button->onClicked = std::move(action);
+        return button;
+    }
+
+    ui::WindowHeader* m_header;
+};
+
+// The window's content: the page under the header, and in full screen the
+// page under the header too, on black.
+class PreviewWindow::Root : public ui::View
+{
+public:
+    explicit Root(PreviewWindow& owner)
+        : m_owner(owner)
+    {
+        image = addChild<ImagePage>();
+        bar = addChild<HeaderBar>(kHeaderHeight);
+        row = bar->header->setContent<HeaderRow>(owner, bar->header);
+    }
+
+    ImagePage* image;
+    HeaderBar* bar;
+    HeaderRow* row;
+
+protected:
+    void layout() override
+    {
+        const ui::RectF rect = localRect();
+        image->setVisible(!m_owner.isWelcome());
+        const double top = m_owner.isFullScreen() ? 0 : kHeaderHeight;
+        const ui::RectF content {0, top, rect.width, std::max(0.0, rect.height - top)};
+        image->setGeometry(content);
+        bar->setGeometry({0, 0, rect.width, kHeaderHeight});
+        if (window())
+            window()->setBackgroundBlur(rect, ui::Theme::current().windowRadius);
+    }
+
+    void paint(ui::Painter& painter) override
+    {
+        const ui::RectF rect = localRect();
+        painter.fillRect(rect,
+                         m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255} : ui::Theme::current().background);
+    }
+
+private:
+    PreviewWindow& m_owner;
+};
+
+PreviewWindow::PreviewWindow(Application& application)
+    : m_application(application)
+    , m_window(std::make_unique<ui::Window>())
+{
+    m_window->setTitle(tr("Preview"));
+    m_window->resize({720, 540});
+    m_window->setMinimumSize({kMinimumContentWidth, kMinimumContentHeight + kHeaderHeight});
+    m_window->setResizeAroundCenter(true);
+    auto root = std::make_unique<Root>(*this);
+    m_root = root.get();
+    m_window->setContentView(std::move(root));
+
+    ImagePage* page = m_root->image;
+    page->onShown = [this] { shown(); };
+
+    m_window->onCloseRequested = [this] { close(); };
+    m_window->onActiveChanged = [this] { updateBackground(); };
+    m_window->onStatesChanged = [this] {
+        m_root->requestLayout();
+        m_root->requestPaint();
+    };
+
+    bindShortcuts();
+    updateBackground();
+    updateHeader();
+}
+
+PreviewWindow::~PreviewWindow() = default;
+
+ImagePage* PreviewWindow::imagePage() const
+{
+    return m_root->image;
+}
+
+std::string PreviewWindow::positionText() const
+{
+    return m_root->row->position->isVisible() ? m_root->row->position->text() : std::string();
+}
+
+std::string PreviewWindow::titleText() const
+{
+    return m_root->row->title->text();
+}
+
+std::string PreviewWindow::currentPath() const
+{
+    return m_sequence ? m_sequence->currentPath() : std::string();
+}
+
+int PreviewWindow::currentIndex() const
+{
+    if (!m_sequence)
+        return -1;
+    const std::vector<std::string>& paths = m_sequence->paths();
+    const auto found = std::find(paths.begin(), paths.end(), m_root->image->shown().path);
+    return found == paths.end() ? m_sequence->currentIndex() : int(found - paths.begin());
+}
+
+int PreviewWindow::count() const
+{
+    return m_sequence ? m_sequence->count() : 0;
+}
+
+void PreviewWindow::show(const std::vector<std::string>& paths)
+{
+    m_sequenceConnections.clear();
+    m_sequence = ImageSequence::files(paths);
+    m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
+    m_root->image->load(m_sequence->currentPath());
+    m_root->requestLayout();
+    updateHeader();
+}
+
+void PreviewWindow::raise(const std::string& activationToken)
+{
+    m_window->show();
+    m_window->activate(activationToken);
+}
+
+void PreviewWindow::sequenceChanged()
+{
+    if (m_sequence->currentPath() != m_root->image->shown().path)
+        m_root->image->load(m_sequence->currentPath());
+    updateHeader();
+}
+
+void PreviewWindow::shown()
+{
+    updateHeader();
+    updateTitle();
+}
+
+void PreviewWindow::updateHeader()
+{
+    HeaderRow* row = m_root->row;
+    const bool document = !isWelcome();
+    const bool multiple = count() > 1;
+    const bool image = document && m_root->image->showsImage();
+    for (ui::View* view : std::initializer_list<ui::View*> {row->previous, row->next, row->position})
+        view->setVisible(multiple);
+    const int index = currentIndex();
+    row->previous->setEnabled(index > 0);
+    row->next->setEnabled(index + 1 < count());
+    // TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+    row->position->setText(format(tr("{index} of {count}"),
+                                  {{"index", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
+    row->title->setVisible(document);
+    row->title->setText(m_root->image->shown().name);
+    row->zoomOut->setVisible(document);
+    row->zoomIn->setVisible(document);
+    row->zoomOut->setEnabled(image);
+    row->zoomIn->setEnabled(image);
+    row->requestLayout();
+}
+
+void PreviewWindow::updateTitle()
+{
+    const std::string& name = m_root->image->shown().name;
+    m_window->setTitle(isWelcome() || name.empty() ? std::string(tr("Preview")) : name);
+}
+
+void PreviewWindow::updateBackground()
+{
+    m_window->setBackgroundColor(m_window->isActive() ? ui::ColorId::TranslucentWindowBackground
+                                                      : ui::ColorId::TranslucentWindowBackgroundInactive);
+    // Views colour their text by it as they lay out.
+    m_window->requestLayout();
+}
+
+void PreviewWindow::step(int delta)
+{
+    if (m_sequence)
+        goTo(m_sequence->currentIndex() + delta);
+}
+
+void PreviewWindow::goTo(int index)
+{
+    if (m_sequence)
+        m_sequence->setCurrentIndex(index);
+}
+
+void PreviewWindow::zoomIn()
+{
+    ImageViewer* viewer = m_root->image->viewer();
+    if (m_root->image->showsImage())
+        viewer->zoomBy(kZoomStep, viewer->center(), true);
+}
+
+void PreviewWindow::zoomOut()
+{
+    ImageViewer* viewer = m_root->image->viewer();
+    if (m_root->image->showsImage())
+        viewer->zoomBy(1 / kZoomStep, viewer->center(), true);
+}
+
+void PreviewWindow::zoomToFit()
+{
+    if (m_root->image->showsImage())
+        m_root->image->viewer()->zoomToFit();
+}
+
+void PreviewWindow::zoomToActualSize()
+{
+    if (m_root->image->showsImage())
+        m_root->image->viewer()->zoomToActualSize();
+}
+
+bool PreviewWindow::isFullScreen() const
+{
+    return m_window->states().fullScreen;
+}
+
+void PreviewWindow::close()
+{
+    m_application.releaseWindow(this);
+}
+
+void PreviewWindow::bindShortcuts()
+{
+    ui::Window& window = *m_window;
+    const uint32_t none = ui::NoModifier;
+    const uint32_t ctrl = ui::ControlModifier;
+    const uint32_t shift = ui::ShiftModifier;
+    window.addShortcut(none, ui::key::Left, [this] { step(-1); });
+    window.addShortcut(none, ui::key::Right, [this] { step(1); });
+    window.addShortcut(none, ui::key::PageUp, [this] { step(-1); });
+    window.addShortcut(none, ui::key::PageDown, [this] { step(1); });
+    window.addShortcut(shift, ui::key::Space, [this] { step(-1); });
+    window.addShortcut(none, ui::key::Space, [this] { step(1); });
+    window.addShortcut(none, ui::key::Home, [this] { goTo(0); });
+    window.addShortcut(none, ui::key::End, [this] { goTo(count() - 1); });
+    window.addShortcut(ctrl, ui::key::letter('='), [this] { zoomIn(); });
+    window.addShortcut(ctrl, ui::key::letter('+'), [this] { zoomIn(); });
+    window.addShortcut(ctrl | shift, ui::key::letter('+'), [this] { zoomIn(); });
+    window.addShortcut(ctrl, ui::key::letter('-'), [this] { zoomOut(); });
+    window.addShortcut(ctrl, ui::key::letter('0'), [this] { zoomToFit(); });
+    window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
+    window.addShortcut(ctrl, ui::key::letter('w'), [this] { close(); });
+    window.addShortcut(ctrl, ui::key::letter('q'), [this] { m_application.quit(); });
+}

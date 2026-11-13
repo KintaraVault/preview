@@ -22,7 +22,14 @@ target_include_directories(preview-core PUBLIC src)
 target_link_libraries(preview-core PUBLIC Cutefish::Toolkit)
 
 add_library(preview-ui STATIC
+    src/application.cpp
     src/views/imagepage.cpp
+    src/views/previewwindow.cpp
 )
 target_include_directories(preview-ui PUBLIC src src/views)
 target_link_libraries(preview-ui PUBLIC preview-core Cutefish::Toolkit Cutefish::Files)
+
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE preview-ui)
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
