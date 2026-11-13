@@ -115,6 +115,7 @@ private:
     void updateTitle();
     void updateBackground();
     void openContextMenu(cutefish::ui::PointF position);
+    void openPdfContextMenu(cutefish::ui::PointF position, const std::string& uri);
     // The name of what is shown, for the header and the title.
     std::string shownName() const;
     void showAbout();

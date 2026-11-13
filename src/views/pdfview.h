@@ -86,6 +86,8 @@ public:
 
     std::function<void()> onCurrentPageChanged;
     std::function<void()> onSelectionChanged;
+    // A right press: the link under it, if any.
+    std::function<void(cutefish::ui::PointF windowPosition, const std::string& uri)> onContextMenuRequested;
     // An http, https or mailto link clicked.
     std::function<void(const std::string& uri)> onOpenUri;
 

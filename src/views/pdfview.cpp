@@ -118,7 +118,8 @@ size_t PdfView::TileHash::operator()(const TileKey& key) const
     return hash;
 }
 
-// The scrolled content: the pages and their tiles.
+// The scrolled content: the pages, their tiles, matches and the selection.
+// It takes the presses: selection, links and the context menu.
 class PdfView::Canvas : public ui::View
 {
 public:
@@ -241,6 +242,12 @@ void PdfView::Canvas::pointerPress(const ui::PointerEvent& event)
 {
     if (!m_view->m_document)
         return;
+    if (event.button == ui::MouseButton::Right) {
+        const pdf::Link* link = m_view->linkAt(event.position);
+        if (m_view->onContextMenuRequested)
+            m_view->onContextMenuRequested(mapToWindow(event.position), link ? link->uri : std::string());
+        return;
+    }
     if (event.button != ui::MouseButton::Left)
         return;
     m_pressed = true;

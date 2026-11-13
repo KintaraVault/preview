@@ -266,6 +266,9 @@ PreviewWindow::PreviewWindow(Application& application)
     m_root->pdf->onStateChanged = [this] { pdfStateChanged(); };
     PdfView* pages = m_root->pdf->view();
     pages->onCurrentPageChanged = [this] { updateHeader(); };
+    pages->onContextMenuRequested = [this](ui::PointF position, const std::string& uri) {
+        openPdfContextMenu(position, uri);
+    };
     pages->onOpenUri = [this](const std::string& uri) { m_application.openUri(uri); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     WelcomePage* welcome = m_root->welcome;
@@ -809,6 +812,19 @@ void PreviewWindow::openContextMenu(ui::PointF position)
     m_contextMenu->addSeparator();
     m_contextMenu->addItem(tr("Show in Files"), [this] { showInFiles(); });
     m_contextMenu->addItem(tr("Move to Trash"), [this] { moveToTrash(); });
+    m_contextMenu->popup(m_window.get(), position);
+}
+
+void PreviewWindow::openPdfContextMenu(ui::PointF position, const std::string& uri)
+{
+    m_contextMenu = std::make_unique<ui::Menu>();
+    if (!uri.empty()) {
+        m_contextMenu->addItem(tr("Copy Link"), [uri] { ui::Clipboard::setText(uri); });
+        m_contextMenu->addSeparator();
+    }
+    const size_t copyRow = m_contextMenu->addItem(tr("Copy"), [this] { copy(); });
+    m_contextMenu->setItemEnabled(copyRow, m_root->pdf->view()->hasSelection());
+    m_contextMenu->addItem(tr("Select All"), [this] { selectAll(); });
     m_contextMenu->popup(m_window.get(), position);
 }
 
