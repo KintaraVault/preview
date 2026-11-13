@@ -254,6 +254,8 @@ Sidebar::Sidebar(double headerHeight)
     m_list = addChild<ui::ListView>();
     m_list->setRowHeight(kRowHeight);
     m_list->setSpacing(kRowSpacing);
+    // Space above the first plate that scrolls away with the rows.
+    m_list->setMargins({0, kSmallSpacing, 0, 0});
     m_list->createItem = [this] { return std::make_unique<Row>(*this); };
     m_list->bindItem = [](ui::View* item, size_t row) { static_cast<Row*>(item)->bind(row); };
     m_subscriptions.push_back(m_list->scrolled.connect([this] { keepVisibleThumbnails(); }));
@@ -398,8 +400,9 @@ void Sidebar::keepVisibleThumbnails()
     if (!m_document)
         return;
     const double step = kRowHeight + kRowSpacing;
-    const int first = int(m_list->scrollPosition().y / step);
-    const int last = int((m_list->scrollPosition().y + m_list->geometry().height) / step);
+    const double top = std::max(0.0, m_list->scrollPosition().y - kSmallSpacing);
+    const int first = int(top / step);
+    const int last = int((top + m_list->geometry().height) / step);
     m_document->keepThumbnailRequests(first - 1, last + 1);
 }
 
