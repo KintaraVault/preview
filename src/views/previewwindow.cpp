@@ -53,6 +53,7 @@ using namespace cutefish;
 using namespace std::chrono_literals;
 using cutefish::i18n::format;
 using cutefish::i18n::tr;
+using cutefish::i18n::trc;
 using ui::rounding::centeredStart;
 
 static constexpr double kButtonSize = 32;
@@ -1149,7 +1150,8 @@ void PreviewWindow::buildMainMenu()
     ui::Menu* windowMenu = m_mainMenu->addSubmenu(tr("Window"));
     windowMenu->setRole(ui::MenuRole::Windows);
     windowMenu->addItem(tr("Minimize"), [this] { m_window->minimize(); });
-    windowMenu->addItem(tr("Zoom"), [this] { m_window->setMaximized(!m_window->states().maximized); });
+    windowMenu->addItem(trc("window command", "Zoom"),
+                        [this] { m_window->setMaximized(!m_window->states().maximized); });
 
     ui::Menu* help = m_mainMenu->addSubmenu(tr("Help"));
     help->setRole(ui::MenuRole::Help);
