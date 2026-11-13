@@ -7,6 +7,7 @@
 #include "previewwindow.h"
 #include "sidebar.h"
 #include "testutil.h"
+#include "turnsaver.h"
 #include "waitfor.h"
 
 #include "ui/application.h"
@@ -334,4 +335,74 @@ TEST_F(UiTest, RotatingTurnsThePictureThenTheFile)
     EXPECT_FALSE(window.canRotate());
     press(window, key::letter('l'), ControlModifier);
     EXPECT_EQ(viewer->quarterTurns(), 0);
+}
+
+// Turns asked for in a window closed at once are written all the same.
+TEST_F(UiTest, TurnsOutliveTheirWindow)
+{
+    const std::string png = writePng(directory.filePath("a.png"), 60, 30);
+    const std::string text = writeFile(directory.filePath("notes.txt"));
+    application.open({png, text});
+    ASSERT_EQ(application.windows().size(), 2u);
+    PreviewWindow& window = *application.windows().front();
+    ASSERT_TRUE(showing(window, png));
+    for (int i = 0; i < 3; ++i)
+        press(window, key::letter('r'), ControlModifier);
+    window.close();
+    ASSERT_TRUE(waitFor(loop(), [&] { return application.windows().size() == 1 && application.turnSaver().isIdle(); }));
+    // Three turns right are one left: 30 x 60.
+    EXPECT_EQ(readImageInfo(png, "image/png").width, 30);
+}
+
+// The reload after a save keeps the zoom and the point under the pointer.
+TEST_F(UiTest, TheReloadAfterATurnKeepsTheView)
+{
+    const std::string path = writePng(directory.filePath("big.png"), 1600, 1200);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    window.window().grab();
+    ImageViewer* viewer = window.imagePage()->viewer();
+    press(window, key::letter('r'), ControlModifier);
+    const PointF at {150, 120};
+    viewer->zoomTo(viewer->zoom() * 3, at, false);
+    const double zoom = viewer->zoom();
+    const PointF before = viewer->imagePoint(at);
+    ASSERT_TRUE(waitFor(loop(), [&] {
+        return application.turnSaver().isIdle() && window.imagePage()->shown().info.width == 1200
+                && viewer->quarterTurns() == 0;
+    }));
+    EXPECT_DOUBLE_EQ(viewer->zoom(), zoom);
+    const PointF after = viewer->imagePoint(at);
+    EXPECT_NEAR(after.x, before.x, 0.5);
+    EXPECT_NEAR(after.y, before.y, 0.5);
+}
+
+// A neighbour decoded ahead before its file was turned is not shown after.
+TEST_F(UiTest, AFileTurnedWhileAwayShowsTurned)
+{
+    const std::string a = writeHalvesPng(directory.filePath("a.png"), 60, 30);
+    const std::string b = writePng(directory.filePath("b.png"), 60, 30);
+    application.open({a, b});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, a));
+    press(window, key::letter('r'), ControlModifier);
+    press(window, key::Right);
+    ASSERT_TRUE(showing(window, b));
+    ASSERT_TRUE(waitFor(loop(), [&] { return application.turnSaver().isIdle(); }));
+    runFor(loop(), 200ms);
+    press(window, key::Left);
+    ASSERT_TRUE(showing(window, a));
+    ImageViewer* viewer = window.imagePage()->viewer();
+    EXPECT_EQ(viewer->quarterTurns(), 0);
+    EXPECT_EQ(window.imagePage()->shown().info.width, 30);
+    ASSERT_TRUE(waitFor(loop(), [&] {
+        window.window().grab();
+        return !viewer->isLoading();
+    }));
+    const Image shown = window.window().grab();
+    const PointF centre = viewer->mapToWindow(viewer->center());
+    // Turned clockwise: the red left half is on top.
+    EXPECT_EQ(shown.pixel(int(centre.x), int(centre.y) - 10), Color::rgb(0xFF0000));
+    EXPECT_EQ(shown.pixel(int(centre.x), int(centre.y) + 10), Color::rgb(0x0000FF));
 }

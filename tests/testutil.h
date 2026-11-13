@@ -42,6 +42,17 @@ inline std::string writeFile(const std::string& path, const std::string& content
     return path;
 }
 
+// Red on the left half, blue on the right.
+inline std::string writeHalvesPng(const std::string& path, int width, int height)
+{
+    cutefish::ui::Image image(width, height);
+    for (int y = 0; y < height; ++y)
+        for (int x = 0; x < width; ++x)
+            image.setPixel(x, y, cutefish::ui::Color::rgb(x < width / 2 ? 0xFF0000 : 0x0000FF));
+    image.savePng(path);
+    return path;
+}
+
 // A grey PNG of this many pixels.
 inline std::string writePng(const std::string& path, int width, int height)
 {
