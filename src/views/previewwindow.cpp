@@ -238,8 +238,11 @@ int PreviewWindow::count() const
 
 void PreviewWindow::show(const std::vector<std::string>& paths)
 {
+    std::error_code error;
+    const bool folder = paths.size() == 1 && ImageSequence::isImage(paths.front())
+            && std::filesystem::is_regular_file(paths.front(), error);
     m_sequenceConnections.clear();
-    m_sequence = ImageSequence::files(paths);
+    m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
     m_root->image->load(m_sequence->currentPath());
     m_root->requestLayout();
