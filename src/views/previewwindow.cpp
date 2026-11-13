@@ -613,6 +613,9 @@ void PreviewWindow::turnWritten(const std::string& path, int error)
     if (error) {
         if (!m_toast)
             m_toast = std::make_unique<ui::Toast>(m_window.get());
+        const std::string reason = error == rotation::kUnreadable
+                ? std::string(tr("it cannot be read as a JPEG or PNG image"))
+                : std::string(std::strerror(error));
         m_toast->show(format(tr("Could not rotate {name}: {reason}"),
                              {{"name", std::filesystem::path(path).filename().string()}, {"reason", reason}}));
     }

@@ -33,10 +33,20 @@ bool turnsType(const std::string& mimeType)
     return mimeType == "image/jpeg" || mimeType == "image/png";
 }
 
+// The file a path names, through any symbolic links: that is what is
+// replaced, in its own folder.
+static std::string realFile(const std::string& path)
+{
+    std::error_code error;
+    const fs::path real = fs::canonical(path, error);
+    return error ? path : real.string();
+}
+
 bool canTurn(const std::string& path, const std::string& mimeType)
 {
-    const std::string folder = fs::path(path).parent_path().string();
-    return turnsType(mimeType) && ::access(path.c_str(), W_OK) == 0 && ::access(folder.c_str(), W_OK | X_OK) == 0;
+    const std::string file = realFile(path);
+    const std::string folder = fs::path(file).parent_path().string();
+    return turnsType(mimeType) && ::access(file.c_str(), W_OK) == 0 && ::access(folder.c_str(), W_OK | X_OK) == 0;
 }
 
 int turnedOrientation(int orientation, int quarterTurns)
@@ -467,15 +477,16 @@ int turn(const std::string& path, const std::string& mimeType, int quarterTurns)
 {
     if (((quarterTurns % 4) + 4) % 4 == 0)
         return 0;
-    std::optional<std::string> data = base::file::read(path);
+    const std::string file = realFile(path);
+    std::optional<std::string> data = base::file::read(file);
     if (!data)
-        return ::access(path.c_str(), R_OK) != 0 ? errno : EIO;
+        return ::access(file.c_str(), R_OK) != 0 ? errno : EIO;
     const std::optional<std::string> turned = mimeType == "image/jpeg" ? turnedJpeg(std::move(*data), quarterTurns)
             : mimeType == "image/png"                                    ? turnedPng(*data, quarterTurns)
                                                                          : std::nullopt;
     if (!turned)
-        return EINVAL;
-    return replaceFile(path, *turned);
+        return kUnreadable;
+    return replaceFile(file, *turned);
 }
 
 } // namespace rotation

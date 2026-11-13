@@ -10,7 +10,10 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdio>
+#include <cstring>
+#include <filesystem>
 #include <jpeglib.h>
 #include <png.h>
 #include <sys/stat.h>
@@ -268,5 +271,130 @@ TEST(RotationTest, OnlyWritableJpegAndPngFilesTurn)
     EXPECT_FALSE(rotation::canTurn(jpeg, "image/gif"));
     ::chmod(jpeg.c_str(), 0444);
     EXPECT_FALSE(rotation::canTurn(jpeg, "image/jpeg"));
-    EXPECT_EQ(rotation::turn(writeFile(directory.filePath("b.png"), "not a png"), "image/png", 1), EINVAL);
+    EXPECT_EQ(rotation::turn(writeFile(directory.filePath("b.png"), "not a png"), "image/png", 1),
+              rotation::kUnreadable);
+}
+
+// What an 8-bit RGB 4 x 2 PNG of the values 0 to 7 carries besides pixels.
+struct Extras
+{
+    bool iDot = false;
+    bool cicp = false;
+    // An eXIf after IDAT with this orientation, when not 0.
+    int trailingOrientation = 0;
+};
+
+static std::string writeRgbPng(const std::string& path, const Extras& extras)
+{
+    FILE* file = std::fopen(path.c_str(), "wb");
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info = png_create_info_struct(png);
+    png_init_io(png, file);
+    png_set_IHDR(png, info, 4, 2, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+                 PNG_FILTER_TYPE_DEFAULT);
+    if (extras.cicp)
+        png_set_cICP(png, info, 12, 13, 0, 1);
+    png_unknown_chunk dot {};
+    if (extras.iDot) {
+        std::memcpy(dot.name, "iDOT", 5);
+        static png_byte offsets[28] = {};
+        dot.data = offsets;
+        dot.size = sizeof(offsets);
+        dot.location = PNG_HAVE_IHDR;
+        png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
+        png_set_unknown_chunks(png, info, &dot, 1);
+    }
+    png_write_info(png, info);
+    for (int y = 0; y < 2; ++y) {
+        png_byte row[12];
+        for (int x = 0; x < 4; ++x)
+            row[x * 3] = row[x * 3 + 1] = row[x * 3 + 2] = png_byte((y * 4 + x) * 30);
+        png_write_row(png, row);
+    }
+    // Little-endian TIFF, IFD0 at 8 with the orientation alone.
+    std::string exif("II*\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0", 18);
+    exif += char(extras.trailingOrientation);
+    exif += std::string(7, '\0');
+    if (extras.trailingOrientation)
+        png_set_eXIf_1(png, info, png_uint_32(exif.size()), reinterpret_cast<png_bytep>(exif.data()));
+    png_write_end(png, info);
+    png_destroy_write_struct(&png, &info);
+    std::fclose(file);
+    return path;
+}
+
+// The chunk names in file order.
+static std::vector<std::string> chunkNames(const std::string& data)
+{
+    std::vector<std::string> names;
+    for (size_t offset = 8; offset + 8 <= data.size();) {
+        const size_t length = size_t(uint8_t(data[offset])) << 24 | size_t(uint8_t(data[offset + 1])) << 16
+                | size_t(uint8_t(data[offset + 2])) << 8 | uint8_t(data[offset + 3]);
+        names.push_back(data.substr(offset + 4, 4));
+        offset += 12 + length;
+    }
+    return names;
+}
+
+static bool has(const std::vector<std::string>& names, const char* name)
+{
+    return std::find(names.begin(), names.end(), name) != names.end();
+}
+
+TEST(RotationTest, UnsafeChunksGoAndColourOnesStay)
+{
+    TemporaryDir directory;
+    const std::string path = writeRgbPng(directory.filePath("shot.png"), {true, true, 0});
+    ASSERT_TRUE(has(chunkNames(*cutefish::base::file::read(path)), "iDOT"));
+    ASSERT_EQ(rotation::turn(path, "image/png", 1), 0);
+    const std::vector<std::string> names = chunkNames(*cutefish::base::file::read(path));
+    EXPECT_FALSE(has(names, "iDOT"));
+    EXPECT_TRUE(has(names, "cICP"));
+}
+
+// The decoder does not read a PNG's eXIf: what shows is the pixels, so the
+// turn turns them and sets the orientation upright for readers that do.
+TEST(RotationTest, AnExifAfterTheDataStaysAndIsSetUpright)
+{
+    TemporaryDir directory;
+    const std::string path = writeRgbPng(directory.filePath("exif.png"), {false, false, 2});
+    const std::vector<std::string> before = chunkNames(*cutefish::base::file::read(path));
+    ASSERT_GT(std::find(before.begin(), before.end(), "eXIf"), std::find(before.begin(), before.end(), "IDAT"));
+    const Image shown = Image::fromFile(path);
+    ASSERT_EQ(shown.width(), 4);
+    ASSERT_EQ(rotation::turn(path, "image/png", 1), 0);
+
+    const std::string turned = *cutefish::base::file::read(path);
+    EXPECT_TRUE(has(chunkNames(turned), "eXIf"));
+    const size_t exif = turned.find("eXIf") + 4;
+    // The orientation's value, 18 bytes into the TIFF data.
+    EXPECT_EQ(uint8_t(turned[exif + 18]), 1);
+    const Image after = Image::fromFile(path);
+    ASSERT_EQ(after.width(), 2);
+    ASSERT_EQ(after.height(), 4);
+    // Turned clockwise: what was at (x, y) in a picture 2 tall is at (1 - y, x).
+    for (int y = 0; y < 2; ++y)
+        for (int x = 0; x < 4; ++x)
+            EXPECT_EQ(after.pixel(1 - y, x), shown.pixel(x, y));
+}
+
+TEST(RotationTest, ALinkStaysAndItsFileTurns)
+{
+    TemporaryDir directory;
+    std::filesystem::create_directories(directory.filePath("real"));
+    const std::string real = writeGreyPng(directory.filePath("real/grey.png"));
+    const std::string link = directory.filePath("link.png");
+    std::filesystem::create_symlink(real, link);
+    EXPECT_TRUE(rotation::canTurn(link, "image/png"));
+    ASSERT_EQ(rotation::turn(link, "image/png", 1), 0);
+    EXPECT_TRUE(std::filesystem::is_symlink(link));
+    EXPECT_EQ(readGreyPng(real).width, 2u);
+    EXPECT_EQ(std::distance(std::filesystem::directory_iterator(directory.filePath("real")),
+                            std::filesystem::directory_iterator()),
+              1);
+
+    // A read-only folder of the file, behind a writable one of the link.
+    ::chmod(directory.filePath("real").c_str(), 0555);
+    EXPECT_FALSE(rotation::canTurn(link, "image/png"));
+    ::chmod(directory.filePath("real").c_str(), 0755);
 }

@@ -16,7 +16,11 @@ namespace rotation {
 bool turnsType(const std::string& mimeType);
 // The file is of such a type and it and its folder may be written.
 bool canTurn(const std::string& path, const std::string& mimeType);
-// 0 when done, else an errno value; on any thread.
+// The content is not a JPEG or PNG this code can read.
+inline constexpr int kUnreadable = -1;
+
+// 0 when done, kUnreadable, else an errno value; on any thread. A symbolic
+// link stays and the file it names is turned.
 int turn(const std::string& path, const std::string& mimeType, int quarterTurns);
 
 // The EXIF orientation of an image shown with `orientation` and then turned
