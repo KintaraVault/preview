@@ -610,6 +610,11 @@ void PreviewWindow::rotate(int delta)
 
 void PreviewWindow::turnWritten(const std::string& path, int error)
 {
+    if (!m_sequence)
+        return;
+    const std::vector<std::string>& paths = m_sequence->paths();
+    if (std::find(paths.begin(), paths.end(), path) == paths.end())
+        return;
     if (error) {
         if (!m_toast)
             m_toast = std::make_unique<ui::Toast>(m_window.get());

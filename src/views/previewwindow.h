@@ -87,6 +87,7 @@ public:
     std::string positionText() const;
     std::string titleText() const;
     double chromeOpacity() const { return m_chromeOpacity; }
+    bool hasShownToast() const { return m_toast != nullptr; }
 
 private:
     class HeaderBar;
