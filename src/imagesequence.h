@@ -14,6 +14,9 @@
 class ImageSequence
 {
 public:
+    // The file and the images beside it, by name with numbers in order,
+    // hidden files left out.
+    static std::unique_ptr<ImageSequence> folderOf(const std::string& path);
     // These files in this order.
     static std::unique_ptr<ImageSequence> files(std::vector<std::string> paths);
 
