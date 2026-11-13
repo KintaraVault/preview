@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-12 19:32+0800\n"
+"POT-Creation-Date: 2026-11-13 17:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -81,9 +81,11 @@ msgid "Preview"
 msgstr ""
 
 #: src/views/previewwindow.cpp
-msgid "it cannot be read as a JPEG or PNG image"
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
 msgstr ""
 
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
 #: src/views/previewwindow.cpp
 #, python-brace-format
 msgid "Could not rotate {name}: {reason}"
@@ -261,7 +263,8 @@ msgstr ""
 msgid "Minimize"
 msgstr ""
 
-#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+#: src/views/previewwindow.cpp
+msgctxt "window command"
 msgid "Zoom"
 msgstr ""
 
@@ -273,29 +276,12 @@ msgstr ""
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#. TRANSLATORS: key names stay as they are.
-#: src/views/shortcutsdialog.cpp
-msgid "Delete"
-msgstr ""
-
 #: src/views/shortcutsdialog.cpp
 msgid "Previous or next image"
 msgstr ""
 
 #: src/views/shortcutsdialog.cpp
-msgid "Page Up, Page Down"
-msgstr ""
-
-#: src/views/shortcutsdialog.cpp
-msgid "Shift+Space, Space"
-msgstr ""
-
-#: src/views/shortcutsdialog.cpp
 msgid "First or last image"
-msgstr ""
-
-#: src/views/shortcutsdialog.cpp
-msgid "Home, End"
 msgstr ""
 
 #: src/views/shortcutsdialog.cpp
@@ -324,6 +310,10 @@ msgstr ""
 
 #: src/views/shortcutsdialog.cpp
 msgid "Select all"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
 msgstr ""
 
 #: src/views/shortcutsdialog.cpp
