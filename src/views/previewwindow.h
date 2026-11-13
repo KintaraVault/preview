@@ -28,6 +28,7 @@ struct ImageInfo;
 class Application;
 class ImagePage;
 class PdfPage;
+class PdfRequest;
 class ShortcutsDialog;
 class ImageSequence;
 class Sidebar;
@@ -80,6 +81,7 @@ public:
     void showFind();
     void findNext(bool backwards);
     void showGoToPage();
+    void setShowsContents(bool contents);
     // A JPEG or PNG that may be written, still.
     bool canRotate() const;
     // Quarters clockwise; -1 turns left.
@@ -137,6 +139,7 @@ private:
     Root* m_root = nullptr;
     std::unique_ptr<ImageSequence> m_sequence;
     DocumentKind m_kind = DocumentKind::Image;
+    std::unique_ptr<PdfRequest> m_jump;
     std::vector<cutefish::base::Subscription> m_sequenceConnections;
     // The files opened that the window has not displayed yet, for the
     // recent files.

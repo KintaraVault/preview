@@ -7,18 +7,26 @@
 #include "ui/view.h"
 
 #include <functional>
+#include <set>
 #include <string>
 #include <vector>
 
+namespace cutefish::pdf {
+struct Destination;
+struct OutlineItem;
+}
+
 namespace cutefish::ui {
 class ListView;
+class SegmentedControl;
 }
 
 class PdfDocument;
 
 // Thumbnails of the window's items down its left edge, in the material and
 // selection style of the Files sidebar; the current one is selected and
-// kept in view.
+// kept in view. For a PDF the items are its pages, numbered, and a document
+// with an outline gets Thumbnails and Contents at the top.
 class Sidebar : public cutefish::ui::View
 {
 public:
@@ -26,6 +34,7 @@ public:
 
     // The header's height, which the thumbnails start below.
     explicit Sidebar(double headerHeight);
+    ~Sidebar() override;
 
     void setItems(const std::vector<std::string>& paths);
     // Its pages instead of files; null goes back to files. It outlives the
@@ -37,7 +46,21 @@ public:
     int current() const { return m_current; }
     size_t count() const;
 
+    bool hasContents() const;
+    bool showsContents() const { return m_showsContents; }
+    void setShowsContents(bool contents);
+    // The outline's rows as they are shown, an item's children under it
+    // while it is open.
+    size_t contentsRowCount() const { return m_outlineRows.size(); }
+    const std::string& contentsTitle(size_t row) const;
+    void toggleContentsRow(size_t row);
+    void activateContentsRow(size_t row);
+    void retranslate();
+
     std::function<void(int index)> onActivated;
+    std::function<void(const cutefish::pdf::Destination& destination)> onDestinationActivated;
+    // Thumbnails or contents picked.
+    std::function<void()> onModeChanged;
 
 protected:
     void layout() override;
@@ -45,12 +68,27 @@ protected:
 
 private:
     class Row;
+    class OutlineRow;
+
+    struct OutlineEntry
+    {
+        const cutefish::pdf::OutlineItem* item;
+        int depth;
+    };
+
+    void outlineChanged();
+    void flattenOutline();
     void keepVisibleThumbnails();
 
     double m_headerHeight;
+    cutefish::ui::SegmentedControl* m_modes;
     cutefish::ui::ListView* m_list;
+    cutefish::ui::ListView* m_outline;
     std::vector<std::string> m_paths;
     PdfDocument* m_document = nullptr;
     std::vector<cutefish::base::Subscription> m_subscriptions;
+    std::vector<OutlineEntry> m_outlineRows;
+    std::set<const cutefish::pdf::OutlineItem*> m_open;
+    bool m_showsContents = false;
     int m_current = -1;
 };

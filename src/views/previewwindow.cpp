@@ -253,6 +253,7 @@ private:
 PreviewWindow::PreviewWindow(Application& application)
     : m_application(application)
     , m_window(std::make_unique<ui::Window>())
+    , m_jump(std::make_unique<PdfRequest>())
 {
     m_window->setTitle(tr("Preview"));
     m_window->resize({720, 540});
@@ -276,6 +277,13 @@ PreviewWindow::PreviewWindow(Application& application)
     };
     pages->onOpenUri = [this](const std::string& uri) { m_application.openUri(uri); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
+    m_root->sidebar->onDestinationActivated = [this](const pdf::Destination& destination) {
+        PdfDocument* document = m_root->pdf->document();
+        if (!document)
+            return;
+        *m_jump = document->resolve(destination,
+                                    [this](int page, ui::PointF point) { m_root->pdf->view()->goTo(page, point); });
+    };
     WelcomePage* welcome = m_root->welcome;
     welcome->onOpen = [this] { openDialog(); };
     welcome->onRecentClicked = [this](const std::string& path) { m_application.open({path}); };
@@ -745,6 +753,15 @@ void PreviewWindow::showGoToPage()
         m_root->pdf->showGoToPage();
 }
 
+void PreviewWindow::setShowsContents(bool contents)
+{
+    if (m_kind != DocumentKind::Pdf)
+        return;
+    if (!m_sidebarShown)
+        toggleSidebar();
+    m_root->sidebar->setShowsContents(contents);
+}
+
 bool PreviewWindow::canRotate() const
 {
     const ShownFile& file = m_root->image->shown();
@@ -917,6 +934,7 @@ void PreviewWindow::retranslate()
     m_root->welcome->retranslate();
     m_root->image->retranslate();
     m_root->pdf->retranslate();
+    m_root->sidebar->retranslate();
     updateHeader();
     updateTitle();
 }
