@@ -406,56 +406,56 @@ static std::optional<std::string> turnedPng(const std::string& data, int quarter
     std::vector<png_bytep> rows;
     volatile bool done = false;
     PngReader reader {data};
-    if (setjmp(png_jmpbuf(read)) == 0 && setjmp(png_jmpbuf(write)) == 0) {
-        png_set_read_fn(read, &reader, readPngData);
-        png_set_sig_bytes(read, 8);
-        png_set_keep_unknown_chunks(read, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
-        png_read_info(read, info);
-        png_uint_32 width = 0, height = 0;
-        int depth = 0, colour = 0, interlace = 0;
-        png_get_IHDR(read, info, &width, &height, &depth, &colour, &interlace, nullptr, nullptr);
-        png_unknown_chunkp unknown = nullptr;
-        const int unknownCount = png_get_unknown_chunks(read, info, &unknown);
-        const bool animated = std::any_of(unknown, unknown + std::max(0, unknownCount), [](const png_unknown_chunk& chunk) {
-            return std::memcmp(chunk.name, "acTL", 4) == 0;
-        });
-        if (!animated) {
-            if (depth < 8)
-                png_set_packing(read);
-            png_set_interlace_handling(read);
-            png_read_update_info(read, info);
-            const size_t rowBytes = png_get_rowbytes(read, info);
-            const size_t bytes = rowBytes / width;
-            pixels.resize(rowBytes * height);
-            rows.resize(height);
-            for (png_uint_32 y = 0; y < height; ++y)
-                rows[y] = &pixels[y * rowBytes];
-            png_read_image(read, rows.data());
-            png_read_end(read, endInfo);
+    if (setjmp(png_jmpbuf(read)) == 0) {
+        if (setjmp(png_jmpbuf(write)) == 0) {
+            png_set_read_fn(read, &reader, readPngData);
+            png_set_sig_bytes(read, 8);
+            png_set_keep_unknown_chunks(read, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
+            png_read_info(read, info);
+            png_uint_32 width = 0, height = 0;
+            int depth = 0, colour = 0, interlace = 0;
+            png_get_IHDR(read, info, &width, &height, &depth, &colour, &interlace, nullptr, nullptr);
+            png_unknown_chunkp unknown = nullptr;
+            const int unknownCount = png_get_unknown_chunks(read, info, &unknown);
+            const bool animated = std::any_of(unknown, unknown + std::max(0, unknownCount), [](const png_unknown_chunk& chunk) {
+                return std::memcmp(chunk.name, "acTL", 4) == 0;
+            });
+            if (!animated) {
+                if (depth < 8)
+                    png_set_packing(read);
+                png_set_interlace_handling(read);
+                png_read_update_info(read, info);
+                const size_t rowBytes = png_get_rowbytes(read, info);
+                const size_t bytes = rowBytes / width;
+                pixels.resize(rowBytes * height);
+                rows.resize(height);
+                for (png_uint_32 y = 0; y < height; ++y)
+                    rows[y] = &pixels[y * rowBytes];
+                png_read_image(read, rows.data());
+                png_read_end(read, endInfo);
 
-            const int turns = ((quarterTurns % 4) + 4) % 4;
-            pixels = turnedPixels(pixels, width, height, bytes, turns);
-            const png_uint_32 outWidth = turns % 2 ? height : width;
-            const png_uint_32 outHeight = turns % 2 ? width : height;
-            png_set_write_fn(write, &encoded, writePngData, flushPng);
-            png_set_IHDR(write, out, outWidth, outHeight, depth, colour, interlace, PNG_COMPRESSION_TYPE_DEFAULT,
-                         PNG_FILTER_TYPE_DEFAULT);
-            copyChunks(read, info, write, out, turns % 2);
-            png_textp text = nullptr;
-            int textCount = 0;
-            if (png_get_text(read, endInfo, &text, &textCount) > 0)
-                png_set_text(write, out, text, textCount);
-            png_write_info(write, out);
-            if (depth < 8)
-                png_set_packing(write);
-            png_set_interlace_handling(write);
-            const size_t outRowBytes = size_t(outWidth) * bytes;
-            rows.resize(outHeight);
-            for (png_uint_32 y = 0; y < outHeight; ++y)
-                rows[y] = &pixels[y * outRowBytes];
-            png_write_image(write, rows.data());
-            png_write_end(write, nullptr);
-            done = true;
+                const int turns = ((quarterTurns % 4) + 4) % 4;
+                pixels = turnedPixels(pixels, width, height, bytes, turns);
+                const png_uint_32 outWidth = turns % 2 ? height : width;
+                const png_uint_32 outHeight = turns % 2 ? width : height;
+                png_set_write_fn(write, &encoded, writePngData, flushPng);
+                png_set_IHDR(write, out, outWidth, outHeight, depth, colour, interlace, PNG_COMPRESSION_TYPE_DEFAULT,
+                             PNG_FILTER_TYPE_DEFAULT);
+                png_set_keep_unknown_chunks(write, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
+                copyChunks(read, info, write, out, turns % 2);
+                copyChunks(read, endInfo, write, out, turns % 2);
+                png_write_info(write, out);
+                if (depth < 8)
+                    png_set_packing(write);
+                png_set_interlace_handling(write);
+                const size_t outRowBytes = size_t(outWidth) * bytes;
+                rows.resize(outHeight);
+                for (png_uint_32 y = 0; y < outHeight; ++y)
+                    rows[y] = &pixels[y * outRowBytes];
+                png_write_image(write, rows.data());
+                png_write_end(write, nullptr);
+                done = true;
+            }
         }
     }
     png_destroy_read_struct(&read, &info, &endInfo);
