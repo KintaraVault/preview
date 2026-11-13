@@ -6,7 +6,12 @@
 #include "base/paths.h"
 #include "base/settings.h"
 
+#include <algorithm>
+#include <filesystem>
+
 using namespace cutefish;
+
+static constexpr const char* kRecentKey = "Recent/Files";
 
 static std::string sidebarKey(DocumentKind kind)
 {
@@ -20,6 +25,10 @@ static std::string sidebarKey(DocumentKind kind)
 PreviewSettings::PreviewSettings(std::string file)
     : m_file(std::move(file))
 {
+    const base::Settings settings(m_file);
+    m_recentFiles = settings.stringListValue(kRecentKey);
+    if (m_recentFiles.size() > kRecentCapacity)
+        m_recentFiles.resize(kRecentCapacity);
 }
 
 std::string PreviewSettings::defaultPath()
@@ -36,5 +45,45 @@ void PreviewSettings::setSidebarShown(DocumentKind kind, bool shown)
 {
     base::Settings settings(m_file);
     settings.setValue(sidebarKey(kind), shown);
+    settings.sync();
+}
+
+std::vector<std::string> PreviewSettings::recentFiles() const
+{
+    std::vector<std::string> files;
+    std::error_code error;
+    for (const std::string& path : m_recentFiles) {
+        if (std::filesystem::exists(path, error))
+            files.push_back(path);
+    }
+    return files;
+}
+
+void PreviewSettings::addRecentFile(const std::string& path)
+{
+    if (!m_recentFiles.empty() && m_recentFiles.front() == path)
+        return;
+    std::erase(m_recentFiles, path);
+    m_recentFiles.insert(m_recentFiles.begin(), path);
+    if (m_recentFiles.size() > kRecentCapacity)
+        m_recentFiles.resize(kRecentCapacity);
+    writeRecentFiles();
+    recentFilesChanged.emit();
+}
+
+void PreviewSettings::clearRecentFiles()
+{
+    m_recentFiles.clear();
+    writeRecentFiles();
+    recentFilesChanged.emit();
+}
+
+void PreviewSettings::writeRecentFiles()
+{
+    base::Settings settings(m_file);
+    if (m_recentFiles.empty())
+        settings.remove(kRecentKey);
+    else
+        settings.setValue(kRecentKey, m_recentFiles);
     settings.sync();
 }

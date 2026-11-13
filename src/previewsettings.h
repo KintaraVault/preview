@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "base/signal.h"
+
 #include <string>
 #include <vector>
 
@@ -11,10 +13,13 @@ enum class DocumentKind {
     Image,
 };
 
-// preview.conf: whether the sidebar shows, per kind.
+// preview.conf: whether the sidebar shows, per kind, and the files opened
+// recently.
 class PreviewSettings
 {
 public:
+    static constexpr size_t kRecentCapacity = 20;
+
     explicit PreviewSettings(std::string file);
 
     // ~/.config/cutefish/preview.conf.
@@ -23,6 +28,16 @@ public:
     bool sidebarShown(DocumentKind kind) const;
     void setSidebarShown(DocumentKind kind, bool shown);
 
+    // Local paths, newest first; files gone from disk are left out.
+    std::vector<std::string> recentFiles() const;
+    void addRecentFile(const std::string& path);
+    void clearRecentFiles();
+
+    cutefish::base::Signal<> recentFilesChanged;
+
 private:
+    void writeRecentFiles();
+
     std::string m_file;
+    std::vector<std::string> m_recentFiles;
 };
