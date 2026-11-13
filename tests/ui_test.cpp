@@ -12,6 +12,7 @@
 
 #include "ui/application.h"
 #include "ui/clipboard.h"
+#include "ui/header_button.h"
 #include "ui/image_info.h"
 #include "ui/keys.h"
 #include "ui/test_input.h"
@@ -166,6 +167,13 @@ TEST_F(UiTest, TheSidebarIsKeptForImages)
     window.window().grab();
     EXPECT_TRUE(window.sidebar()->isVisible());
     EXPECT_TRUE(settings.sidebarShown(DocumentKind::Image));
+    // The sidebar shows for itself; the toggle is a plain button either way.
+    auto* toggle = static_cast<HeaderButton*>(window.sidebarButton());
+    EXPECT_FALSE(toggle->isChecked());
+    window.toggleSidebar();
+    window.window().grab();
+    EXPECT_FALSE(window.sidebar()->isVisible());
+    EXPECT_FALSE(toggle->isChecked());
 }
 
 TEST_F(UiTest, CopyOffersPngTheFilesOwnTypeAndItsUrl)

@@ -573,7 +573,6 @@ void PreviewWindow::updateHeader()
     const bool pdf = document && m_kind == DocumentKind::Pdf;
     const bool zoomable = pdf ? m_root->pdf->isReady() : document && m_root->image->showsImage();
     row->sidebar->setVisible(document);
-    row->sidebar->setChecked(m_sidebarShown);
     // A PDF goes through its pages in other ways; its arrows would step pages.
     row->previous->setVisible(multiple && !pdf);
     row->next->setVisible(multiple && !pdf);
