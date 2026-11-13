@@ -43,6 +43,9 @@ public:
     const std::string& path() const { return m_path; }
     bool isReady() const;
     PdfView* view() const { return m_view; }
+    // The view's top inset, under the header; the cards and the message
+    // keep below it.
+    void setTopInset(double inset);
 
     // The password dialog, over the window.
     void askPassword();

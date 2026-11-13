@@ -88,6 +88,14 @@ void PdfPage::clear()
     updateMessage();
 }
 
+void PdfPage::setTopInset(double inset)
+{
+    if (inset == m_view->topInset())
+        return;
+    m_view->setTopInset(inset);
+    requestLayout();
+}
+
 bool PdfPage::isReady() const
 {
     return m_document && m_document->state() == PdfDocument::State::Ready;

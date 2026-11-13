@@ -234,9 +234,8 @@ protected:
         const ui::RectF content {left, 0, width, rect.height};
         image->setTopInset(inset);
         image->setGeometry(content);
-        pdf->view()->setTopInset(inset);
+        pdf->setTopInset(inset);
         pdf->setGeometry(content);
-        pdf->requestLayout();
         welcome->setGeometry({left, kHeaderHeight, width, std::max(0.0, rect.height - kHeaderHeight)});
         imageBackdrop->setVisible(!fullScreen && image->isVisible());
         pdfBackdrop->setVisible(!fullScreen && pdfShown);
