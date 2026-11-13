@@ -8,6 +8,10 @@
 #include <string>
 #include <vector>
 
+namespace cutefish::ui {
+class Window;
+}
+
 namespace cutefish::base::dbus {
 class Connection;
 class Object;
@@ -48,8 +52,9 @@ public:
     void quit();
 
     void showInFiles(const std::string& path) const;
-    // With uriOpener when set, else the application the desktop has for its scheme.
-    void openUri(const std::string& uri) const;
+    // With uriOpener when set, else as the desktop starts the application it
+    // has for the scheme, given the focus from `window`, which the user is in.
+    void openUri(const std::string& uri, cutefish::ui::Window* window) const;
     std::function<void(const std::string& uri)> uriOpener;
 
     // Publishes org.cutefish.Preview at /Preview; false when another process

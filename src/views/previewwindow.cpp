@@ -275,7 +275,7 @@ PreviewWindow::PreviewWindow(Application& application)
     pages->onContextMenuRequested = [this](ui::PointF position, const std::string& uri) {
         openPdfContextMenu(position, uri);
     };
-    pages->onOpenUri = [this](const std::string& uri) { m_application.openUri(uri); };
+    pages->onOpenUri = [this](const std::string& uri) { m_application.openUri(uri, m_window.get()); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     m_root->sidebar->onDestinationActivated = [this](const pdf::Destination& destination) {
         PdfDocument* document = m_root->pdf->document();
@@ -894,6 +894,9 @@ void PreviewWindow::showAbout()
         m_about->setName(tr("Preview"));
         m_about->setDescription(tr("View images and PDF documents"));
         m_about->setIconSource("accessories-document-viewer");
+        m_about->onLinkActivated = [this](const std::string& link) {
+            m_application.openUri(link, m_about->window() ? m_about->window() : m_window.get());
+        };
     }
     m_about->show();
 }

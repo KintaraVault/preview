@@ -107,12 +107,13 @@ void Application::showInFiles(const std::string& path) const
     proxy.send("ShowItems", std::vector<std::string> {base::url::fromLocalFile(path)}, std::string());
 }
 
-void Application::openUri(const std::string& uri) const
+void Application::openUri(const std::string& uri, ui::Window* window) const
 {
-    if (uriOpener)
+    if (uriOpener) {
         uriOpener(uri);
-    else
-        base::mimeapps::openUri(uri);
+        return;
+    }
+    window->requestActivationToken([uri](const std::string& token) { base::mimeapps::openUri(uri, token); });
 }
 
 bool Application::registerService(base::dbus::Connection* bus)
