@@ -9,6 +9,7 @@
 
 #include "base/dbus.h"
 #include "base/event_loop.h"
+#include "base/process.h"
 #include "base/url.h"
 #include "ui/application.h"
 #include "ui/window.h"
@@ -104,6 +105,14 @@ void Application::showInFiles(const std::string& path) const
     base::dbus::Proxy proxy(bus, "org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
                             "org.freedesktop.FileManager1");
     proxy.send("ShowItems", std::vector<std::string> {base::url::fromLocalFile(path)}, std::string());
+}
+
+void Application::openUri(const std::string& uri) const
+{
+    if (uriOpener)
+        uriOpener(uri);
+    else
+        base::Process::startDetached("xdg-open", {uri});
 }
 
 bool Application::registerService(base::dbus::Connection* bus)

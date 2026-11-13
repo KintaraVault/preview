@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -47,6 +48,9 @@ public:
     void quit();
 
     void showInFiles(const std::string& path) const;
+    // With uriOpener when set, else the desktop's opener.
+    void openUri(const std::string& uri) const;
+    std::function<void(const std::string& uri)> uriOpener;
 
     // Publishes org.cutefish.Preview at /Preview; false when another process
     // has the name.

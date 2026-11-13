@@ -88,10 +88,45 @@ const pdf::PageText* PdfDocument::text(int page, Urgency urgency)
     return nullptr;
 }
 
+const std::vector<pdf::Link>* PdfDocument::links(int page, Urgency urgency)
+{
+    if (m_state != State::Ready || page < 0 || page >= pageCount())
+        return nullptr;
+    PageData& entry = data(page);
+    if (entry.links)
+        return &*entry.links;
+    PdfRequest& request = m_linkRequests[page];
+    if (!request.isPending()) {
+        request = m_worker->run(
+                urgency, [page](const pdf::Document* document, const std::atomic<bool>*) { return document->links(page); },
+                [this, page](std::vector<pdf::Link> links) {
+                    m_linkRequests.erase(page);
+                    data(page).links = std::move(links);
+                    pageDataChanged(page);
+                });
+    }
+    return nullptr;
+}
+
 void PdfDocument::keepPageRequests(int first, int last)
 {
     const auto outside = [first, last](const auto& entry) { return entry.first < first || entry.first > last; };
     std::erase_if(m_textRequests, outside);
+    std::erase_if(m_linkRequests, outside);
+}
+
+PdfRequest PdfDocument::resolve(const pdf::Destination& destination, std::function<void(int page, ui::PointF point)> done)
+{
+    if (m_state != State::Ready || destination.page < 0 || destination.page >= pageCount())
+        return {};
+    return m_worker->run(
+            Urgency::Now,
+            [destination](const pdf::Document* document, const std::atomic<bool>*) {
+                return document->position(destination);
+            },
+            [page = destination.page, done = std::move(done)](base::PointF point) {
+                done(page, {point.x(), point.y()});
+            });
 }
 
 PdfRequest PdfDocument::readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done)

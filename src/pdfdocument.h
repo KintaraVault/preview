@@ -60,9 +60,13 @@ public:
 
     // Null until it arrives.
     const cutefish::pdf::PageText* text(int page, PdfWorker::Urgency urgency = PdfWorker::Urgency::Near);
+    const std::vector<cutefish::pdf::Link>* links(int page, PdfWorker::Urgency urgency = PdfWorker::Urgency::Near);
     // Text and links asked for pages outside these are not read after all.
     void keepPageRequests(int first, int last);
 
+    // The point of the page as shown it goes to. The caller keeps the request.
+    [[nodiscard]] PdfRequest resolve(const cutefish::pdf::Destination& destination,
+                 std::function<void(int page, cutefish::ui::PointF point)> done);
     // UTF-8 from `from` up to `to`, lines of separate pages apart.
     [[nodiscard]] PdfRequest readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done);
 
@@ -76,6 +80,7 @@ private:
     struct PageData
     {
         std::optional<cutefish::pdf::PageText> text;
+        std::optional<std::vector<cutefish::pdf::Link>> links;
     };
 
     void opened(int status);
@@ -90,4 +95,5 @@ private:
     // The pages near what was asked for last; far ones are read again.
     cutefish::base::LruCache<int, PageData> m_pages;
     std::unordered_map<int, PdfRequest> m_textRequests;
+    std::unordered_map<int, PdfRequest> m_linkRequests;
 };

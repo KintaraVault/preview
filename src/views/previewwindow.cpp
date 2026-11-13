@@ -266,6 +266,7 @@ PreviewWindow::PreviewWindow(Application& application)
     m_root->pdf->onStateChanged = [this] { pdfStateChanged(); };
     PdfView* pages = m_root->pdf->view();
     pages->onCurrentPageChanged = [this] { updateHeader(); };
+    pages->onOpenUri = [this](const std::string& uri) { m_application.openUri(uri); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     WelcomePage* welcome = m_root->welcome;
     welcome->onOpen = [this] { openDialog(); };

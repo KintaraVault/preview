@@ -10,6 +10,7 @@
 #include "ui/window.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <limits>
 
@@ -92,6 +93,17 @@ static bool isLineBreak(char32_t code)
     return code == '\n' || code == '\r';
 }
 
+static bool opensOutside(const std::string& uri)
+{
+    std::string scheme;
+    for (const char c : uri) {
+        if (c == ':')
+            break;
+        scheme += char(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return uri.size() > scheme.size() && (scheme == "http" || scheme == "https" || scheme == "mailto");
+}
+
 size_t PdfView::TileHash::operator()(const TileKey& key) const
 {
     size_t hash = std::hash<int64_t>()(key.scale);
@@ -132,6 +144,7 @@ private:
     bool m_dragged = false;
     bool m_selecting = false;
     ui::PointF m_pressAt;
+    std::optional<pdf::Link> m_pressedLink;
 };
 
 bool PdfView::Canvas::caret(ui::PointF content, TextPosition* position, const pdf::PageText** text)
@@ -211,6 +224,8 @@ void PdfView::Canvas::pointerPress(const ui::PointerEvent& event)
     m_pressed = true;
     m_dragged = false;
     m_pressAt = event.position;
+    const pdf::Link* link = m_view->linkAt(event.position);
+    m_pressedLink = link ? std::optional<pdf::Link>(*link) : std::nullopt;
     TextPosition position;
     const pdf::PageText* text = nullptr;
     m_selecting = caret(event.position, &position, &text);
@@ -256,6 +271,13 @@ void PdfView::Canvas::pointerRelease(const ui::PointerEvent& event)
     if (!m_pressed)
         return;
     m_pressed = false;
+    if (m_dragged || !m_pressedLink)
+        return;
+    const pdf::Link* link = m_view->linkAt(event.position);
+    if (link && toRect(link->area) == toRect(m_pressedLink->area)) {
+        m_view->clearSelection();
+        m_view->followLink(*link);
+    }
 }
 
 PdfView::PdfView()
@@ -542,6 +564,18 @@ void PdfView::goToPage(int page)
     }
 }
 
+void PdfView::goTo(int page, ui::PointF point)
+{
+    if (!m_document || page < 0 || page >= m_document->pageCount())
+        return;
+    const double x = snap(pageLeft(page, m_zoom)) + point.x * m_zoom;
+    ui::PointF position = scrollPosition();
+    if (x < position.x || x > position.x + geometry().width)
+        position.x = x - kMargin;
+    position.y = snap(pageTop(page, m_zoom)) + point.y * m_zoom - kMargin;
+    setPosition(position);
+}
+
 void PdfView::scrollScreen(int direction)
 {
     const ui::PointF position = scrollPosition();
@@ -580,6 +614,30 @@ void PdfView::copy()
     });
 }
 
+const pdf::Link* PdfView::linkAt(ui::PointF content)
+{
+    ui::PointF point;
+    const int page = pagePoint(content, &point);
+    const std::vector<pdf::Link>* links = page >= 0 ? m_document->links(page, PdfWorker::Urgency::Now) : nullptr;
+    if (!links)
+        return nullptr;
+    for (const pdf::Link& link : *links) {
+        if (toRect(link.area).contains(point))
+            return &link;
+    }
+    return nullptr;
+}
+
+void PdfView::followLink(const pdf::Link& link)
+{
+    if (!link.uri.empty()) {
+        if (opensOutside(link.uri) && onOpenUri)
+            onOpenUri(link.uri);
+        return;
+    }
+    m_resolve = m_document->resolve(link.destination, [this](int page, ui::PointF point) { goTo(page, point); });
+}
+
 void PdfView::updateTiles()
 {
     if (!m_document || m_renderScale <= 0 || geometry().width <= 0 || geometry().height <= 0)
@@ -608,6 +666,7 @@ void PdfView::updateTiles()
                 firstShown = page;
             lastShown = page;
             m_document->text(page);
+            m_document->links(page);
         }
         const int pixelWidth = int(std::ceil(size.width * scale));
         const int pixelHeight = int(std::ceil(size.height * scale));

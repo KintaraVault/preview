@@ -13,6 +13,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -29,7 +30,8 @@ class Animation;
 // the document's worker at the zoom things come to rest at, the ones in
 // sight first, then half a screen above and below; while a pinch or a zoom
 // moves, the tiles there are scaled. At most 128 MiB of tiles stay, the
-// least recently wanted going first.
+// least recently wanted going first. A drag selects text, a double click a
+// word and a triple click a line; a click on a link follows it.
 class PdfView : public cutefish::ui::ScrollView
 {
 public:
@@ -60,6 +62,8 @@ public:
     int currentPage() const { return m_currentPage; }
     // The page's top at the view's top.
     void goToPage(int page);
+    // The point of the page as shown near the view's top.
+    void goTo(int page, cutefish::ui::PointF point);
     // A screenful down, or up.
     void scrollScreen(int direction);
 
@@ -82,6 +86,8 @@ public:
 
     std::function<void()> onCurrentPageChanged;
     std::function<void()> onSelectionChanged;
+    // An http, https or mailto link clicked.
+    std::function<void(const std::string& uri)> onOpenUri;
 
 protected:
     void layout() override;
@@ -134,6 +140,8 @@ private:
     // Asks for the tiles, text and links of what is in sight and near it.
     void updateTiles();
     void tileArrived(Tile tile);
+    void followLink(const cutefish::pdf::Link& link);
+    const cutefish::pdf::Link* linkAt(cutefish::ui::PointF content);
 
     PdfDocument* m_document = nullptr;
     std::vector<cutefish::base::Subscription> m_subscriptions;
@@ -169,4 +177,5 @@ private:
     TextPosition m_anchor;
     TextPosition m_focus;
     PdfRequest m_copy;
+    PdfRequest m_resolve;
 };
