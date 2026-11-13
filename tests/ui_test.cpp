@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cerrno>
 
 using namespace cutefish::ui;
 using namespace std::chrono_literals;
@@ -405,4 +406,23 @@ TEST_F(UiTest, AFileTurnedWhileAwayShowsTurned)
     // Turned clockwise: the red left half is on top.
     EXPECT_EQ(shown.pixel(int(centre.x), int(centre.y) - 10), Color::rgb(0xFF0000));
     EXPECT_EQ(shown.pixel(int(centre.x), int(centre.y) + 10), Color::rgb(0x0000FF));
+}
+
+// A failed write is told only in the windows that hold the file.
+TEST_F(UiTest, AFailedTurnIsToldWhereTheFileIs)
+{
+    std::filesystem::create_directory(directory.filePath("one"));
+    std::filesystem::create_directory(directory.filePath("two"));
+    const std::string a = writePng(directory.filePath("one/a.png"), 40, 30);
+    const std::string b = writePng(directory.filePath("two/b.png"), 40, 30);
+    application.open({a});
+    application.open({b});
+    ASSERT_EQ(application.windows().size(), 2u);
+    PreviewWindow& first = *application.windows().front();
+    PreviewWindow& second = *application.windows().back();
+    ASSERT_TRUE(showing(first, a));
+    ASSERT_TRUE(showing(second, b));
+    application.turnSaver().written(a, EACCES);
+    EXPECT_TRUE(first.hasShownToast());
+    EXPECT_FALSE(second.hasShownToast());
 }
