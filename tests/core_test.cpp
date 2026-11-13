@@ -7,10 +7,13 @@
 #include "waitfor.h"
 
 #include "ui/application.h"
+#include "ui/image_info.h"
 
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 using cutefish::ui::Application;
 
@@ -123,4 +126,19 @@ TEST(PreviewSettingsTest, SidebarAndRecentFilesAreKept)
     EXPECT_EQ(settings.recentFiles(), (std::vector<std::string> {a, b}));
     settings.clearRecentFiles();
     EXPECT_TRUE(PreviewSettings(file).recentFiles().empty());
+}
+
+TEST(DesktopEntryTest, ClaimsTheTypesTheToolkitDecodes)
+{
+    std::ifstream file(PREVIEW_SOURCE_DIR "/cutefish-preview.desktop");
+    std::string line;
+    std::string types;
+    while (std::getline(file, line)) {
+        if (line.starts_with("MimeType="))
+            types = line.substr(9);
+    }
+    std::string expected;
+    for (const std::string& type : cutefish::ui::imageMimeTypes())
+        expected += type + ";";
+    EXPECT_EQ(types, expected);
 }

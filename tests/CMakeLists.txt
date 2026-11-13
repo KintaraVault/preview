@@ -9,6 +9,7 @@ add_executable(preview-core-tests
     core_test.cpp
 )
 target_link_libraries(preview-core-tests PRIVATE preview-ui GTest::gtest)
+target_compile_definitions(preview-core-tests PRIVATE PREVIEW_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 gtest_discover_tests(preview-core-tests)
 
 add_executable(preview-ui-tests
