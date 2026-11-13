@@ -11,6 +11,7 @@
 #include "base/i18n.h"
 #include "base/url.h"
 #include "ui/cell_layout.h"
+#include "ui/animation.h"
 #include "ui/application.h"
 #include "ui/color_provider.h"
 #include "ui/file_drop_area.h"
@@ -153,6 +154,7 @@ public:
     explicit Root(PreviewWindow& owner)
         : m_owner(owner)
     {
+        setTracksHover(true);
         sidebar = addChild<Sidebar>(kHeaderHeight);
         image = addChild<ImagePage>();
         bar = addChild<HeaderBar>(kHeaderHeight);
@@ -200,8 +202,19 @@ protected:
                          m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255} : ui::Theme::current().background);
     }
 
+    void hoverMove(const ui::PointerEvent& event) override
+    {
+        // Surface changes resend motion at the same spot; that is not activity.
+        const ui::PointF position = mapToWindow(event.position);
+        if (position.x == m_lastHover.x && position.y == m_lastHover.y)
+            return;
+        m_lastHover = position;
+        m_owner.poke();
+    }
+
 private:
     PreviewWindow& m_owner;
+    ui::PointF m_lastHover {-1, -1};
 };
 
 PreviewWindow::PreviewWindow(Application& application)
@@ -230,8 +243,16 @@ PreviewWindow::PreviewWindow(Application& application)
         header->setMinimizeVisible(!fullScreen);
         header->setMaximizeVisible(!fullScreen);
         header->setCloseVisible(!fullScreen);
+        poke();
         m_root->requestLayout();
         m_root->requestPaint();
+    };
+
+    m_idle.setSingleShot(true);
+    m_idle.setInterval(2000ms);
+    m_idle.onTimeout = [this] {
+        m_pointerActive = false;
+        updateChrome();
     };
 
     bindShortcuts();
@@ -491,6 +512,38 @@ void PreviewWindow::toggleFullScreen()
 void PreviewWindow::close()
 {
     m_application.releaseWindow(this);
+}
+
+void PreviewWindow::poke()
+{
+    m_pointerActive = true;
+    m_idle.start();
+    updateChrome();
+}
+
+void PreviewWindow::updateChrome()
+{
+    const double target = !isFullScreen() || isWelcome() || m_pointerActive ? 1 : 0;
+    if (target == m_chromeTo)
+        return;
+    HeaderBar* bar = m_root->bar;
+    const auto apply = [this, bar](double opacity) {
+        m_chromeOpacity = opacity;
+        bar->setOpacity(opacity);
+        bar->setVisible(opacity > 0);
+    };
+    m_chromeFrom = m_chromeOpacity;
+    m_chromeTo = target;
+    if (!m_chrome) {
+        m_chrome = std::make_unique<ui::Animation>(m_window.get());
+        m_chrome->setDuration(200ms);
+        m_chrome->onUpdate = [this, apply](double value) { apply(m_chromeFrom + (m_chromeTo - m_chromeFrom) * value); };
+    }
+    m_chrome->stop();
+    if (ui::Application::instance()->platform() == ui::Application::Platform::Headless)
+        apply(target);
+    else
+        m_chrome->start();
 }
 
 void PreviewWindow::bindShortcuts()

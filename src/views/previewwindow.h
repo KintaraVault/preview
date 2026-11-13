@@ -6,6 +6,7 @@
 #include "previewsettings.h"
 
 #include "base/signal.h"
+#include "base/timer.h"
 #include "ui/geometry.h"
 
 #include <memory>
@@ -13,6 +14,7 @@
 #include <vector>
 
 namespace cutefish::ui {
+class Animation;
 class Window;
 struct ImageInfo;
 }
@@ -68,6 +70,7 @@ public:
     // The header's "3 of 24" and file name.
     std::string positionText() const;
     std::string titleText() const;
+    double chromeOpacity() const { return m_chromeOpacity; }
 
 private:
     class HeaderRow;
@@ -80,6 +83,9 @@ private:
     void updateHeader();
     void updateTitle();
     void updateBackground();
+    // The full screen header: it fades out two seconds after the pointer stops.
+    void poke();
+    void updateChrome();
     cutefish::ui::SizeF windowSizeFor(const cutefish::ui::ImageInfo& info) const;
     cutefish::ui::SizeF viewportFor(const cutefish::ui::ImageInfo& info) const;
 
@@ -95,5 +101,11 @@ private:
     // Shown once its first file is ready, which sizes it.
     bool m_mapPending = false;
     std::string m_activationToken;
+    bool m_pointerActive = true;
+    double m_chromeOpacity = 1;
+    double m_chromeFrom = 1;
+    double m_chromeTo = 1;
+    std::unique_ptr<cutefish::ui::Animation> m_chrome;
+    cutefish::base::Timer m_idle;
     std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 };
