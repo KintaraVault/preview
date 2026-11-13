@@ -16,6 +16,7 @@
 namespace cutefish::ui {
 class Animation;
 class FileChooser;
+class Menu;
 class Window;
 struct ImageInfo;
 }
@@ -89,6 +90,7 @@ private:
     void updateHeader();
     void updateTitle();
     void updateBackground();
+    void openContextMenu(cutefish::ui::PointF position);
     // The full screen header: it fades out two seconds after the pointer stops.
     void poke();
     void updateChrome();
@@ -107,6 +109,7 @@ private:
     // Shown once its first file is ready, which sizes it.
     bool m_mapPending = false;
     std::string m_activationToken;
+    std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     bool m_pointerActive = true;
     double m_chromeOpacity = 1;

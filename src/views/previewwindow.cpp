@@ -25,6 +25,7 @@
 #include "ui/header_button.h"
 #include "ui/keys.h"
 #include "ui/label.h"
+#include "ui/menu.h"
 #include "ui/painter.h"
 #include "ui/shortcut_convention.h"
 #include "ui/theme.h"
@@ -245,6 +246,7 @@ PreviewWindow::PreviewWindow(Application& application)
     page->viewportFor = [this](const ui::ImageInfo& info) { return viewportFor(info); };
     page->onShown = [this] { shown(); };
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
+    page->viewer()->onContextMenuRequested = [this](ui::PointF position) { openContextMenu(position); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     WelcomePage* welcome = m_root->welcome;
     welcome->onOpen = [this] { openDialog(); };
@@ -578,6 +580,16 @@ void PreviewWindow::openDialog()
 void PreviewWindow::close()
 {
     m_application.releaseWindow(this);
+}
+
+void PreviewWindow::openContextMenu(ui::PointF position)
+{
+    m_contextMenu = std::make_unique<ui::Menu>();
+    m_contextMenu->addItem(tr("Copy"), [this] { copy(); });
+    m_contextMenu->addSeparator();
+    m_contextMenu->addItem(tr("Show in Files"), [this] { showInFiles(); });
+    m_contextMenu->addItem(tr("Move to Trash"), [this] { moveToTrash(); });
+    m_contextMenu->popup(m_window.get(), position);
 }
 
 void PreviewWindow::poke()
