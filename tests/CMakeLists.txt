@@ -4,11 +4,15 @@
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
+# The rotation tests write their files with the codecs' own encoders.
+pkg_check_modules(TestEncoders REQUIRED IMPORTED_TARGET libjpeg libpng)
+
 add_executable(preview-core-tests
     main.cpp
     core_test.cpp
+    rotation_test.cpp
 )
-target_link_libraries(preview-core-tests PRIVATE preview-ui GTest::gtest)
+target_link_libraries(preview-core-tests PRIVATE preview-ui GTest::gtest PkgConfig::TestEncoders)
 target_compile_definitions(preview-core-tests PRIVATE PREVIEW_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 gtest_discover_tests(preview-core-tests)
 
