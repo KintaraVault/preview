@@ -201,6 +201,12 @@ void ImagePage::clear()
     updateStatus();
 }
 
+void ImagePage::retranslate()
+{
+    m_failed->setText(tr("This image could not be displayed."));
+    requestLayout();
+}
+
 double ImagePage::ratio() const
 {
     return window() && window()->scale() > 0 ? window()->scale() : 1;

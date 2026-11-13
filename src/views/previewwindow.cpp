@@ -256,6 +256,7 @@ PreviewWindow::PreviewWindow(Application& application)
     welcome->setRecentFiles(m_application.settings().recentFiles());
     m_subscriptions.push_back(m_application.settings().recentFilesChanged.connect(
             [this] { m_root->welcome->setRecentFiles(m_application.settings().recentFiles()); }));
+    m_subscriptions.push_back(ui::Application::instance()->languageChanged.connect([this] { retranslate(); }));
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
@@ -635,6 +636,17 @@ void PreviewWindow::updateChrome()
         apply(target);
     else
         m_chrome->start();
+}
+
+void PreviewWindow::retranslate()
+{
+    if (m_contextMenu && m_contextMenu->isOpen())
+        m_contextMenu->close();
+    buildMainMenu();
+    m_root->welcome->retranslate();
+    m_root->image->retranslate();
+    updateHeader();
+    updateTitle();
 }
 
 void PreviewWindow::buildMainMenu()

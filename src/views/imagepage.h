@@ -65,6 +65,7 @@ public:
     // Decodes these ahead, to fit the page as it is now.
     void preload(const std::vector<std::string>& paths);
     void clear();
+    void retranslate();
 
     // What is on screen; it trails load() while the next image decodes.
     const ShownFile& shown() const { return m_shown; }

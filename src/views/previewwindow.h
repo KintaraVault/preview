@@ -87,6 +87,7 @@ private:
 
     void buildMainMenu();
     void bindShortcuts();
+    void retranslate();
     void shown();
     void sequenceChanged();
     void updateHeader();
