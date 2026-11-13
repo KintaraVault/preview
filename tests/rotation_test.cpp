@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <jpeglib.h>
+#include <png.h>
 #include <sys/stat.h>
 
 using cutefish::ui::Color;
@@ -156,6 +157,106 @@ TEST(RotationTest, AnExifWithoutOrientationGetsOne)
     expectTurned(path, 3);
     ASSERT_EQ(rotation::turn(path, "image/jpeg", 1), 0);
     expectTurned(path, 0);
+}
+
+struct PngPixels
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    int depth = 0;
+    std::vector<uint16_t> grey;
+    uint32_t resX = 0;
+    uint32_t resY = 0;
+    std::string text;
+    bool srgb = false;
+};
+
+// A 16-bit grey 3 x 2 PNG of the values 0 to 5 times 1000, with a
+// resolution, a text and an sRGB chunk.
+static std::string writeGreyPng(const std::string& path)
+{
+    FILE* file = std::fopen(path.c_str(), "wb");
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info = png_create_info_struct(png);
+    png_init_io(png, file);
+    png_set_IHDR(png, info, 3, 2, 16, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+                 PNG_FILTER_TYPE_DEFAULT);
+    png_set_pHYs(png, info, 100, 200, PNG_RESOLUTION_METER);
+    png_set_sRGB(png, info, PNG_sRGB_INTENT_PERCEPTUAL);
+    png_text text {};
+    text.compression = PNG_TEXT_COMPRESSION_NONE;
+    text.key = const_cast<char*>("Comment");
+    text.text = const_cast<char*>("kept");
+    png_set_text(png, info, &text, 1);
+    png_write_info(png, info);
+    for (int y = 0; y < 2; ++y) {
+        png_byte row[6];
+        for (int x = 0; x < 3; ++x) {
+            const int value = (y * 3 + x) * 1000;
+            row[x * 2] = png_byte(value >> 8);
+            row[x * 2 + 1] = png_byte(value & 0xff);
+        }
+        png_write_row(png, row);
+    }
+    png_write_end(png, nullptr);
+    png_destroy_write_struct(&png, &info);
+    std::fclose(file);
+    return path;
+}
+
+static PngPixels readGreyPng(const std::string& path)
+{
+    PngPixels result;
+    FILE* file = std::fopen(path.c_str(), "rb");
+    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info = png_create_info_struct(png);
+    png_init_io(png, file);
+    png_read_info(png, info);
+    int colour = 0;
+    png_get_IHDR(png, info, &result.width, &result.height, &result.depth, &colour, nullptr, nullptr, nullptr);
+    int unit = 0;
+    png_get_pHYs(png, info, &result.resX, &result.resY, &unit);
+    int intent = 0;
+    result.srgb = png_get_sRGB(png, info, &intent) != 0;
+    std::vector<png_byte> row(png_get_rowbytes(png, info));
+    for (uint32_t y = 0; y < result.height; ++y) {
+        png_read_row(png, row.data(), nullptr);
+        for (uint32_t x = 0; x < result.width; ++x)
+            result.grey.push_back(uint16_t(row[x * 2] << 8 | row[x * 2 + 1]));
+    }
+    png_read_end(png, info);
+    png_textp text = nullptr;
+    int count = 0;
+    if (png_get_text(png, info, &text, &count) > 0)
+        result.text = text[0].text;
+    png_destroy_read_struct(&png, &info, nullptr);
+    std::fclose(file);
+    return result;
+}
+
+TEST(RotationTest, APngIsEncodedAgainTurnedWithItsDepthAndChunks)
+{
+    TemporaryDir directory;
+    const std::string path = writeGreyPng(directory.filePath("grey.png"));
+    ::chmod(path.c_str(), 0640);
+    ASSERT_EQ(rotation::turn(path, "image/png", 1), 0);
+    const PngPixels turned = readGreyPng(path);
+    EXPECT_EQ(turned.width, 2u);
+    EXPECT_EQ(turned.height, 3u);
+    EXPECT_EQ(turned.depth, 16);
+    // 0 1 2 / 3 4 5 turned clockwise: 3 0 / 4 1 / 5 2.
+    EXPECT_EQ(turned.grey, (std::vector<uint16_t> {3000, 0, 4000, 1000, 5000, 2000}));
+    EXPECT_EQ(turned.resX, 200u);
+    EXPECT_EQ(turned.resY, 100u);
+    EXPECT_TRUE(turned.srgb);
+    EXPECT_EQ(turned.text, "kept");
+    struct stat st;
+    ::stat(path.c_str(), &st);
+    EXPECT_EQ(st.st_mode & 0777, 0640u);
+
+    for (int i = 0; i < 3; ++i)
+        ASSERT_EQ(rotation::turn(path, "image/png", 1), 0);
+    EXPECT_EQ(readGreyPng(path).grey, (std::vector<uint16_t> {0, 1000, 2000, 3000, 4000, 5000}));
 }
 
 TEST(RotationTest, OnlyWritableJpegAndPngFilesTurn)
