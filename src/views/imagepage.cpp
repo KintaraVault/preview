@@ -158,8 +158,15 @@ ImagePage::~ImagePage() = default;
 
 void ImagePage::load(const std::string& path)
 {
+    m_keepsView = false;
     m_describe = base::ThreadPool::global().run([path] { return describe(path); },
                                                 [this](ShownFile file) { stage(std::move(file)); });
+}
+
+void ImagePage::reload(const std::string& path)
+{
+    load(path);
+    m_keepsView = true;
 }
 
 void ImagePage::preload(const std::vector<std::string>& paths)
@@ -252,9 +259,15 @@ void ImagePage::present(ShownFile file)
     const ui::SizeF prepared = decodesAhead(file.info)
             ? fittedPixels(file.info, viewportFor ? viewportFor(file.info) : geometry().size())
             : ui::SizeF();
+    const bool keepsView = m_keepsView && file.path == m_shown.path && m_viewer->isZoomed();
+    const double zoom = m_viewer->zoom();
+    const ui::PointF position = m_viewer->scrollPosition();
+    m_keepsView = false;
     m_shown = std::move(file);
     m_shownRatio = ratio();
     m_viewer->setImage(m_shown.info.readable ? m_shown.path : std::string(), m_shown.info, prepared, ratio());
+    if (keepsView)
+        m_viewer->setZoomAndPosition(zoom, position);
     m_card->setVisible(!m_shown.info.readable);
     m_card->setFile(m_shown);
     updateStatus();

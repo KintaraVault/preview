@@ -60,6 +60,9 @@ public:
     // viewportFor(), then shows it; a decode over 300 ms is shown as it goes,
     // with the busy indicator.
     void load(const std::string& path);
+    // As load(), for the file shown, written over: the new picture takes the
+    // shown one's zoom and place.
+    void reload(const std::string& path);
     // Decodes these ahead, to fit the page as it is now.
     void preload(const std::vector<std::string>& paths);
     void clear();
@@ -105,6 +108,7 @@ private:
     std::vector<cutefish::base::Job> m_aheadJobs;
     cutefish::base::Timer m_stall;
     cutefish::base::Timer m_busyDelay;
+    bool m_keepsView = false;
     bool m_busyElapsed = false;
     bool m_wasLoading = false;
 };
