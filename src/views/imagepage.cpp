@@ -5,10 +5,13 @@
 
 #include "cutefish/files/file_item.h"
 
+#include "base/i18n.h"
 #include "base/mime_database.h"
 #include "ui/cell_layout.h"
 #include "ui/icon.h"
 #include "ui/image_view.h"
+#include "ui/label.h"
+#include "ui/progress_bar.h"
 #include "ui/theme.h"
 #include "ui/window.h"
 
@@ -17,6 +20,7 @@
 #include <filesystem>
 
 using namespace cutefish;
+using cutefish::i18n::tr;
 using ui::rounding::centeredStart;
 
 static constexpr double kIconSize = 96;
@@ -104,12 +108,31 @@ static ui::ImageView* addPreloader(ui::View* parent)
 ImagePage::ImagePage()
 {
     m_viewer = addChild<ImageViewer>();
+    m_viewer->onStatusChanged = [this] { updateStatus(); };
+    m_busy = addChild<ui::BusyIndicator>();
+    m_busy->setVisible(false);
+    m_failed = addChild<ui::Label>(tr("This image could not be displayed."));
+    m_failed->setVisible(false);
     m_card = addChild<FileCard>();
     m_card->setVisible(false);
     m_preloader = addPreloader(this);
     for (int i = 0; i < 2; ++i)
         m_ahead.push_back(addPreloader(this));
     m_aheadJobs.resize(m_ahead.size());
+
+    // A slow decode is shown anyway, with the busy indicator.
+    m_stall.setSingleShot(true);
+    m_stall.setInterval(std::chrono::milliseconds(300));
+    m_stall.onTimeout = [this] {
+        if (m_pending)
+            present(*m_pending);
+    };
+    m_busyDelay.setSingleShot(true);
+    m_busyDelay.setInterval(std::chrono::milliseconds(300));
+    m_busyDelay.onTimeout = [this] {
+        m_busyElapsed = true;
+        updateStatus();
+    };
 }
 
 ImagePage::~ImagePage() = default;
@@ -150,11 +173,13 @@ void ImagePage::clear()
     for (ui::ImageView* ahead : m_ahead)
         ahead->setSource({});
     m_pending.reset();
+    m_stall.stop();
     m_preloader->onStatusChanged = nullptr;
     m_preloader->setSource({});
     m_shown = {};
     m_viewer->setImage({}, {}, {}, ratio());
     m_card->setVisible(false);
+    updateStatus();
 }
 
 double ImagePage::ratio() const
@@ -190,12 +215,15 @@ void ImagePage::stage(ShownFile file)
     requestLayout();
     if (m_preloader->status() != ui::ImageView::Status::Loading)
         present(std::move(file));
+    else if (!m_stall.isActive())
+        m_stall.start();
 }
 
 // By value: callers pass *m_pending, which is reset below.
 void ImagePage::present(ShownFile file)
 {
     m_pending.reset();
+    m_stall.stop();
     const ui::SizeF prepared = decodesAhead(file.info)
             ? fittedPixels(file.info, viewportFor ? viewportFor(file.info) : geometry().size())
             : ui::SizeF();
@@ -203,6 +231,7 @@ void ImagePage::present(ShownFile file)
     m_viewer->setImage(m_shown.info.readable ? m_shown.path : std::string(), m_shown.info, prepared, ratio());
     m_card->setVisible(!m_shown.info.readable);
     m_card->setFile(m_shown);
+    updateStatus();
     m_preloader->onStatusChanged = nullptr;
     m_preloader->setSource({});
     requestLayout();
@@ -210,10 +239,30 @@ void ImagePage::present(ShownFile file)
         onShown();
 }
 
+void ImagePage::updateStatus()
+{
+    const bool loading = showsImage() && m_viewer->isLoading();
+    if (loading && !m_wasLoading) {
+        m_busyElapsed = false;
+        m_busyDelay.start();
+    }
+    if (!loading)
+        m_busyDelay.stop();
+    m_wasLoading = loading;
+    m_busy->setVisible(loading && m_busyElapsed);
+    m_busy->setRunning(loading && m_busyElapsed);
+    m_failed->setVisible(showsImage() && m_viewer->hasFailed());
+}
+
 void ImagePage::layout()
 {
     const ui::RectF rect = localRect();
     m_viewer->setGeometry(rect);
+    m_busy->setGeometry({centeredStart(rect.width, 22), centeredStart(rect.height, 22), 22, 22});
+    const ui::SizeF failed = m_failed->sizeHint();
+    m_failed->setColor(ui::Theme::current().text);
+    m_failed->setGeometry({centeredStart(rect.width, failed.width), centeredStart(rect.height, failed.height),
+                           failed.width, failed.height});
     const ui::SizeF card = m_card->sizeHint();
     const double cardWidth = std::min(card.width, std::max(0.0, rect.width - 2 * kCardSpacing));
     m_card->setGeometry({centeredStart(rect.width, cardWidth), centeredStart(rect.height, card.height), cardWidth,

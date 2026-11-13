@@ -4,6 +4,7 @@
 #pragma once
 
 #include "base/thread_pool.h"
+#include "base/timer.h"
 #include "ui/image_info.h"
 #include "ui/view.h"
 #include "ui/zoomable_image_view.h"
@@ -14,7 +15,9 @@
 #include <vector>
 
 namespace cutefish::ui {
+class BusyIndicator;
 class ImageView;
+class Label;
 }
 
 class FileCard;
@@ -45,7 +48,8 @@ public:
     ~ImagePage() override;
 
     // Reads the file's header on a worker and decodes it to fit
-    // viewportFor(), then shows it.
+    // viewportFor(), then shows it; a decode over 300 ms is shown as it goes,
+    // with the busy indicator.
     void load(const std::string& path);
     // Decodes these ahead, to fit the page as it is now.
     void preload(const std::vector<std::string>& paths);
@@ -68,12 +72,15 @@ protected:
 private:
     void stage(ShownFile file);
     void present(ShownFile file);
+    void updateStatus();
     double ratio() const;
     // The image's decode in device pixels when it fits the viewport.
     cutefish::ui::SizeF fittedPixels(const cutefish::ui::ImageInfo& info, cutefish::ui::SizeF viewport) const;
     static bool decodesAhead(const cutefish::ui::ImageInfo& info);
 
     ImageViewer* m_viewer;
+    cutefish::ui::BusyIndicator* m_busy;
+    cutefish::ui::Label* m_failed;
     FileCard* m_card;
     // Decode into the image cache: the image staged, and the neighbours.
     cutefish::ui::ImageView* m_preloader;
@@ -82,4 +89,8 @@ private:
     std::optional<ShownFile> m_pending;
     cutefish::base::Job m_describe;
     std::vector<cutefish::base::Job> m_aheadJobs;
+    cutefish::base::Timer m_stall;
+    cutefish::base::Timer m_busyDelay;
+    bool m_busyElapsed = false;
+    bool m_wasLoading = false;
 };
