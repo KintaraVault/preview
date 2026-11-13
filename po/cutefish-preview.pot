@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-10 19:08+0800\n"
+"POT-Creation-Date: 2026-11-10 19:30+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -28,7 +28,8 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
-#. TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+#. TRANSLATORS: the shown image's place among the window's images, or the
+#. page's among the document's, such as "3 of 24".
 #: src/views/previewwindow.cpp
 #, python-brace-format
 msgid "{index} of {count}"

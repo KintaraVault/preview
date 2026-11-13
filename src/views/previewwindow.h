@@ -27,6 +27,7 @@ struct ImageInfo;
 
 class Application;
 class ImagePage;
+class PdfPage;
 class ShortcutsDialog;
 class ImageSequence;
 class Sidebar;
@@ -51,15 +52,16 @@ public:
     // The shown file's place in the sequence, from 0; -1 on the welcome page.
     int currentIndex() const;
     int count() const;
-    DocumentKind kind() const { return DocumentKind::Image; }
+    DocumentKind kind() const { return m_kind; }
 
-    // One image: it and the other images of its folder. Several files, or a
-    // file that is not an image: exactly those, in this order.
+    // One image: it and the other images of its folder. A PDF: its pages.
+    // Several files, or a file that is neither: exactly those, in this order.
     void show(const std::vector<std::string>& paths);
     // Shows and activates the window; a window opening on a file maps once
     // the file is ready, at the size it takes from it.
     void raise(const std::string& activationToken);
 
+    // Images or pages.
     void step(int delta);
     void goTo(int index);
     void zoomIn();
@@ -82,6 +84,7 @@ public:
     void close();
 
     ImagePage* imagePage() const;
+    PdfPage* pdfPage() const;
     Sidebar* sidebar() const;
     // The header's "3 of 24" and file name.
     std::string positionText() const;
@@ -99,6 +102,8 @@ private:
     void bindShortcuts();
     void retranslate();
     void shown();
+    void pdfStateChanged();
+    void map();
     void sequenceChanged();
     void preloadNeighbours();
     void turnWritten(const std::string& path, int error);
@@ -107,12 +112,15 @@ private:
     void updateTitle();
     void updateBackground();
     void openContextMenu(cutefish::ui::PointF position);
+    // The name of what is shown, for the header and the title.
+    std::string shownName() const;
     void showAbout();
     void showShortcuts();
     // The full screen header: it fades out two seconds after the pointer stops.
     void poke();
     void updateChrome();
     cutefish::ui::SizeF windowSizeFor(const cutefish::ui::ImageInfo& info) const;
+    cutefish::ui::SizeF windowSizeForPage(cutefish::ui::SizeF page) const;
     cutefish::ui::SizeF viewportFor(const cutefish::ui::ImageInfo& info) const;
 
     Application& m_application;
@@ -121,6 +129,7 @@ private:
     std::unique_ptr<cutefish::ui::Window> m_window;
     Root* m_root = nullptr;
     std::unique_ptr<ImageSequence> m_sequence;
+    DocumentKind m_kind = DocumentKind::Image;
     std::vector<cutefish::base::Subscription> m_sequenceConnections;
     // The files opened that the window has not displayed yet, for the
     // recent files.

@@ -5,6 +5,9 @@
 #include "application.h"
 #include "imagepage.h"
 #include "imagesequence.h"
+#include "pdfdocument.h"
+#include "pdfpage.h"
+#include "pdfview.h"
 #include "rotation.h"
 #include "turnsaver.h"
 #include "shortcutsdialog.h"
@@ -174,6 +177,7 @@ public:
         setTracksHover(true);
         sidebar = addChild<Sidebar>(kHeaderHeight);
         image = addChild<ImagePage>();
+        pdf = addChild<PdfPage>();
         welcome = addChild<WelcomePage>();
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
@@ -190,6 +194,7 @@ public:
 
     Sidebar* sidebar;
     ImagePage* image;
+    PdfPage* pdf;
     WelcomePage* welcome;
     HeaderBar* bar;
     HeaderRow* row;
@@ -199,13 +204,16 @@ protected:
     {
         const ui::RectF rect = localRect();
         sidebar->setVisible(m_owner.m_sidebarShown && !m_owner.isWelcome());
-        image->setVisible(!m_owner.isWelcome());
+        const bool pdfShown = !m_owner.isWelcome() && m_owner.kind() == DocumentKind::Pdf;
+        image->setVisible(!m_owner.isWelcome() && !pdfShown);
+        pdf->setVisible(pdfShown);
         welcome->setVisible(m_owner.isWelcome());
         const double left = sidebarWidth();
         const double top = m_owner.isFullScreen() ? 0 : kHeaderHeight;
         sidebar->setGeometry({0, 0, left, rect.height});
         const ui::RectF content {left, top, std::max(0.0, rect.width - left), std::max(0.0, rect.height - top)};
         image->setGeometry(content);
+        pdf->setGeometry(content);
         welcome->setGeometry(content);
         bar->contentLeft = left;
         bar->setGeometry({0, 0, rect.width, kHeaderHeight});
@@ -255,6 +263,9 @@ PreviewWindow::PreviewWindow(Application& application)
     page->onShown = [this] { shown(); };
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
     page->viewer()->onContextMenuRequested = [this](ui::PointF position) { openContextMenu(position); };
+    m_root->pdf->onStateChanged = [this] { pdfStateChanged(); };
+    PdfView* pages = m_root->pdf->view();
+    pages->onCurrentPageChanged = [this] { updateHeader(); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     WelcomePage* welcome = m_root->welcome;
     welcome->onOpen = [this] { openDialog(); };
@@ -300,6 +311,11 @@ ImagePage* PreviewWindow::imagePage() const
     return m_root->image;
 }
 
+PdfPage* PreviewWindow::pdfPage() const
+{
+    return m_root->pdf;
+}
+
 Sidebar* PreviewWindow::sidebar() const
 {
     return m_root->sidebar;
@@ -324,6 +340,8 @@ int PreviewWindow::currentIndex() const
 {
     if (!m_sequence)
         return -1;
+    if (m_kind == DocumentKind::Pdf)
+        return m_root->pdf->isReady() ? m_root->pdf->view()->currentPage() : 0;
     const std::vector<std::string>& paths = m_sequence->paths();
     const auto found = std::find(paths.begin(), paths.end(), m_root->image->shown().path);
     return found == paths.end() ? m_sequence->currentIndex() : int(found - paths.begin());
@@ -331,6 +349,8 @@ int PreviewWindow::currentIndex() const
 
 int PreviewWindow::count() const
 {
+    if (m_sequence && m_kind == DocumentKind::Pdf)
+        return m_root->pdf->isReady() ? m_root->pdf->document()->pageCount() : 0;
     return m_sequence ? m_sequence->count() : 0;
 }
 
@@ -343,11 +363,21 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
     m_sequenceConnections.push_back(m_sequence->currentWritten.connect([this] { currentWritten(); }));
-    m_sidebarShown = m_application.settings().sidebarShown(kind());
+    m_kind = paths.size() == 1 && PdfDocument::isPdf(paths.front()) ? DocumentKind::Pdf : DocumentKind::Image;
     m_opened = std::set<std::string>(paths.begin(), paths.end());
     m_mapPending = !m_mapped;
-    m_root->sidebar->setItems(m_sequence->paths());
-    m_root->image->load(m_sequence->currentPath());
+    if (m_kind == DocumentKind::Pdf) {
+        // Until the document says how many pages it has.
+        m_sidebarShown = false;
+        m_root->image->clear();
+        m_root->sidebar->setItems({});
+        m_root->pdf->load(m_sequence->currentPath());
+    } else {
+        m_sidebarShown = m_application.settings().sidebarShown(kind());
+        m_root->pdf->clear();
+        m_root->sidebar->setItems(m_sequence->paths());
+        m_root->image->load(m_sequence->currentPath());
+    }
     m_root->requestLayout();
     updateHeader();
 }
@@ -374,19 +404,34 @@ void PreviewWindow::sequenceChanged()
             m_sequence.reset();
             // The next file sizes the window again, as the first one did.
             m_sized = false;
+            m_kind = DocumentKind::Image;
             m_root->image->clear();
+            m_root->pdf->clear();
+            m_root->sidebar->setItems({});
             m_root->requestLayout();
             updateHeader();
             updateTitle();
         });
         return;
     }
+    if (m_kind == DocumentKind::Pdf)
+        return;
     m_root->sidebar->setItems(m_sequence->paths());
     if (m_sequence->currentPath() != m_root->image->shown().path)
         m_root->image->load(m_sequence->currentPath());
     else
         preloadNeighbours();
     updateHeader();
+}
+
+void PreviewWindow::map()
+{
+    if (!m_mapPending)
+        return;
+    m_mapPending = false;
+    m_window->show();
+    m_mapped = true;
+    m_window->activate(std::exchange(m_activationToken, std::string()));
 }
 
 void PreviewWindow::shown()
@@ -396,12 +441,7 @@ void PreviewWindow::shown()
         if (!isFullScreen() && !m_window->states().maximized)
             m_window->resize(windowSizeFor(m_root->image->shown().info));
     }
-    if (m_mapPending) {
-        m_mapPending = false;
-        m_window->show();
-        m_mapped = true;
-        m_window->activate(std::exchange(m_activationToken, std::string()));
-    }
+    map();
     const std::string& path = m_root->image->shown().path;
     // A file still being turned shows the turns not written yet.
     if (const int unwritten = m_application.turnSaver().unwrittenTurns(path))
@@ -413,8 +453,31 @@ void PreviewWindow::shown()
     updateTitle();
 }
 
+void PreviewWindow::pdfStateChanged()
+{
+    PdfPage* page = m_root->pdf;
+    PdfDocument* document = page->document();
+    if (!document || document->state() == PdfDocument::State::Opening)
+        return;
+    const bool ready = document->state() == PdfDocument::State::Ready;
+    if (ready) {
+        if (!m_sized) {
+            m_sized = true;
+            if (!isFullScreen() && !m_window->states().maximized)
+                m_window->resize(windowSizeForPage(document->pageSizes().front()));
+        }
+    }
+    map();
+    m_root->requestLayout();
+    m_root->requestPaint();
+    updateHeader();
+    updateTitle();
+}
+
 void PreviewWindow::preloadNeighbours()
 {
+    if (m_kind == DocumentKind::Pdf)
+        return;
     const int index = currentIndex();
     std::vector<std::string> ahead;
     for (const int neighbour : {index + 1, index - 1}) {
@@ -429,7 +492,8 @@ void PreviewWindow::updateHeader()
     HeaderRow* row = m_root->row;
     const bool document = !isWelcome();
     const bool multiple = count() > 1;
-    const bool image = document && m_root->image->showsImage();
+    const bool pdf = document && m_kind == DocumentKind::Pdf;
+    const bool zoomable = pdf ? m_root->pdf->isReady() : document && m_root->image->showsImage();
     row->sidebar->setVisible(document);
     row->sidebar->setChecked(m_sidebarShown);
     for (ui::View* view : std::initializer_list<ui::View*> {row->previous, row->next, row->position})
@@ -437,24 +501,32 @@ void PreviewWindow::updateHeader()
     const int index = currentIndex();
     row->previous->setEnabled(index > 0);
     row->next->setEnabled(index + 1 < count());
-    // TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+    // TRANSLATORS: the shown image's place among the window's images, or the
+    // page's among the document's, such as "3 of 24".
     row->position->setText(format(tr("{index} of {count}"),
                                   {{"index", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
     row->title->setVisible(document);
-    row->title->setText(m_root->image->shown().name);
+    row->title->setText(shownName());
     row->zoomOut->setVisible(document);
     row->zoomIn->setVisible(document);
-    row->zoomOut->setEnabled(image);
-    row->zoomIn->setEnabled(image);
-    row->rotate->setVisible(document);
+    row->zoomOut->setEnabled(zoomable);
+    row->zoomIn->setEnabled(zoomable);
+    row->rotate->setVisible(document && !pdf);
     row->rotate->setEnabled(canRotate());
     m_root->sidebar->setCurrent(index);
     row->requestLayout();
 }
 
+std::string PreviewWindow::shownName() const
+{
+    if (m_kind == DocumentKind::Pdf)
+        return std::filesystem::path(m_root->pdf->path()).filename().string();
+    return m_root->image->shown().name;
+}
+
 void PreviewWindow::updateTitle()
 {
-    const std::string& name = m_root->image->shown().name;
+    const std::string name = shownName();
     m_window->setTitle(isWelcome() || name.empty() ? std::string(tr("Preview")) : name);
 }
 
@@ -489,6 +561,20 @@ ui::SizeF PreviewWindow::windowSizeFor(const ui::ImageInfo& info) const
     return {content.width + sidebar, content.height + kHeaderHeight};
 }
 
+// The first page at 100% beside the sidebar, at most 85% of the work area's
+// height, and within its width.
+ui::SizeF PreviewWindow::windowSizeForPage(ui::SizeF page) const
+{
+    ui::SizeF area = m_window->availableSize();
+    if (area.width <= 0 || area.height <= 0)
+        area = {1280, 800};
+    const double sidebar = m_sidebarShown ? Sidebar::kWidth : 0;
+    const double width = std::min(page.width + 2 * PdfView::kMargin, std::floor(area.width * 0.9) - sidebar);
+    const double height = std::min(page.height + 2 * PdfView::kMargin, std::floor(area.height * 0.85) - kHeaderHeight);
+    return {std::max(kMinimumContentWidth, std::round(width)) + sidebar,
+            std::max(kMinimumContentHeight, std::round(height)) + kHeaderHeight};
+}
+
 ui::SizeF PreviewWindow::viewportFor(const ui::ImageInfo& info) const
 {
     if (m_sized || isFullScreen() || m_window->states().maximized)
@@ -500,12 +586,16 @@ ui::SizeF PreviewWindow::viewportFor(const ui::ImageInfo& info) const
 void PreviewWindow::step(int delta)
 {
     if (m_sequence)
-        goTo(m_sequence->currentIndex() + delta);
+        goTo(currentIndex() + delta);
 }
 
 void PreviewWindow::goTo(int index)
 {
-    if (m_sequence)
+    if (!m_sequence)
+        return;
+    if (m_kind == DocumentKind::Pdf)
+        m_root->pdf->view()->goToPage(index);
+    else
         m_sequence->setCurrentIndex(index);
 }
 
@@ -593,7 +683,7 @@ void PreviewWindow::copy()
 bool PreviewWindow::canRotate() const
 {
     const ShownFile& file = m_root->image->shown();
-    return !isWelcome() && m_root->image->showsImage() && !file.info.animated
+    return !isWelcome() && m_kind == DocumentKind::Image && m_root->image->showsImage() && !file.info.animated
             && rotation::canTurn(file.path, file.mimeType);
 }
 
@@ -644,14 +734,14 @@ void PreviewWindow::currentWritten()
 void PreviewWindow::showInFiles()
 {
     if (!isWelcome())
-        m_application.showInFiles(m_root->image->shown().path);
+        m_application.showInFiles(currentPath());
 }
 
 void PreviewWindow::moveToTrash()
 {
-    if (isWelcome() || m_root->image->shown().path.empty())
+    const std::string path = m_kind == DocumentKind::Pdf ? currentPath() : m_root->image->shown().path;
+    if (isWelcome() || path.empty())
         return;
-    const std::string path = m_root->image->shown().path;
     files::Task* task = files::trash({files::Url::fromLocalFile(path)});
     task->whenFinished([this, path, alive = std::weak_ptr<bool>(m_alive)](files::Task* finished) {
         if (!alive.expired() && m_sequence && finished->state() == files::Task::State::Succeeded)
@@ -748,6 +838,7 @@ void PreviewWindow::retranslate()
     buildMainMenu();
     m_root->welcome->retranslate();
     m_root->image->retranslate();
+    m_root->pdf->retranslate();
     updateHeader();
     updateTitle();
 }
