@@ -20,3 +20,9 @@ add_library(preview-core STATIC
 )
 target_include_directories(preview-core PUBLIC src)
 target_link_libraries(preview-core PUBLIC Cutefish::Toolkit)
+
+add_library(preview-ui STATIC
+    src/views/imagepage.cpp
+)
+target_include_directories(preview-ui PUBLIC src src/views)
+target_link_libraries(preview-ui PUBLIC preview-core Cutefish::Toolkit Cutefish::Files)
