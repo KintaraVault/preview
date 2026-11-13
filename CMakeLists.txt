@@ -36,6 +36,7 @@ add_library(preview-ui STATIC
     src/application.cpp
     src/views/imagepage.cpp
     src/views/previewwindow.cpp
+    src/views/sidebar.cpp
     ${PREVIEW_EMBEDDED}
 )
 target_include_directories(preview-ui PUBLIC src src/views)
