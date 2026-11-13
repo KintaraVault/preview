@@ -3,8 +3,11 @@
 
 #include "pdfview.h"
 
+#include "base/strings.h"
+#include "base/timer.h"
 #include "ui/animation.h"
 #include "ui/clipboard.h"
+#include "ui/editable_text.h"
 #include "ui/painter.h"
 #include "ui/theme.h"
 #include "ui/window.h"
@@ -13,6 +16,7 @@
 #include <cctype>
 #include <cmath>
 #include <limits>
+#include <tuple>
 
 using namespace cutefish;
 using namespace std::chrono_literals;
@@ -21,6 +25,7 @@ static constexpr int64_t kScaleSteps = 4096;
 // Once the zoom stops this long, pages are rendered at it.
 static constexpr auto kRestDelay = 150ms;
 static constexpr double kDragDistance = 3;
+static constexpr auto kAutoScrollInterval = 30ms;
 
 static const ui::Color kPageColor {255, 255, 255, 255};
 // Pages stay white in both modes, so these are the light ones.
@@ -90,10 +95,22 @@ static bool onCharacter(const pdf::PageText& text, ui::PointF point)
                        [point](const pdf::Character& character) { return toRect(character.box).contains(point); });
 }
 
-static bool isWordCharacter(char32_t code)
+// The word, or run of spaces, around a character, by the word breaks text
+// fields double click by, so CJK text gives its words and not whole runs.
+static std::pair<size_t, size_t> wordAround(const pdf::PageText& text, size_t index)
 {
-    return code >= 0x80 || (code >= '0' && code <= '9') || (code >= 'a' && code <= 'z') || (code >= 'A' && code <= 'Z')
-            || code == '_' || code == '\'';
+    std::string utf8;
+    std::vector<size_t> starts;
+    for (const pdf::Character& character : text.characters) {
+        starts.push_back(utf8.size());
+        base::strings::appendUtf8(utf8, character.code ? character.code : U' ');
+    }
+    starts.push_back(utf8.size());
+    ui::EditableText editable;
+    editable.setText(utf8);
+    const auto [start, end] = editable.wordAt(starts[std::min(index, text.characters.size())]);
+    return {size_t(std::lower_bound(starts.begin(), starts.end(), start) - starts.begin()),
+            size_t(std::lower_bound(starts.begin(), starts.end(), end) - starts.begin())};
 }
 
 static bool isLineBreak(char32_t code)
@@ -128,6 +145,8 @@ public:
     explicit Canvas(PdfView* view)
         : m_view(view)
     {
+        m_autoScroll.setInterval(kAutoScrollInterval);
+        m_autoScroll.onTimeout = [this] { autoScroll(); };
     }
 
     ui::SizeF sizeHint() const override
@@ -164,10 +183,16 @@ private:
     // page's text is not read yet.
     bool caret(ui::PointF content, TextPosition* position, const pdf::PageText** text = nullptr);
 
+    // Dragging a selection past the view's top or bottom scrolls, faster the
+    // further out, as text areas do.
+    void autoScroll();
+
     PdfView* m_view;
     bool m_pressed = false;
     bool m_dragged = false;
     bool m_selecting = false;
+    ui::PointF m_pointerInWindow;
+    base::Timer m_autoScroll;
     ui::PointF m_pressAt;
     std::optional<pdf::Link> m_pressedLink;
 };
@@ -213,17 +238,23 @@ void PdfView::Canvas::paint(ui::Painter& painter)
         painter.clip(content);
         if (const ui::RasterImage* thumbnail = document->anyThumbnail(page))
             painter.drawImage(thumbnail->skImage(), content);
-        // Tiles of other zooms under those of this one.
-        for (const bool current : {false, true}) {
-            for (const Tile& tile : m_view->m_tiles) {
-                if (tile.key.page != page || (tile.key.scale == sharp) != current)
-                    continue;
-                const double factor = zoom / tile.scale;
-                painter.drawImage(tile.image.skImage(),
-                                  {content.x + tile.key.column * kTileSize * factor,
-                                   content.y + tile.key.row * kTileSize * factor, tile.image.width() * factor,
-                                   tile.image.height() * factor});
-            }
+        // Tiles of other zooms under those of this one, the coarsest first.
+        std::vector<const Tile*> tiles;
+        for (const Tile& tile : m_view->m_tiles) {
+            if (tile.key.page == page)
+                tiles.push_back(&tile);
+        }
+        std::stable_sort(tiles.begin(), tiles.end(), [sharp](const Tile* a, const Tile* b) {
+            const bool aSharp = a->key.scale == sharp;
+            const bool bSharp = b->key.scale == sharp;
+            return aSharp != bSharp ? bSharp : !aSharp && a->scale < b->scale;
+        });
+        for (const Tile* tile : tiles) {
+            const double factor = zoom / tile->scale;
+            painter.drawImage(tile->image.skImage(),
+                              {content.x + tile->key.column * kTileSize * factor,
+                               content.y + tile->key.row * kTileSize * factor, tile->image.width() * factor,
+                               tile->image.height() * factor});
         }
         const auto fill = [&](const ui::RectF& points, ui::Color color) {
             painter.fillRect({content.x + points.x * zoom, content.y + points.y * zoom, points.width * zoom,
@@ -276,13 +307,8 @@ void PdfView::Canvas::pointerPress(const ui::PointerEvent& event)
     const std::vector<pdf::Character>& characters = text->characters;
     size_t first = position.index;
     size_t last = position.index;
-    if (event.clickCount == 2) {
-        while (first > 0 && isWordCharacter(characters[first - 1].code))
-            --first;
-        while (last < characters.size() && isWordCharacter(characters[last].code))
-            ++last;
-        if (first == last && last < characters.size())
-            ++last;
+    if (event.clickCount == 2 && !characters.empty()) {
+        std::tie(first, last) = wordAround(*text, position.index);
     } else if (event.clickCount >= 3) {
         while (first > 0 && !isLineBreak(characters[first - 1].code))
             --first;
@@ -304,6 +330,30 @@ void PdfView::Canvas::pointerMove(const ui::PointerEvent& event)
     TextPosition position;
     if (m_dragged && m_selecting && caret(event.position, &position))
         m_view->setSelection(m_view->m_anchor, position);
+    m_pointerInWindow = mapToWindow(event.position);
+    const double y = m_view->mapFromWindow(m_pointerInWindow).y;
+    const bool outside = y < 0 || y > m_view->geometry().height;
+    if (!m_dragged || !m_selecting || !outside)
+        m_autoScroll.stop();
+    else if (!m_autoScroll.isActive())
+        m_autoScroll.start();
+}
+
+void PdfView::Canvas::autoScroll()
+{
+    const double y = m_view->mapFromWindow(m_pointerInWindow).y;
+    const double height = m_view->geometry().height;
+    const double dy = y < 0 ? y : y > height ? y - height : 0;
+    if (!m_pressed || !m_selecting || dy == 0) {
+        m_autoScroll.stop();
+        return;
+    }
+    const ui::PointF scrolled = m_view->scrollPosition();
+    m_view->setScrollPosition({scrolled.x, scrolled.y + dy / 2});
+    // The content moved under a still pointer.
+    TextPosition position;
+    if (caret(mapFromWindow(m_pointerInWindow), &position))
+        m_view->setSelection(m_view->m_anchor, position);
 }
 
 void PdfView::Canvas::pointerRelease(const ui::PointerEvent& event)
@@ -311,6 +361,7 @@ void PdfView::Canvas::pointerRelease(const ui::PointerEvent& event)
     if (!m_pressed)
         return;
     m_pressed = false;
+    m_autoScroll.stop();
     if (m_dragged || !m_pressedLink)
         return;
     const pdf::Link* link = m_view->linkAt(event.position);
@@ -338,6 +389,7 @@ void PdfView::setDocument(PdfDocument* document)
 {
     m_subscriptions.clear();
     m_pendingTiles.clear();
+    m_tilesAsked.clear();
     m_tiles.clear();
     m_tileIndex.clear();
     m_tileBytes = 0;
@@ -465,10 +517,16 @@ size_t PdfView::sharpTileCount() const
     return size_t(std::count_if(m_tiles.begin(), m_tiles.end(), [sharp](const Tile& tile) { return tile.key.scale == sharp; }));
 }
 
+size_t PdfView::tilesAskedAt(double scale) const
+{
+    const auto found = m_tilesAsked.find(std::llround(scale * kScaleSteps));
+    return found == m_tilesAsked.end() ? 0 : found->second;
+}
+
 bool PdfView::hasPendingTiles() const
 {
     return std::any_of(m_pendingTiles.begin(), m_pendingTiles.end(),
-                       [](const auto& entry) { return entry.second.isPending(); });
+                       [](const auto& entry) { return entry.second.request.isPending(); });
 }
 
 void PdfView::setPosition(ui::PointF position)
@@ -651,7 +709,7 @@ void PdfView::copy()
 {
     if (!m_document || !hasSelection())
         return;
-    m_copy = m_document->readText(selectionStart(), selectionEnd(), [](std::string text) {
+    m_document->readText(selectionStart(), selectionEnd(), [](std::string text) {
         if (!text.empty())
             ui::Clipboard::setText(text);
     });
@@ -723,13 +781,16 @@ void PdfView::updateTiles()
 {
     if (!m_document || m_renderScale <= 0 || geometry().width <= 0 || geometry().height <= 0)
         return;
+    // While a zoom moves, what is there is drawn scaled; rest() asks anew.
+    if (std::abs(m_renderScale - m_zoom * ratio()) > 1e-9)
+        return;
     const double scale = m_renderScale;
     const int64_t scaleKey = std::llround(scale * kScaleSteps);
     const ui::PointF pan = scrollPosition();
     const ui::RectF shown {pan.x, pan.y, geometry().width, geometry().height};
     const double nearTop = shown.y - shown.height / 2;
     const double nearBottom = shown.bottom() + shown.height / 2;
-    std::unordered_map<TileKey, PdfRequest, TileHash> pending;
+    std::unordered_map<TileKey, PendingTile, TileHash> pending;
     int firstShown = -1;
     int lastShown = -1;
     for (int page = pageAt(std::max(0.0, nearTop)); page < m_document->pageCount(); ++page) {
@@ -771,14 +832,16 @@ void PdfView::updateTiles()
                     continue;
                 }
                 const auto asked = m_pendingTiles.find(key);
-                if (asked != m_pendingTiles.end() && asked->second.isPending()) {
+                if (asked != m_pendingTiles.end() && asked->second.request.isPending()) {
+                    asked->second.inSight = rowInSight;
                     pending.emplace(key, std::move(asked->second));
                     continue;
                 }
                 const base::Rect region(column * kTileSize, row * kTileSize,
                                         std::min(kTileSize, pixelWidth - column * kTileSize),
                                         std::min(kTileSize, pixelHeight - row * kTileSize));
-                pending.emplace(key, m_document->worker().run(
+                ++m_tilesAsked[scaleKey];
+                pending.emplace(key, PendingTile {m_document->worker().run(
                                              rowInSight ? PdfWorker::Urgency::Visible : PdfWorker::Urgency::Near,
                                              [page, scale, region](const pdf::Document* document,
                                                                    const std::atomic<bool>* cancelled) {
@@ -790,12 +853,14 @@ void PdfView::updateTiles()
                                                  m_pendingTiles.erase(key);
                                                  if (!image.isNull())
                                                      tileArrived({key, scale, std::move(image)});
-                                             }));
+                                             }),
+                                             rowInSight});
             }
         }
     }
     // What scrolled away is not drawn after all.
     m_pendingTiles = std::move(pending);
+    dropOtherScales();
     if (firstShown >= 0)
         m_document->keepPageRequests(firstShown, lastShown);
 }
@@ -806,12 +871,32 @@ void PdfView::tileArrived(Tile tile)
     const TileKey key = tile.key;
     m_tiles.push_front(std::move(tile));
     m_tileIndex[key] = m_tiles.begin();
+    dropOtherScales();
     while (m_tileBytes > kTileBytes && m_tiles.size() > 1) {
         m_tileBytes -= m_tiles.back().image.sizeInBytes();
         m_tileIndex.erase(m_tiles.back().key);
         m_tiles.pop_back();
     }
     m_canvas->requestPaint();
+}
+
+void PdfView::dropOtherScales()
+{
+    const bool waiting = std::any_of(m_pendingTiles.begin(), m_pendingTiles.end(), [](const auto& entry) {
+        return entry.second.inSight && entry.second.request.isPending();
+    });
+    if (waiting)
+        return;
+    const int64_t sharp = std::llround(m_renderScale * kScaleSteps);
+    for (auto it = m_tiles.begin(); it != m_tiles.end();) {
+        if (it->key.scale == sharp) {
+            ++it;
+            continue;
+        }
+        m_tileBytes -= it->image.sizeInBytes();
+        m_tileIndex.erase(it->key);
+        it = m_tiles.erase(it);
+    }
 }
 
 bool PdfView::scroll(const ui::ScrollEvent& event)

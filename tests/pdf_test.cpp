@@ -133,15 +133,19 @@ protected:
         TestInput::typeKey(window.window(), key, modifiers);
     }
 
-    // Once the copy, read on the worker, is on the clipboard.
-    bool copied(const std::string& expected)
+    // The clipboard's text once it is `expected`, the copy being read on the
+    // worker, or what it still is after five seconds.
+    std::string copied(const std::string& expected)
     {
-        return waitFor(loop(), [&] {
+        std::string last;
+        waitFor(loop(), [&] {
             std::optional<std::string> text;
             Clipboard::requestText([&text](std::string received) { text = std::move(received); });
             waitFor(loop(), [&] { return text.has_value(); });
-            return text == expected;
+            last = text.value_or(std::string());
+            return last == expected;
         });
+        return last;
     }
 
     TemporaryDir directory;
@@ -314,7 +318,7 @@ TEST_F(PdfUiTest, ADragSelectsTextAndCopyCopiesIt)
     TestInput::release(window.window(), to);
     EXPECT_TRUE(view->hasSelection());
     press(window, key::letter('c'), ControlModifier);
-    EXPECT_TRUE(copied("Hello"));
+    EXPECT_EQ(copied("Hello"), "Hello");
 
     // A double click takes the word.
     const cutefish::base::RectF word = text.characters[8].box;
@@ -322,11 +326,11 @@ TEST_F(PdfUiTest, ADragSelectsTextAndCopyCopiesIt)
     TestInput::click(window.window(), inWord);
     TestInput::click(window.window(), inWord);
     press(window, key::letter('c'), ControlModifier);
-    EXPECT_TRUE(copied("Cutefish"));
+    EXPECT_EQ(copied("Cutefish"), "Cutefish");
 
     press(window, key::letter('a'), ControlModifier);
     press(window, key::letter('c'), ControlModifier);
-    EXPECT_TRUE(copied("Hello Cutefish\nSecond Cutefish\nThird page"));
+    EXPECT_EQ(copied("Hello Cutefish\nSecond Cutefish\nThird page"), "Hello Cutefish\nSecond Cutefish\nThird page");
 }
 
 TEST_F(PdfUiTest, AWrongPasswordIsAskedForAgainInPlace)
@@ -391,4 +395,87 @@ TEST_F(PdfUiTest, ALargeDocumentShowsItsFirstPageAtOnce)
     ASSERT_TRUE(waitFor(loop(), [&] { return window.sidebar()->hasContents(); }));
     // Only what is in sight and near it is drawn.
     EXPECT_LT(page->view()->tileCount(), 20u);
+}
+
+// Zooming out from 800% asks for nothing at 800% while the zoom moves, and
+// once the new tiles are in, those of the old zoom are gone.
+TEST_F(PdfUiTest, AMovingZoomAsksForNoTilesAndOldOnesGoOnceSharp)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    PdfView* view = window.pdfPage()->view();
+    view->zoomTo(8, view->center(), false);
+    ASSERT_TRUE(settled(window));
+    const double high = view->renderScale();
+    ASSERT_NEAR(high, 8 * window.window().scale(), 1e-9);
+    const size_t asked = view->tilesAskedAt(high);
+    view->zoomToFit();
+    ASSERT_TRUE(until(window, [&] { return view->isFitted() && std::abs(view->zoom() - view->fitZoom()) < 1e-9; }));
+    ASSERT_TRUE(settled(window));
+    EXPECT_EQ(view->tilesAskedAt(high), asked);
+    EXPECT_GT(view->tilesAskedAt(view->renderScale()), 0u);
+    EXPECT_EQ(view->tileCount(), view->sharpTileCount());
+}
+
+// A double click in Chinese takes a word, not the run up to a space.
+TEST_F(PdfUiTest, ADoubleClickInChineseTakesAWord)
+{
+    const std::string chinese = pdfOf({
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        pdfStream("BT /F1 24 Tf 20 100 Td <6211559C6B224E2D65873002> Tj ET"),
+        "<< /Type /Font /Subtype /Type0 /BaseFont /STSong-Light /Encoding /UniGB-UCS2-H /DescendantFonts [<< /Type "
+        "/Font /Subtype /CIDFontType0 /BaseFont /STSong-Light /CIDSystemInfo << /Registry (Adobe) /Ordering (GB1) "
+        "/Supplement 2 >> /FontDescriptor << /Type /FontDescriptor /FontName /STSong-Light /Flags 4 /FontBBox [0 -200 "
+        "1000 900] /ItalicAngle 0 /Ascent 880 /Descent -120 /CapHeight 700 /StemV 80 >> >>] >>",
+    });
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("chinese.pdf"), chinese));
+    PdfDocument* document = window.pdfPage()->document();
+    ASSERT_TRUE(waitFor(loop(), [&] { return document->text(0) != nullptr; }));
+    const cutefish::pdf::PageText& text = *document->text(0);
+    ASSERT_EQ(text.text(0, text.characters.size()), "我喜欢中文。");
+    const cutefish::base::RectF box = text.characters[1].box;
+    const PointF inWord = windowPoint(window, 0, {box.x() + box.width() / 2, box.y() + box.height() / 2});
+    TestInput::click(window.window(), inWord);
+    TestInput::click(window.window(), inWord);
+    press(window, key::letter('c'), ControlModifier);
+    EXPECT_EQ(copied("喜欢"), "喜欢");
+}
+
+// Held below the view, a selecting drag scrolls on and the selection follows.
+TEST_F(PdfUiTest, ADragPastTheBottomScrollsAndSelectsOn)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    PdfView* view = window.pdfPage()->view();
+    PdfDocument* document = window.pdfPage()->document();
+    ASSERT_TRUE(waitFor(loop(), [&] { return document->text(0) != nullptr; }));
+    const cutefish::base::RectF first = document->text(0)->characters[0].box;
+    const PointF from = windowPoint(window, 0, {first.x() + 0.5, first.y() + first.height() / 2});
+    TestInput::movePointer(window.window(), from);
+    TestInput::press(window.window(), from);
+    const PointF below = view->mapToWindow({view->center().x, view->geometry().height + 40});
+    TestInput::movePointer(window.window(), below);
+    EXPECT_TRUE(waitFor(loop(), [&] {
+        document->text(1);
+        document->text(2);
+        return view->scrollPosition().y > 0 && view->selectionEnd().page >= 1;
+    }));
+    TestInput::release(window.window(), below);
+    const double stopped = view->scrollPosition().y;
+    runFor(loop(), 100ms);
+    EXPECT_EQ(view->scrollPosition().y, stopped);
+}
+
+// A copy is read a page at a time; a newer one drops the one still reading.
+TEST_F(PdfUiTest, ANewerCopyDropsALongOneStillReading)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("book.pdf"), bookPdf(2000)));
+    PdfView* view = window.pdfPage()->view();
+    press(window, key::letter('a'), ControlModifier);
+    press(window, key::letter('c'), ControlModifier);
+    view->setSelection({0, 0}, {0, 4});
+    press(window, key::letter('c'), ControlModifier);
+    EXPECT_EQ(copied("Page"), "Page");
+    runFor(loop(), 500ms);
+    EXPECT_EQ(copied("Page"), "Page");
 }

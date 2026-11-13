@@ -80,8 +80,10 @@ public:
     // The point of the page as shown it goes to. The caller keeps the request.
     [[nodiscard]] PdfRequest resolve(const cutefish::pdf::Destination& destination,
                  std::function<void(int page, cutefish::ui::PointF point)> done);
-    // UTF-8 from `from` up to `to`, lines of separate pages apart.
-    [[nodiscard]] PdfRequest readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done);
+    // UTF-8 from `from` up to `to`, lines of separate pages apart, read a
+    // page at a time so what is in sight is drawn in between. A newer read,
+    // or the document going, drops it.
+    void readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done);
 
     // Every page searched, from `firstPage` on and round, without case.
     void setSearch(const std::string& query, int firstPage);
@@ -118,7 +120,17 @@ private:
         PdfRequest request;
     };
 
+    struct TextRead
+    {
+        TextPosition from;
+        TextPosition to;
+        int page;
+        std::string text;
+        std::function<void(std::string text)> done;
+    };
+
     void opened(int status);
+    void readTextPage(std::shared_ptr<TextRead> read);
     void searchNext();
     PageData& data(int page);
 
@@ -131,6 +143,7 @@ private:
     PdfRequest m_opening;
     PdfRequest m_info;
     PdfRequest m_outlineRequest;
+    PdfRequest m_textRead;
     // The pages near what was asked for last; far ones are read again.
     cutefish::base::LruCache<int, PageData> m_pages;
     std::unordered_map<int, PdfRequest> m_textRequests;

@@ -88,6 +88,8 @@ public:
     size_t tileCount() const { return m_tiles.size(); }
     size_t sharpTileCount() const;
     bool hasPendingTiles() const;
+    // Tiles asked of the worker at a scale, in device pixels per point.
+    size_t tilesAskedAt(double scale) const;
 
     std::function<void()> onCurrentPageChanged;
     std::function<void()> onSelectionChanged;
@@ -126,6 +128,11 @@ private:
         double scale;
         cutefish::ui::RasterImage image;
     };
+    struct PendingTile
+    {
+        PdfRequest request;
+        bool inSight;
+    };
 
     // The page's top and left in the content at the zoom.
     double pageTop(int page, double zoom) const;
@@ -147,6 +154,8 @@ private:
     // Asks for the tiles, text and links of what is in sight and near it.
     void updateTiles();
     void tileArrived(Tile tile);
+    // Once every tile in sight is sharp, the others are of no more use.
+    void dropOtherScales();
     void followLink(const cutefish::pdf::Link& link);
     const cutefish::pdf::Link* linkAt(cutefish::ui::PointF content);
     void scrollToMatch();
@@ -169,7 +178,8 @@ private:
     std::list<Tile> m_tiles;
     std::unordered_map<TileKey, std::list<Tile>::iterator, TileHash> m_tileIndex;
     size_t m_tileBytes = 0;
-    std::unordered_map<TileKey, PdfRequest, TileHash> m_pendingTiles;
+    std::unordered_map<TileKey, PendingTile, TileHash> m_pendingTiles;
+    std::unordered_map<int64_t, size_t> m_tilesAsked;
     cutefish::base::Timer m_restTimer;
 
     bool m_anchored = false;
@@ -186,6 +196,5 @@ private:
     TextPosition m_focus;
     int m_matchPage = -1;
     int m_matchIndex = -1;
-    PdfRequest m_copy;
     PdfRequest m_resolve;
 };

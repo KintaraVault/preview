@@ -193,26 +193,37 @@ PdfRequest PdfDocument::resolve(const pdf::Destination& destination, std::functi
             });
 }
 
-PdfRequest PdfDocument::readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done)
+void PdfDocument::readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done)
 {
-    if (m_state != State::Ready || to <= from)
-        return {};
-    return m_worker->run(
-            Urgency::Now,
-            [from, to](const pdf::Document* document, const std::atomic<bool>* cancelled) {
-                std::string text;
-                for (int page = from.page; page <= to.page && !cancelled->load(); ++page) {
-                    const pdf::PageText pageText = document->text(page);
-                    const size_t size = pageText.characters.size();
-                    const size_t first = page == from.page ? std::min(from.index, size) : 0;
-                    const size_t last = page == to.page ? std::min(to.index, size) : size;
-                    if (!text.empty() && page != from.page)
-                        text += '\n';
-                    text += pageText.text(first, last - first);
-                }
-                return text;
+    if (m_state != State::Ready || to <= from) {
+        m_textRead.cancel();
+        return;
+    }
+    to.page = std::min(to.page, pageCount() - 1);
+    readTextPage(std::make_shared<TextRead>(TextRead {from, to, from.page, {}, std::move(done)}));
+}
+
+void PdfDocument::readTextPage(std::shared_ptr<TextRead> read)
+{
+    const int page = read->page;
+    m_textRead = m_worker->run(
+            Urgency::Near,
+            [page, from = read->from, to = read->to](const pdf::Document* document, const std::atomic<bool>*) {
+                const pdf::PageText pageText = document->text(page);
+                const size_t size = pageText.characters.size();
+                const size_t first = page == from.page ? std::min(from.index, size) : 0;
+                const size_t last = page == to.page ? std::min(to.index, size) : size;
+                return pageText.text(first, last - std::min(first, last));
             },
-            std::move(done));
+            [this, read](std::string part) {
+                if (!read->text.empty() && read->page != read->from.page)
+                    read->text += '\n';
+                read->text += part;
+                if (++read->page > read->to.page)
+                    read->done(std::move(read->text));
+                else
+                    readTextPage(read);
+            });
 }
 
 void PdfDocument::setSearch(const std::string& query, int firstPage)
