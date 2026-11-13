@@ -110,5 +110,6 @@ private:
     double m_chromeTo = 1;
     std::unique_ptr<cutefish::ui::Animation> m_chrome;
     cutefish::base::Timer m_idle;
+    std::vector<cutefish::base::Subscription> m_subscriptions;
     std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 };

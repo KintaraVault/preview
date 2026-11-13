@@ -242,6 +242,11 @@ PreviewWindow::PreviewWindow(Application& application)
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
     WelcomePage* welcome = m_root->welcome;
     welcome->onOpen = [this] { openDialog(); };
+    welcome->onRecentClicked = [this](const std::string& path) { m_application.open({path}); };
+    welcome->onClearRecent = [this] { m_application.settings().clearRecentFiles(); };
+    welcome->setRecentFiles(m_application.settings().recentFiles());
+    m_subscriptions.push_back(m_application.settings().recentFilesChanged.connect(
+            [this] { m_root->welcome->setRecentFiles(m_application.settings().recentFiles()); }));
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
