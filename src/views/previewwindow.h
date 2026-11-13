@@ -67,6 +67,7 @@ public:
     // The image and its file's URL.
     void copy();
     void showInFiles();
+    void moveToTrash();
     void openDialog();
     void close();
 

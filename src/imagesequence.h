@@ -34,6 +34,9 @@ public:
     // Empty when the sequence is.
     std::string currentPath() const;
     void setCurrentIndex(int index);
+    // A file the window moved away: the next one takes the current one's
+    // place, or the previous one at the end.
+    void remove(const std::string& path);
 
     // The files or the current one changed.
     cutefish::base::Signal<> changed;

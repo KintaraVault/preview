@@ -8,6 +8,9 @@
 #include "sidebar.h"
 #include "welcomepage.h"
 
+#include "cutefish/files/task.h"
+#include "cutefish/files/url.h"
+
 #include "base/event_loop.h"
 #include "base/file.h"
 #include "base/i18n.h"
@@ -23,6 +26,7 @@
 #include "ui/keys.h"
 #include "ui/label.h"
 #include "ui/painter.h"
+#include "ui/shortcut_convention.h"
 #include "ui/theme.h"
 #include "ui/window.h"
 #include "ui/window_header.h"
@@ -542,6 +546,18 @@ void PreviewWindow::showInFiles()
         m_application.showInFiles(m_root->image->shown().path);
 }
 
+void PreviewWindow::moveToTrash()
+{
+    if (isWelcome() || m_root->image->shown().path.empty())
+        return;
+    const std::string path = m_root->image->shown().path;
+    files::Task* task = files::trash({files::Url::fromLocalFile(path)});
+    task->whenFinished([this, path, alive = std::weak_ptr<bool>(m_alive)](files::Task* finished) {
+        if (!alive.expired() && m_sequence && finished->state() == files::Task::State::Succeeded)
+            m_sequence->remove(path);
+    });
+}
+
 void PreviewWindow::openDialog()
 {
     m_chooser = std::make_unique<ui::FileChooser>(m_window.get());
@@ -617,6 +633,11 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('0'), [this] { zoomToFit(); });
     window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
     window.addShortcut(ctrl, ui::key::letter('c'), [this] { copy(); });
+    window.addShortcut(none, ui::key::Delete, [this] { moveToTrash(); });
+    window.addShortcut(ctrl, ui::key::BackSpace, [this] {
+        if (ui::commandKeys())
+            moveToTrash();
+    });
     window.addShortcut(ctrl, ui::key::letter('o'), [this] { openDialog(); });
     window.addShortcut(ctrl, ui::key::letter('w'), [this] { close(); });
     window.addShortcut(ctrl, ui::key::letter('q'), [this] { m_application.quit(); });

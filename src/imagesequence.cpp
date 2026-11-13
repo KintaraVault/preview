@@ -88,6 +88,13 @@ void ImageSequence::setCurrentIndex(int index)
     changed.emit();
 }
 
+void ImageSequence::remove(const std::string& path)
+{
+    std::vector<std::string> paths = m_paths;
+    std::erase(paths, path);
+    replace(std::move(paths));
+}
+
 void ImageSequence::replace(std::vector<std::string> paths)
 {
     if (paths == m_paths)
