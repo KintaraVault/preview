@@ -18,6 +18,8 @@ static std::string sidebarKey(DocumentKind kind)
     switch (kind) {
     case DocumentKind::Image:
         return "Sidebar/Images";
+    case DocumentKind::Pdf:
+        return "Sidebar/Documents";
     }
     return {};
 }

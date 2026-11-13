@@ -11,6 +11,7 @@
 // What a window shows; the sidebar is kept per kind.
 enum class DocumentKind {
     Image,
+    Pdf,
 };
 
 // preview.conf: whether the sidebar shows, per kind, and the files opened
