@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "base/signal.h"
 #include "ui/view.h"
 
 #include <functional>
@@ -12,6 +13,8 @@
 namespace cutefish::ui {
 class ListView;
 }
+
+class PdfDocument;
 
 // Thumbnails of the window's items down its left edge, in the material and
 // selection style of the Files sidebar; the current one is selected and
@@ -25,10 +28,14 @@ public:
     explicit Sidebar(double headerHeight);
 
     void setItems(const std::vector<std::string>& paths);
+    // Its pages instead of files; null goes back to files. It outlives the
+    // sidebar's use of it.
+    void setDocument(PdfDocument* document);
     void setCurrent(int index);
     // Thumbnails read again, of files written since.
     void refresh();
     int current() const { return m_current; }
+    size_t count() const;
 
     std::function<void(int index)> onActivated;
 
@@ -38,9 +45,12 @@ protected:
 
 private:
     class Row;
+    void keepVisibleThumbnails();
 
     double m_headerHeight;
     cutefish::ui::ListView* m_list;
     std::vector<std::string> m_paths;
+    PdfDocument* m_document = nullptr;
+    std::vector<cutefish::base::Subscription> m_subscriptions;
     int m_current = -1;
 };

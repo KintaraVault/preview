@@ -33,6 +33,8 @@ void PdfPage::load(const std::string& path)
     m_path = path;
     m_view->setDocument(nullptr);
     m_subscriptions.clear();
+    if (m_document && onDocumentReplaced)
+        onDocumentReplaced();
     m_document = std::make_unique<PdfDocument>(path);
     m_subscriptions.push_back(m_document->stateChanged.connect([this] { stateChanged(); }));
     updateMessage();
@@ -42,6 +44,8 @@ void PdfPage::clear()
 {
     m_view->setDocument(nullptr);
     m_subscriptions.clear();
+    if (m_document && onDocumentReplaced)
+        onDocumentReplaced();
     m_document.reset();
     m_path.clear();
     updateMessage();

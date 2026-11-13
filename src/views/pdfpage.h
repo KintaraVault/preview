@@ -40,6 +40,8 @@ public:
 
     // Opened, locked or unreadable.
     std::function<void()> onStateChanged;
+    // The document is about to go, for a new one or none.
+    std::function<void()> onDocumentReplaced;
 
 protected:
     void layout() override;

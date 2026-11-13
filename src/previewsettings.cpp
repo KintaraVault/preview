@@ -38,9 +38,9 @@ std::string PreviewSettings::defaultPath()
     return base::paths::cutefishConfig("preview");
 }
 
-bool PreviewSettings::sidebarShown(DocumentKind kind) const
+bool PreviewSettings::sidebarShown(DocumentKind kind, bool unset) const
 {
-    return base::Settings(m_file).boolValue(sidebarKey(kind), false);
+    return base::Settings(m_file).boolValue(sidebarKey(kind), unset);
 }
 
 void PreviewSettings::setSidebarShown(DocumentKind kind, bool shown)

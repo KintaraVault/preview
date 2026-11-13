@@ -26,7 +26,8 @@ public:
     // ~/.config/cutefish/preview.conf.
     static std::string defaultPath();
 
-    bool sidebarShown(DocumentKind kind) const;
+    // `unset` until the sidebar is toggled for the kind.
+    bool sidebarShown(DocumentKind kind, bool unset = false) const;
     void setSidebarShown(DocumentKind kind, bool shown);
 
     // Local paths, newest first; files gone from disk are left out.

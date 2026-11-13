@@ -264,6 +264,7 @@ PreviewWindow::PreviewWindow(Application& application)
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
     page->viewer()->onContextMenuRequested = [this](ui::PointF position) { openContextMenu(position); };
     m_root->pdf->onStateChanged = [this] { pdfStateChanged(); };
+    m_root->pdf->onDocumentReplaced = [this] { m_root->sidebar->setDocument(nullptr); };
     PdfView* pages = m_root->pdf->view();
     pages->onCurrentPageChanged = [this] { updateHeader(); };
     pages->onContextMenuRequested = [this](ui::PointF position, const std::string& uri) {
@@ -465,6 +466,8 @@ void PreviewWindow::pdfStateChanged()
         return;
     const bool ready = document->state() == PdfDocument::State::Ready;
     if (ready) {
+        m_root->sidebar->setDocument(document);
+        m_sidebarShown = m_application.settings().sidebarShown(DocumentKind::Pdf, document->pageCount() > 1);
         if (!m_sized) {
             m_sized = true;
             if (!isFullScreen() && !m_window->states().maximized)
