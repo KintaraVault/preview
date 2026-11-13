@@ -641,7 +641,7 @@ void PdfView::updateCurrentPage()
     if (!m_document || m_keepCurrentPage)
         return;
     const double top = scrollPosition().y + m_topInset;
-    const double bottom = top + geometry().height;
+    const double bottom = scrollPosition().y + geometry().height;
     int best = m_currentPage;
     double bestHeight = -1;
     for (int page = pageAt(top); page < m_document->pageCount(); ++page) {

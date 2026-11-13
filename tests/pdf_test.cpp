@@ -539,3 +539,22 @@ TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
     EXPECT_EQ(pdf.positionGeometry().x, arrow.x);
     EXPECT_EQ(pdf.positionGeometry().x, std::round(pdf.positionGeometry().x));
 }
+
+// The page that shows the most below the header is current; what lies past
+// the view's bottom does not count.
+TEST_F(PdfUiTest, TheCurrentPageIsWhatShowsBelowTheHeader)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    PdfView* view = window.pdfPage()->view();
+    const double inset = view->topInset();
+    const double shown = view->geometry().height - inset;
+    const double page = view->pageRect(0).height;
+    // The first page shows 10 more than the second, which runs on past the bottom.
+    const double first = (shown - PdfView::kPageGap) / 2 + 5;
+    ASSERT_GT(page - (shown - first - PdfView::kPageGap), inset);
+    view->setScrollPosition({0, inset + PdfView::kMargin + page - inset - first});
+    EXPECT_NEAR(view->mapToWindow(view->pageRect(0).topLeft()).y + page, inset + first, 1);
+    EXPECT_EQ(view->currentPage(), 0);
+    view->setScrollPosition({0, view->scrollPosition().y + 10});
+    EXPECT_EQ(view->currentPage(), 1);
+}
