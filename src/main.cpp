@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "application.h"
+#include "icons.h"
 #include "previewsettings.h"
 
 #include "base/i18n.h"
 #include "ui/application.h"
+#include "ui/icon.h"
 
 #include <string>
 #include <vector>
@@ -19,6 +21,8 @@ int main(int argc, char** argv)
     ui::Application app(argc, argv);
     app.setApplicationId("cutefish-preview");
     i18n::setDomain("cutefish-preview");
+    for (const auto& [name, svg] : embeddedIcons())
+        ui::Icon::registerGlyph(std::string(name), std::string(svg));
 
     PreviewSettings settings(PreviewSettings::defaultPath());
     Application application(settings);

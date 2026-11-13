@@ -21,10 +21,22 @@ add_library(preview-core STATIC
 target_include_directories(preview-core PUBLIC src)
 target_link_libraries(preview-core PUBLIC Cutefish::Toolkit)
 
+# The glyphs, built in.
+file(GLOB PREVIEW_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/icons/*.svg)
+set(PREVIEW_EMBEDDED ${CMAKE_CURRENT_BINARY_DIR}/icons.cpp)
+# A list would be split into separate arguments on the way to the script.
+string(REPLACE ";" "|" PREVIEW_ICON_LIST "${PREVIEW_ICONS}")
+add_custom_command(OUTPUT ${PREVIEW_EMBEDDED}
+    COMMAND ${CMAKE_COMMAND} -DOUTPUT=${PREVIEW_EMBEDDED}
+            -DFILES=${PREVIEW_ICON_LIST} -P ${PROJECT_SOURCE_DIR}/cmake/EmbedIcons.cmake
+    DEPENDS ${PREVIEW_ICONS} ${PROJECT_SOURCE_DIR}/cmake/EmbedIcons.cmake
+    VERBATIM)
+
 add_library(preview-ui STATIC
     src/application.cpp
     src/views/imagepage.cpp
     src/views/previewwindow.cpp
+    ${PREVIEW_EMBEDDED}
 )
 target_include_directories(preview-ui PUBLIC src src/views)
 target_link_libraries(preview-ui PUBLIC preview-core Cutefish::Toolkit Cutefish::Files)
