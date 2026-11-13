@@ -60,6 +60,7 @@ public:
     bool sidebarShown() const { return m_sidebarShown; }
     void toggleSidebar();
     bool isFullScreen() const;
+    void toggleFullScreen();
     void close();
 
     ImagePage* imagePage() const;

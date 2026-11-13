@@ -225,6 +225,11 @@ PreviewWindow::PreviewWindow(Application& application)
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
     m_window->onStatesChanged = [this] {
+        const bool fullScreen = isFullScreen();
+        ui::WindowHeader* header = m_root->bar->header;
+        header->setMinimizeVisible(!fullScreen);
+        header->setMaximizeVisible(!fullScreen);
+        header->setCloseVisible(!fullScreen);
         m_root->requestLayout();
         m_root->requestPaint();
     };
@@ -477,6 +482,12 @@ bool PreviewWindow::isFullScreen() const
     return m_window->states().fullScreen;
 }
 
+void PreviewWindow::toggleFullScreen()
+{
+    if (!isWelcome() || isFullScreen())
+        m_window->setFullScreen(!isFullScreen());
+}
+
 void PreviewWindow::close()
 {
     m_application.releaseWindow(this);
@@ -504,4 +515,11 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
     window.addShortcut(ctrl, ui::key::letter('w'), [this] { close(); });
     window.addShortcut(ctrl, ui::key::letter('q'), [this] { m_application.quit(); });
+    // F and F11, as in the Video Player.
+    window.addShortcut(none, ui::key::letter('f'), [this] { toggleFullScreen(); });
+    window.addShortcut(none, ui::key::F1 + 10, [this] { toggleFullScreen(); });
+    window.addShortcut(none, ui::key::Escape, [this] {
+        if (isFullScreen())
+            toggleFullScreen();
+    });
 }
