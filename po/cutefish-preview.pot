@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-04 20:09+0800\n"
+"POT-Creation-Date: 2026-11-04 20:20+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -46,6 +46,142 @@ msgstr ""
 msgid "Move to Trash"
 msgstr ""
 
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr ""
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Thumbnails"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Contents"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Window"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Zoom"
+msgstr ""
+
 #: src/views/welcomepage.cpp
 msgid "Drop an Image Here"
 msgstr ""
@@ -55,19 +191,11 @@ msgid "Or open a file to view it."
 msgstr ""
 
 #: src/views/welcomepage.cpp
-msgid "Open…"
-msgstr ""
-
-#: src/views/welcomepage.cpp
 msgid "Recent"
 msgstr ""
 
 #: src/views/welcomepage.cpp
 msgid "Clear"
-msgstr ""
-
-#: cutefish-preview.desktop
-msgid "View images"
 msgstr ""
 
 #: cutefish-preview.desktop

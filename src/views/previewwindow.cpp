@@ -16,6 +16,7 @@
 #include "base/i18n.h"
 #include "base/url.h"
 #include "ui/cell_layout.h"
+#include "ui/about_dialog.h"
 #include "ui/animation.h"
 #include "ui/application.h"
 #include "ui/clipboard.h"
@@ -276,6 +277,7 @@ PreviewWindow::PreviewWindow(Application& application)
         updateChrome();
     };
 
+    buildMainMenu();
     bindShortcuts();
     updateBackground();
     updateHeader();
@@ -592,6 +594,17 @@ void PreviewWindow::openContextMenu(ui::PointF position)
     m_contextMenu->popup(m_window.get(), position);
 }
 
+void PreviewWindow::showAbout()
+{
+    if (!m_about) {
+        m_about = std::make_unique<ui::AboutDialog>(m_window.get());
+        m_about->setName(tr("Preview"));
+        m_about->setDescription(tr("View images"));
+        m_about->setIconSource("accessories-document-viewer");
+    }
+    m_about->show();
+}
+
 void PreviewWindow::poke()
 {
     m_pointerActive = true;
@@ -622,6 +635,135 @@ void PreviewWindow::updateChrome()
         apply(target);
     else
         m_chrome->start();
+}
+
+void PreviewWindow::buildMainMenu()
+{
+    // Starts reading the shortcut convention, which the trash key follows.
+    ui::commandKeys();
+    m_window->setMainMenu(nullptr);
+    m_mainMenu = std::make_unique<ui::Menu>();
+    const uint32_t ctrl = ui::ControlModifier;
+    const uint32_t shift = ui::ShiftModifier;
+    const uint32_t alt = ui::AltModifier;
+    const auto image = [this] { return !isWelcome() && m_root->image->showsImage(); };
+
+    ui::Menu* application = m_mainMenu->addSubmenu(tr("Preview"));
+    application->setRole(ui::MenuRole::Application);
+    application->addItem(tr("About Preview"), [this] { showAbout(); });
+    application->addSeparator();
+    application->addItem(tr("Hide Preview"), [this] { m_window->hideApplication(); });
+    application->addSeparator();
+    const size_t quit = application->addItem(tr("Quit Preview"), [this] { m_application.quit(); });
+    application->setItemKeyEquivalent(quit, "q", ctrl);
+
+    ui::Menu* file = m_mainMenu->addSubmenu(tr("File"));
+    const size_t open = file->addItem(tr("Open…"), [this] { openDialog(); });
+    file->setItemKeyEquivalent(open, "o", ctrl);
+    const size_t recentRow = open + 1;
+    ui::Menu* recent = file->addSubmenu(tr("Open Recent"));
+    recent->onAboutToShow = [this, recent] {
+        recent->clear();
+        for (const std::string& path : m_application.settings().recentFiles()) {
+            recent->addItem(std::filesystem::path(path).filename().string(),
+                            [this, path] { m_application.open({path}); });
+        }
+        recent->addSeparator();
+        recent->addItem(tr("Clear Recent Files"), [this] { m_application.settings().clearRecentFiles(); });
+    };
+    file->addSeparator();
+    const size_t closeWindow = file->addItem(tr("Close Window"), [this] { close(); });
+    file->setItemKeyEquivalent(closeWindow, "w", ctrl);
+    file->addSeparator();
+    const size_t show = file->addItem(tr("Show in Files"), [this] { showInFiles(); });
+    const size_t trash = file->addItem(tr("Move to Trash"), [this] { moveToTrash(); });
+    file->onAboutToShow = [this, file, recentRow, show, trash] {
+        file->setItemEnabled(recentRow, !m_application.settings().recentFiles().empty());
+        file->setItemEnabled(show, !isWelcome());
+        file->setItemEnabled(trash, !isWelcome());
+        // The trash key differs between the two shortcut conventions, as in Files.
+        if (ui::commandKeys())
+            file->setItemKeyEquivalent(trash, "BackSpace", ui::ControlModifier);
+        else
+            file->setItemKeyEquivalent(trash, "Delete", 0);
+    };
+
+    ui::Menu* edit = m_mainMenu->addSubmenu(tr("Edit"));
+    const size_t copyRow = edit->addItem(tr("Copy"), [this] { copy(); });
+    edit->setItemKeyEquivalent(copyRow, "c", ctrl);
+    const size_t selectAll = edit->addItem(tr("Select All"), [] {});
+    edit->setItemKeyEquivalent(selectAll, "a", ctrl);
+    edit->addSeparator();
+    const size_t find = edit->addItem(tr("Find…"), [] {});
+    edit->setItemKeyEquivalent(find, "f", ctrl);
+    const size_t findNext = edit->addItem(tr("Find Next"), [] {});
+    edit->setItemKeyEquivalent(findNext, "g", ctrl);
+    const size_t findPrevious = edit->addItem(tr("Find Previous"), [] {});
+    edit->setItemKeyEquivalent(findPrevious, "g", ctrl | shift);
+    edit->onAboutToShow = [edit, image, copyRow, selectAll, find, findNext, findPrevious] {
+        edit->setItemEnabled(copyRow, image());
+        // Text and search are a PDF's.
+        for (const size_t row : {selectAll, find, findNext, findPrevious})
+            edit->setItemEnabled(row, false);
+    };
+
+    ui::Menu* view = m_mainMenu->addSubmenu(tr("View"));
+    const size_t sidebarRow = view->addItem(tr("Show Sidebar"), [this] { toggleSidebar(); });
+    const size_t thumbnails = view->addItem(tr("Thumbnails"), [] {});
+    const size_t contents = view->addItem(tr("Contents"), [] {});
+    view->addSeparator();
+    const size_t zoomInRow = view->addItem(tr("Zoom In"), [this] { zoomIn(); });
+    view->setItemKeyEquivalent(zoomInRow, "=", ctrl);
+    const size_t zoomOutRow = view->addItem(tr("Zoom Out"), [this] { zoomOut(); });
+    view->setItemKeyEquivalent(zoomOutRow, "-", ctrl);
+    const size_t fit = view->addItem(tr("Zoom to Fit"), [this] { zoomToFit(); });
+    view->setItemKeyEquivalent(fit, "0", ctrl);
+    const size_t actual = view->addItem(tr("Actual Size"), [this] { zoomToActualSize(); });
+    view->setItemKeyEquivalent(actual, "9", ctrl);
+    view->addSeparator();
+    const size_t fullScreen = view->addItem(tr("Enter Full Screen"), [this] { toggleFullScreen(); });
+    view->setItemKeyEquivalent(fullScreen, "f", 0);
+    view->onAboutToShow = [this, view, image, sidebarRow, thumbnails, contents, zoomInRow, zoomOutRow, fit,
+                           actual, fullScreen] {
+        view->setItemText(sidebarRow, m_sidebarShown ? tr("Hide Sidebar") : tr("Show Sidebar"));
+        view->setItemEnabled(sidebarRow, !isWelcome());
+        // A PDF's sidebar shows thumbnails or its outline.
+        view->setItemEnabled(thumbnails, false);
+        view->setItemEnabled(contents, false);
+        for (const size_t row : {zoomInRow, zoomOutRow, fit, actual})
+            view->setItemEnabled(row, image());
+        view->setItemEnabled(fullScreen, !isWelcome() || isFullScreen());
+        view->setItemText(fullScreen, isFullScreen() ? tr("Exit Full Screen") : tr("Enter Full Screen"));
+    };
+
+    ui::Menu* go = m_mainMenu->addSubmenu(tr("Go"));
+    const size_t previous = go->addItem(tr("Previous"), [this] { step(-1); });
+    go->setItemKeyEquivalent(previous, "Left", 0);
+    const size_t next = go->addItem(tr("Next"), [this] { step(1); });
+    go->setItemKeyEquivalent(next, "Right", 0);
+    const size_t first = go->addItem(tr("First"), [this] { goTo(0); });
+    go->setItemKeyEquivalent(first, "Home", 0);
+    const size_t last = go->addItem(tr("Last"), [this] { goTo(count() - 1); });
+    go->setItemKeyEquivalent(last, "End", 0);
+    go->addSeparator();
+    const size_t goToPage = go->addItem(tr("Go to Page…"), [] {});
+    go->setItemKeyEquivalent(goToPage, "g", ctrl | alt);
+    go->onAboutToShow = [this, go, previous, next, first, last, goToPage] {
+        const int index = currentIndex();
+        go->setItemEnabled(previous, index > 0);
+        go->setItemEnabled(first, index > 0);
+        go->setItemEnabled(next, index >= 0 && index + 1 < count());
+        go->setItemEnabled(last, index >= 0 && index + 1 < count());
+        // Pages are a PDF's.
+        go->setItemEnabled(goToPage, false);
+    };
+
+    ui::Menu* windowMenu = m_mainMenu->addSubmenu(tr("Window"));
+    windowMenu->setRole(ui::MenuRole::Windows);
+    windowMenu->addItem(tr("Minimize"), [this] { m_window->minimize(); });
+    windowMenu->addItem(tr("Zoom"), [this] { m_window->setMaximized(!m_window->states().maximized); });
+
+    m_window->setMainMenu(m_mainMenu.get());
 }
 
 void PreviewWindow::bindShortcuts()

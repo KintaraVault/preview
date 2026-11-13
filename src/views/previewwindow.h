@@ -14,6 +14,7 @@
 #include <vector>
 
 namespace cutefish::ui {
+class AboutDialog;
 class Animation;
 class FileChooser;
 class Menu;
@@ -27,7 +28,7 @@ class ImageSequence;
 class Sidebar;
 
 // A window of one document, or of a sequence of images: the header, the
-// content under it and its keys.
+// sidebar, the content under them, its keys and its menus.
 class PreviewWindow
 {
 public:
@@ -84,6 +85,7 @@ private:
     class Root;
     friend class Root;
 
+    void buildMainMenu();
     void bindShortcuts();
     void shown();
     void sequenceChanged();
@@ -91,6 +93,7 @@ private:
     void updateTitle();
     void updateBackground();
     void openContextMenu(cutefish::ui::PointF position);
+    void showAbout();
     // The full screen header: it fades out two seconds after the pointer stops.
     void poke();
     void updateChrome();
@@ -98,6 +101,8 @@ private:
     cutefish::ui::SizeF viewportFor(const cutefish::ui::ImageInfo& info) const;
 
     Application& m_application;
+    // The window shows it until the window goes, so it outlives the window.
+    std::unique_ptr<cutefish::ui::Menu> m_mainMenu;
     std::unique_ptr<cutefish::ui::Window> m_window;
     Root* m_root = nullptr;
     std::unique_ptr<ImageSequence> m_sequence;
@@ -111,6 +116,7 @@ private:
     std::string m_activationToken;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
+    std::unique_ptr<cutefish::ui::AboutDialog> m_about;
     bool m_pointerActive = true;
     double m_chromeOpacity = 1;
     double m_chromeFrom = 1;
