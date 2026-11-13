@@ -242,3 +242,58 @@ TEST_F(UiTest, TheFullScreenHeaderFadesWhenThePointerRests)
     TestInput::movePointer(window.window(), {100, 100});
     EXPECT_TRUE(waitFor(loop(), [&] { return window.chromeOpacity() == 1; }));
 }
+
+// A pinch to three times over the image, which then overflows the view both
+// ways, keeps the image's point under the pointer, with the sidebar shown or
+// in full screen too.
+TEST_F(UiTest, APinchZoomsAboutThePointer)
+{
+    const std::string path = writePng(directory.filePath("a.png"), 1600, 1200);
+    writePng(directory.filePath("b.png"), 1600, 1200);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.count() == 2; }));
+    ImageViewer* viewer = window.imagePage()->viewer();
+    const auto pinch = [&](PointF pointer) {
+        window.window().grab();
+        TestInput::movePointer(window.window(), pointer);
+        const PointF anchor = viewer->mapFromWindow(pointer);
+        const PointF before = viewer->imagePoint(anchor);
+        const double fit = viewer->zoom();
+        GestureEvent event;
+        event.type = GestureEvent::Type::PinchBegin;
+        TestInput::gesture(window.window(), event);
+        event.type = GestureEvent::Type::PinchUpdate;
+        event.scale = 3;
+        TestInput::gesture(window.window(), event);
+        event.type = GestureEvent::Type::PinchEnd;
+        TestInput::gesture(window.window(), event);
+        EXPECT_NEAR(viewer->zoom(), fit * 3, 1e-9);
+        const PointF after = viewer->imagePoint(anchor);
+        EXPECT_NEAR(after.x, before.x, 0.5);
+        EXPECT_NEAR(after.y, before.y, 0.5);
+        // Pinching in stops at the fit.
+        event.type = GestureEvent::Type::PinchBegin;
+        TestInput::gesture(window.window(), event);
+        event.type = GestureEvent::Type::PinchUpdate;
+        event.scale = 0.2;
+        TestInput::gesture(window.window(), event);
+        event.type = GestureEvent::Type::PinchEnd;
+        TestInput::gesture(window.window(), event);
+        EXPECT_NEAR(viewer->zoom(), fit, 1e-9);
+    };
+    pinch({300, 200});
+
+    window.toggleSidebar();
+    pinch({500, 300});
+
+    press(window, key::Right);
+    ASSERT_TRUE(showing(window, directory.filePath("b.png")));
+    pinch({400, 250});
+
+    WindowStates states;
+    states.fullScreen = true;
+    TestInput::configure(window.window(), 1280, 800, states);
+    pinch({700, 500});
+}
