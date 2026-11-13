@@ -13,6 +13,7 @@
 #include "testutil.h"
 #include "waitfor.h"
 
+#include "base/elapsed_timer.h"
 #include "ui/application.h"
 #include "ui/clipboard.h"
 #include "ui/keys.h"
@@ -53,6 +54,32 @@ std::string samplePdf()
     });
 }
 
+// As many pages, each with its number, and as many outline items.
+std::string bookPdf(int pages)
+{
+    std::vector<std::string> objects {"<< /Type /Catalog /Pages 2 0 R /Outlines 3 0 R >>", "", "", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"};
+    std::string kids;
+    const int first = 5;
+    for (int i = 0; i < pages; ++i) {
+        const int page = first + i * 3;
+        kids += std::to_string(page) + " 0 R ";
+        objects.push_back("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Contents " + std::to_string(page + 1)
+                          + " 0 R /Resources << /Font << /F1 4 0 R >> >> >>");
+        objects.push_back(pdfStream("BT /F1 24 Tf 40 300 Td (Page " + std::to_string(i + 1) + ") Tj ET"));
+        std::string item = "<< /Title (Chapter " + std::to_string(i + 1) + ") /Parent 3 0 R /Dest [" + std::to_string(page)
+                + " 0 R /Fit]";
+        if (i > 0)
+            item += " /Prev " + std::to_string(page - 1) + " 0 R";
+        if (i + 1 < pages)
+            item += " /Next " + std::to_string(page + 5) + " 0 R";
+        objects.push_back(item + " >>");
+    }
+    objects[1] = "<< /Type /Pages /Kids [" + kids + "] /Count " + std::to_string(pages) + " >>";
+    objects[2] = "<< /Type /Outlines /First 7 0 R /Last " + std::to_string(first + (pages - 1) * 3 + 2) + " 0 R /Count "
+            + std::to_string(pages) + " >>";
+    return pdfOf(objects);
+}
+
 class PdfUiTest : public testing::Test
 {
 protected:
@@ -60,6 +87,7 @@ protected:
         : settings(directory.filePath("preview.conf"))
         , application(settings)
     {
+        application.uriOpener = [this](const std::string& uri) { opened.push_back(uri); };
     }
 
     cutefish::base::EventLoop& loop() { return cutefish::ui::Application::instance()->loop(); }
@@ -119,6 +147,7 @@ protected:
     TemporaryDir directory;
     PreviewSettings settings;
     ::Application application;
+    std::vector<std::string> opened;
 };
 
 } // namespace
@@ -316,4 +345,50 @@ TEST_F(PdfUiTest, AWrongPasswordIsAskedForAgainInPlace)
     TestInput::typeKey(*dialog->window(), key::Return);
     ASSERT_TRUE(waitFor(loop(), [&] { return page->isReady(); }));
     EXPECT_TRUE(waitFor(loop(), [&] { return !page->asksPassword(); }));
+}
+
+TEST_F(PdfUiTest, LinksGoToTheirPageOrOpenOnlyWebAndMail)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    PdfView* view = window.pdfPage()->view();
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.pdfPage()->document()->links(0) != nullptr; }));
+    TestInput::click(window.window(), windowPoint(window, 0, {250, 15}));
+    EXPECT_TRUE(waitFor(loop(), [&] { return view->currentPage() == 2; }));
+
+    press(window, key::Home);
+    TestInput::click(window.window(), windowPoint(window, 0, {250, 185}));
+    EXPECT_EQ(opened, (std::vector<std::string> {"https://cutefish.org"}));
+    TestInput::click(window.window(), windowPoint(window, 0, {50, 185}));
+    EXPECT_EQ(opened.size(), 1u);
+}
+
+TEST_F(PdfUiTest, TheContentsGoWhereTheyPoint)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    Sidebar* sidebar = window.sidebar();
+    ASSERT_TRUE(waitFor(loop(), [&] { return sidebar->hasContents(); }));
+    window.setShowsContents(true);
+    EXPECT_TRUE(sidebar->showsContents());
+    ASSERT_EQ(sidebar->contentsRowCount(), 2u);
+    EXPECT_EQ(sidebar->contentsTitle(1), "End");
+    sidebar->activateContentsRow(1);
+    EXPECT_TRUE(waitFor(loop(), [&] { return window.pdfPage()->view()->currentPage() == 2; }));
+}
+
+// The first page is drawn before the outline and the thumbnails are read.
+TEST_F(PdfUiTest, ALargeDocumentShowsItsFirstPageAtOnce)
+{
+    const std::string path = writeFile(directory.filePath("book.pdf"), bookPdf(2000));
+    cutefish::base::ElapsedTimer timer;
+    timer.start();
+    application.open({path});
+    PreviewWindow& window = *application.windows().front();
+    PdfPage* page = window.pdfPage();
+    ASSERT_TRUE(until(window, [&] { return page->isReady() && page->view()->sharpTileCount() > 0; }));
+    const int64_t firstPage = timer.elapsedMs();
+    EXPECT_EQ(window.positionText(), "1 of 2000");
+    EXPECT_LT(firstPage, 1000);
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.sidebar()->hasContents(); }));
+    // Only what is in sight and near it is drawn.
+    EXPECT_LT(page->view()->tileCount(), 20u);
 }
