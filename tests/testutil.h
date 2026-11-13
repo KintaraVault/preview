@@ -5,10 +5,12 @@
 
 #include "ui/image.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <vector>
 
 // A folder of its own under /tmp, removed with everything in it.
 class TemporaryDir
@@ -62,4 +64,30 @@ inline std::string writePng(const std::string& path, int width, int height)
             image.setPixel(x, y, cutefish::ui::Color::rgb(0x808080));
     image.savePng(path);
     return path;
+}
+
+inline std::string pdfStream(const std::string& contents)
+{
+    return "<< /Length " + std::to_string(contents.size()) + " >>\nstream\n" + contents + "\nendstream";
+}
+
+// A PDF of these objects, numbered from 1, the first the catalog.
+inline std::string pdfOf(const std::vector<std::string>& objects)
+{
+    std::string out = "%PDF-1.7\n";
+    std::vector<size_t> offsets;
+    for (size_t i = 0; i < objects.size(); ++i) {
+        offsets.push_back(out.size());
+        out += std::to_string(i + 1) + " 0 obj\n" + objects[i] + "\nendobj\n";
+    }
+    const size_t xref = out.size();
+    out += "xref\n0 " + std::to_string(objects.size() + 1) + "\n0000000000 65535 f \n";
+    for (const size_t offset : offsets) {
+        char line[21];
+        std::snprintf(line, sizeof(line), "%010zu 00000 n \n", offset);
+        out += line;
+    }
+    out += "trailer\n<< /Size " + std::to_string(objects.size() + 1) + " /Root 1 0 R >>\nstartxref\n"
+            + std::to_string(xref) + "\n%%EOF\n";
+    return out;
 }

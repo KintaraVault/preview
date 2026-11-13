@@ -18,7 +18,9 @@ gtest_discover_tests(preview-core-tests)
 
 add_executable(preview-ui-tests
     main.cpp
+    pdf_test.cpp
     ui_test.cpp
 )
 target_link_libraries(preview-ui-tests PRIVATE preview-ui GTest::gtest)
+target_compile_definitions(preview-ui-tests PRIVATE PREVIEW_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 gtest_discover_tests(preview-ui-tests)
