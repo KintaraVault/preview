@@ -5,6 +5,7 @@
 
 #include "base/file_watcher.h"
 #include "base/signal.h"
+#include "base/thread_pool.h"
 
 #include <memory>
 #include <string>
@@ -16,7 +17,8 @@ class ImageSequence
 {
 public:
     // The file and the images beside it, by name with numbers in order,
-    // hidden files left out.
+    // hidden files left out. The file alone until the folder is read, on a
+    // worker: twenty thousand names take some 50 ms.
     static std::unique_ptr<ImageSequence> folderOf(const std::string& path);
     // These files in this order; one that leaves the disk leaves the sequence.
     static std::unique_ptr<ImageSequence> files(std::vector<std::string> paths);
@@ -48,6 +50,8 @@ private:
 
     void watch();
     void folderChanged(const std::string& folder, const std::string& name);
+    // Reads the folder on a worker and takes its images in.
+    void listFolder();
     // Keeps the current file where it is still there, else its place.
     void replace(std::vector<std::string> paths);
 
@@ -55,4 +59,5 @@ private:
     int m_index = 0;
     bool m_followsFolder = false;
     std::vector<cutefish::base::FileWatch> m_watches;
+    cutefish::base::Job m_listing;
 };

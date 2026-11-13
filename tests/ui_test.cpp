@@ -68,7 +68,7 @@ TEST_F(UiTest, OneImageBringsItsFolderAndSizesTheWindow)
     application.open({b});
     PreviewWindow& window = onlyWindow();
     ASSERT_TRUE(showing(window, b));
-    EXPECT_EQ(window.count(), 3);
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.count() == 3; }));
     EXPECT_EQ(window.positionText(), "2 of 3");
     EXPECT_EQ(window.titleText(), "b.png");
     // At least 480 x 360 under the 40 px header.
@@ -100,6 +100,7 @@ TEST_F(UiTest, KeysStepThroughTheSequence)
     application.open({paths[0]});
     PreviewWindow& window = onlyWindow();
     ASSERT_TRUE(showing(window, paths[0]));
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.count() == 3; }));
     press(window, key::End);
     EXPECT_TRUE(showing(window, paths[2]));
     press(window, key::Space, ShiftModifier);
@@ -184,6 +185,7 @@ TEST_F(UiTest, ASwipeOnAFittedImageStepsOnce)
     application.open({paths[0]});
     PreviewWindow& window = onlyWindow();
     ASSERT_TRUE(showing(window, paths[0]));
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.count() == 3; }));
     window.window().grab();
     const PointF center {240, 200};
     ScrollEvent event;

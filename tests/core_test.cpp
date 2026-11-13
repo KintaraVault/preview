@@ -23,6 +23,8 @@ TEST(ImageSequenceTest, AFolderIsItsImagesInNumericOrder)
     for (const char* name : {"img10.png", "img2.png", "Img1.jpg", "b.webp", ".hidden.png", "notes.txt"})
         writeFile(directory.filePath(name));
     const auto sequence = ImageSequence::folderOf(directory.filePath("img2.png"));
+    EXPECT_EQ(sequence->paths(), std::vector<std::string> {directory.filePath("img2.png")});
+    ASSERT_TRUE(waitFor(Application::instance()->loop(), [&] { return sequence->count() == 4; }));
     const std::vector<std::string> expected = {directory.filePath("b.webp"), directory.filePath("Img1.jpg"),
                                                directory.filePath("img2.png"), directory.filePath("img10.png")};
     EXPECT_EQ(sequence->paths(), expected);
@@ -35,7 +37,7 @@ TEST(ImageSequenceTest, AHiddenImageOpenedKeepsItsPlace)
     writeFile(directory.filePath("a.png"));
     writeFile(directory.filePath(".b.png"));
     const auto sequence = ImageSequence::folderOf(directory.filePath(".b.png"));
-    EXPECT_EQ(sequence->count(), 2);
+    EXPECT_TRUE(waitFor(Application::instance()->loop(), [&] { return sequence->count() == 2; }));
     EXPECT_EQ(sequence->currentPath(), directory.filePath(".b.png"));
 }
 
@@ -74,6 +76,7 @@ TEST(ImageSequenceTest, TheFolderIsFollowed)
     const std::string a = writeFile(directory.filePath("a.png"));
     const std::string c = writeFile(directory.filePath("c.png"));
     const auto sequence = ImageSequence::folderOf(a);
+    ASSERT_TRUE(waitFor(loop, [&] { return sequence->count() == 2; }));
     int written = 0;
     const auto subscription = sequence->currentWritten.connect([&written] { ++written; });
 

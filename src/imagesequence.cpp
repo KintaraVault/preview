@@ -68,11 +68,10 @@ ImageSequence::ImageSequence(std::vector<std::string> paths, int index, bool fol
 
 std::unique_ptr<ImageSequence> ImageSequence::folderOf(const std::string& path)
 {
-    const fs::path file = fs::path(path).lexically_normal();
-    std::vector<std::string> paths = folderImages(file.parent_path(), file.filename().string());
-    const auto found = std::find(paths.begin(), paths.end(), file.string());
-    const int index = found == paths.end() ? 0 : int(found - paths.begin());
-    return std::unique_ptr<ImageSequence>(new ImageSequence(std::move(paths), index, true));
+    auto sequence = std::unique_ptr<ImageSequence>(
+            new ImageSequence({fs::path(path).lexically_normal().string()}, 0, true));
+    sequence->listFolder();
+    return sequence;
 }
 
 std::unique_ptr<ImageSequence> ImageSequence::files(std::vector<std::string> paths)
@@ -137,7 +136,7 @@ void ImageSequence::folderChanged(const std::string& folder, const std::string& 
 {
     const std::string current = currentPath();
     if (m_followsFolder) {
-        replace(folderImages(folder, exists(current) ? fs::path(current).filename().string() : std::string()));
+        listFolder();
     } else {
         std::vector<std::string> paths;
         for (const std::string& path : m_paths) {
@@ -148,4 +147,13 @@ void ImageSequence::folderChanged(const std::string& folder, const std::string& 
     }
     if (!name.empty() && currentPath() == current && current == (fs::path(folder) / name).string())
         currentWritten.emit();
+}
+
+void ImageSequence::listFolder()
+{
+    const std::string current = currentPath();
+    const fs::path folder = fs::path(current).parent_path();
+    const std::string own = exists(current) ? fs::path(current).filename().string() : std::string();
+    m_listing = base::ThreadPool::global().run([folder, own] { return folderImages(folder, own); },
+                                               [this](std::vector<std::string> paths) { replace(std::move(paths)); });
 }
