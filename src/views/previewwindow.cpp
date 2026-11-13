@@ -466,6 +466,8 @@ void PreviewWindow::pdfStateChanged()
             if (!isFullScreen() && !m_window->states().maximized)
                 m_window->resize(windowSizeForPage(document->pageSizes().front()));
         }
+        if (m_opened.erase(document->path()))
+            m_application.settings().addRecentFile(document->path());
     }
     map();
     m_root->requestLayout();
