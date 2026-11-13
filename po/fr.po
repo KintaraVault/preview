@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-13 17:03+0800\n"
+"POT-Creation-Date: 2026-11-13 18:21+0800\n"
 "PO-Revision-Date: 2026-11-13 17:03+0800\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -69,8 +69,7 @@ msgid "No matches"
 msgstr "Aucun résultat"
 
 #. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
-#. TRANSLATORS: the shown image's place among the window's images, or the
-#. page's among the document's, such as "3 of 24".
+#. TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
 #: src/views/pdfpage.cpp src/views/previewwindow.cpp
 #, python-brace-format
 msgid "{index} of {count}"
@@ -79,6 +78,12 @@ msgstr "{index} sur {count}"
 #: src/views/previewwindow.cpp cutefish-preview.desktop
 msgid "Preview"
 msgstr "Aperçu"
+
+#. TRANSLATORS: under a PDF's name in the header: the page most in sight and the number of pages.
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Page {page} of {count}"
+msgstr "Page {page} sur {count}"
 
 #: src/views/previewwindow.cpp
 #, python-brace-format
@@ -183,11 +188,11 @@ msgstr "Présentation"
 msgid "Show Sidebar"
 msgstr "Afficher la barre latérale"
 
-#: src/views/previewwindow.cpp src/views/sidebar.cpp
+#: src/views/previewwindow.cpp
 msgid "Thumbnails"
 msgstr "Vignettes"
 
-#: src/views/previewwindow.cpp src/views/sidebar.cpp
+#: src/views/previewwindow.cpp
 msgid "Contents"
 msgstr "Table des matières"
 
@@ -353,8 +358,8 @@ msgid "Quit"
 msgstr "Quitter"
 
 #: src/views/welcomepage.cpp
-msgid "Drop an Image Here"
-msgstr "Déposez une image ici"
+msgid "Drop an Image or PDF Here"
+msgstr "Déposez une image ou un PDF ici"
 
 #: src/views/welcomepage.cpp
 msgid "Or open a file to view it."
