@@ -9,32 +9,45 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <map>
 #include <set>
 
 using namespace cutefish;
 namespace fs = std::filesystem;
 
 // The folder's images and `own`, sorted as the folder's videos are queued.
+// Image types go by the name's extension, looked up once per extension: the
+// MIME database's glob match takes tens of microseconds a name.
 static std::vector<std::string> folderImages(const fs::path& folder, const std::string& own)
 {
-    std::vector<std::string> names;
+    base::Collator collator;
+    collator.setNumericMode(true);
+    collator.setCaseSensitive(false);
+    std::map<std::string, bool> extensions;
+    std::vector<std::pair<std::string, std::string>> names;
     std::error_code error;
     for (const fs::directory_entry& entry : fs::directory_iterator(folder, error)) {
         std::error_code entryError;
         if (!entry.is_regular_file(entryError))
             continue;
         const std::string name = entry.path().filename().string();
-        if (name == own || (!name.starts_with('.') && ImageSequence::isImage(name)))
-            names.push_back(name);
+        if (name != own) {
+            if (name.starts_with('.'))
+                continue;
+            const std::string extension = entry.path().extension().string();
+            auto known = extensions.find(extension);
+            if (known == extensions.end())
+                known = extensions.emplace(extension, ImageSequence::isImage(name)).first;
+            if (!known->second)
+                continue;
+        }
+        names.emplace_back(collator.sortKey(name), name);
     }
-    base::Collator collator;
-    collator.setNumericMode(true);
-    collator.setCaseSensitive(false);
-    std::sort(names.begin(), names.end(), collator);
+    std::sort(names.begin(), names.end());
 
     std::vector<std::string> paths;
     paths.reserve(names.size());
-    for (const std::string& name : names)
+    for (const auto& [key, name] : names)
         paths.push_back((folder / name).string());
     return paths;
 }
