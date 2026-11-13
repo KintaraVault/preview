@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-03 20:43+0800\n"
+"POT-Creation-Date: 2026-11-03 20:54+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -32,6 +32,18 @@ msgstr ""
 
 #: src/views/previewwindow.cpp
 msgid "Images"
+msgstr ""
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image Here"
+msgstr ""
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr ""
+
+#: src/views/welcomepage.cpp
+msgid "Open…"
 msgstr ""
 
 #: cutefish-preview.desktop

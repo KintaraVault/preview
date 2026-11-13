@@ -6,6 +6,7 @@
 #include "imagepage.h"
 #include "imagesequence.h"
 #include "sidebar.h"
+#include "welcomepage.h"
 
 #include "base/event_loop.h"
 #include "base/i18n.h"
@@ -158,6 +159,7 @@ public:
         setTracksHover(true);
         sidebar = addChild<Sidebar>(kHeaderHeight);
         image = addChild<ImagePage>();
+        welcome = addChild<WelcomePage>();
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
         filter = [](const std::string& url) { return base::url::isLocalFile(url); };
@@ -173,6 +175,7 @@ public:
 
     Sidebar* sidebar;
     ImagePage* image;
+    WelcomePage* welcome;
     HeaderBar* bar;
     HeaderRow* row;
 
@@ -182,11 +185,13 @@ protected:
         const ui::RectF rect = localRect();
         sidebar->setVisible(m_owner.m_sidebarShown && !m_owner.isWelcome());
         image->setVisible(!m_owner.isWelcome());
+        welcome->setVisible(m_owner.isWelcome());
         const double left = sidebarWidth();
         const double top = m_owner.isFullScreen() ? 0 : kHeaderHeight;
         sidebar->setGeometry({0, 0, left, rect.height});
         const ui::RectF content {left, top, std::max(0.0, rect.width - left), std::max(0.0, rect.height - top)};
         image->setGeometry(content);
+        welcome->setGeometry(content);
         bar->contentLeft = left;
         bar->setGeometry({0, 0, rect.width, kHeaderHeight});
         row->sidebarWidth = left;
@@ -235,6 +240,8 @@ PreviewWindow::PreviewWindow(Application& application)
     page->onShown = [this] { shown(); };
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
+    WelcomePage* welcome = m_root->welcome;
+    welcome->onOpen = [this] { openDialog(); };
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
