@@ -39,7 +39,7 @@ static double labelHeight(const ui::Label* label)
 }
 
 // A view taking a click: pressed, hovered and released inside call onClicked.
-class Clickable : public ui::View
+class WelcomePage::Clickable : public ui::View
 {
 public:
     bool acceptsPointer() const override { return true; }
@@ -92,7 +92,7 @@ private:
 };
 
 // A recent file: its name over its folder.
-class RecentRow : public Clickable
+class WelcomePage::RecentRow : public Clickable
 {
 public:
     RecentRow(const std::string& path, bool last)
@@ -138,7 +138,7 @@ private:
 };
 
 // The card the recent rows sit in.
-class RecentCard : public ui::View
+class WelcomePage::RecentCard : public ui::View
 {
 protected:
     void layout() override

@@ -61,7 +61,7 @@ bool ImageViewer::scroll(const ui::ScrollEvent& event)
 
 // The file's icon beside its name and size, as Quick Look shows a file it
 // cannot preview.
-class FileCard : public ui::View
+class ImagePage::FileCard : public ui::View
 {
 public:
     FileCard()

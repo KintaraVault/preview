@@ -51,11 +51,9 @@ static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
 
-namespace {
-
 // The header's strip: the window's colour over the content, so the header
 // stays readable over a full screen image, and a hairline along its bottom.
-class HeaderBar : public ui::View
+class PreviewWindow::HeaderBar : public ui::View
 {
 public:
     explicit HeaderBar(double height)
@@ -82,8 +80,6 @@ protected:
                                 ui::color(ui::ColorId::HeaderSeparator));
     }
 };
-
-} // namespace
 
 // The header's own part: the sidebar toggle after the window buttons, the
 // arrows with the place in the sequence and the file name from the

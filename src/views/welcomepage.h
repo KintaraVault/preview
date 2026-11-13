@@ -15,9 +15,6 @@ class Label;
 class ThemeIcon;
 }
 
-class Clickable;
-class RecentRow;
-
 // A window without a file: how to open one, and the files opened recently;
 // scrolls when the window is too short for them.
 class WelcomePage : public cutefish::ui::ScrollView
@@ -34,7 +31,10 @@ public:
     std::function<void()> onClearRecent;
 
 private:
+    class Clickable;
     class Column;
+    class RecentCard;
+    class RecentRow;
 
     double stackHeight() const;
     void layoutColumn(double pageWidth, double pageHeight);

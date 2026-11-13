@@ -20,8 +20,6 @@ class ImageView;
 class Label;
 }
 
-class FileCard;
-
 // A file as the page shows it, read on a worker.
 struct ShownFile
 {
@@ -82,6 +80,8 @@ protected:
     void layout() override;
 
 private:
+    class FileCard;
+
     void stage(ShownFile file);
     void present(ShownFile file);
     void updateStatus();

@@ -83,6 +83,7 @@ public:
     double chromeOpacity() const { return m_chromeOpacity; }
 
 private:
+    class HeaderBar;
     class HeaderRow;
     class Root;
     friend class Root;
