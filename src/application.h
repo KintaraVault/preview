@@ -14,6 +14,7 @@ class Object;
 
 class PreviewSettings;
 class PreviewWindow;
+class TurnSaver;
 
 // The process: its windows, the settings they share, and the D-Bus service
 // later launches hand their files to.
@@ -30,6 +31,7 @@ public:
     Application& operator=(const Application&) = delete;
 
     PreviewSettings& settings() const { return m_settings; }
+    TurnSaver& turnSaver() const { return *m_turnSaver; }
     const std::vector<std::unique_ptr<PreviewWindow>>& windows() const { return m_windows; }
 
     // Local paths, each request in new windows, or one still on its welcome
@@ -41,6 +43,7 @@ public:
     // Destroys a closed window after the event it closed in; the last one
     // ends the process.
     void releaseWindow(PreviewWindow* window);
+    // Once every turn asked for is written.
     void quit();
 
     void showInFiles(const std::string& path) const;
@@ -55,6 +58,8 @@ private:
     PreviewWindow* freeWindow();
 
     PreviewSettings& m_settings;
+    // Before the windows, which hold on to it, and outliving them.
+    std::unique_ptr<TurnSaver> m_turnSaver;
     std::vector<std::unique_ptr<PreviewWindow>> m_windows;
     std::unique_ptr<cutefish::base::dbus::Object> m_service;
 };

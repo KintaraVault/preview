@@ -10,7 +10,6 @@
 #include "base/timer.h"
 #include "ui/geometry.h"
 
-#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -101,8 +100,7 @@ private:
     void shown();
     void sequenceChanged();
     void preloadNeighbours();
-    void saveTurns();
-    void turnSaved(const std::string& path, int error);
+    void turnWritten(const std::string& path, int error);
     void currentWritten();
     void updateHeader();
     void updateTitle();
@@ -134,18 +132,6 @@ private:
     bool m_mapPending = false;
     std::string m_activationToken;
     cutefish::base::Job m_copy;
-    // Turns pressed but not written yet, by file; one save runs at a time.
-    struct PendingTurn
-    {
-        std::string mimeType;
-        int quarterTurns = 0;
-    };
-    std::map<std::string, PendingTurn> m_turns;
-    std::string m_savingPath;
-    cutefish::base::Job m_turnJob;
-    // The files' stamps after our own saves, which their folder watch reports
-    // as well.
-    std::map<std::string, std::string> m_ownWrite;
     std::unique_ptr<cutefish::ui::Toast> m_toast;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;

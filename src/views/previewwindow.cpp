@@ -6,6 +6,7 @@
 #include "imagepage.h"
 #include "imagesequence.h"
 #include "rotation.h"
+#include "turnsaver.h"
 #include "shortcutsdialog.h"
 #include "sidebar.h"
 #include "welcomepage.h"
@@ -43,7 +44,6 @@
 #include <filesystem>
 #include <utility>
 
-#include <sys/stat.h>
 
 using namespace cutefish;
 using namespace std::chrono_literals;
@@ -56,16 +56,6 @@ static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
-
-// What tells one write of a file from another.
-static std::string fileStamp(const std::string& path)
-{
-    struct stat st;
-    if (::stat(path.c_str(), &st) != 0)
-        return {};
-    return std::to_string(st.st_ino) + ":" + std::to_string(st.st_size) + ":" + std::to_string(st.st_mtim.tv_sec) + "."
-            + std::to_string(st.st_mtim.tv_nsec);
-}
 
 // The header's strip: the window's colour over the content, so the header
 // stays readable over a full screen image, and a hairline along its bottom.
@@ -274,6 +264,8 @@ PreviewWindow::PreviewWindow(Application& application)
     m_subscriptions.push_back(m_application.settings().recentFilesChanged.connect(
             [this] { m_root->welcome->setRecentFiles(m_application.settings().recentFiles()); }));
     m_subscriptions.push_back(ui::Application::instance()->languageChanged.connect([this] { retranslate(); }));
+    m_subscriptions.push_back(m_application.turnSaver().written.connect(
+            [this](const std::string& path, int error) { turnWritten(path, error); }));
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
@@ -602,8 +594,7 @@ bool PreviewWindow::canRotate() const
             && rotation::canTurn(file.path, file.mimeType);
 }
 
-// The picture turns at once; the file follows on the save thread, a press
-// after another adding to what is still to be written.
+// The picture turns at once; the file follows on the process's save thread.
 void PreviewWindow::rotate(int delta)
 {
     if (!canRotate())
@@ -611,63 +602,30 @@ void PreviewWindow::rotate(int delta)
     const ShownFile& file = m_root->image->shown();
     ImageViewer* viewer = m_root->image->viewer();
     viewer->setQuarterTurns(viewer->quarterTurns() + delta);
-    PendingTurn& pending = m_turns[file.path];
-    pending.mimeType = file.mimeType;
-    pending.quarterTurns += delta;
-    saveTurns();
+    m_application.turnSaver().turn(file.path, file.mimeType, delta);
 }
 
-// One save at a time in the process, so no two writes of a file interleave.
-static base::ThreadPool& savePool()
+void PreviewWindow::turnWritten(const std::string& path, int error)
 {
-    static base::ThreadPool pool(1);
-    return pool;
-}
-
-void PreviewWindow::saveTurns()
-{
-    if (m_turnJob.isPending() || m_turns.empty())
-        return;
-    const auto it = m_turns.begin();
-    const std::string path = it->first;
-    const PendingTurn turn = it->second;
-    m_turns.erase(it);
-    m_savingPath = path;
-    m_turnJob = savePool().run([path, turn] { return rotation::turn(path, turn.mimeType, turn.quarterTurns); },
-                               [this, path](int error) { turnSaved(path, error); });
-}
-
-void PreviewWindow::turnSaved(const std::string& path, int error)
-{
-    m_savingPath.clear();
-    const bool more = m_turns.contains(path);
     if (error) {
-        m_turns.erase(path);
         if (!m_toast)
             m_toast = std::make_unique<ui::Toast>(m_window.get());
         m_toast->show(format(tr("Could not rotate {name}: {reason}"),
-                             {{"name", std::filesystem::path(path).filename().string()},
-                              {"reason", std::strerror(error)}}));
+                             {{"name", std::filesystem::path(path).filename().string()}, {"reason", reason}}));
     }
-    if (!more || error) {
-        m_ownWrite[path] = fileStamp(path);
-        m_root->sidebar->refresh();
-        // Decoded again as the file is now, which shows as it did; the turn
-        // on screen goes with it in the same frame.
-        if (m_root->image->shown().path == path)
-            m_root->image->load(path);
-    }
-    saveTurns();
+    m_root->sidebar->refresh();
+    // Decoded again as the file now is, which looks as it did turned; the
+    // zoom and the place stay. Not while another file is on its way in.
+    if (m_root->image->shown().path == path && currentPath() == path)
+        m_root->image->reload(path);
 }
 
 void PreviewWindow::currentWritten()
 {
     const std::string path = m_sequence->currentPath();
-    // Our own save: its reload is under way already.
-    if (m_savingPath == path || m_turns.contains(path))
-        return;
-    const auto own = m_ownWrite.find(path);
-    if (own != m_ownWrite.end() && own->second == fileStamp(path))
+    const TurnSaver& saver = m_application.turnSaver();
+    // Our own writes: each brings its reload.
+    if (saver.unwrittenTurns(path) != 0 || saver.writtenStamp(path) == TurnSaver::fileStamp(path))
         return;
     m_root->image->load(path);
 }

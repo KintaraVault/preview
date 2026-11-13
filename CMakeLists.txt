@@ -21,9 +21,11 @@ add_library(preview-core STATIC
     src/imagesequence.cpp
     src/previewsettings.cpp
     src/rotation.cpp
+    src/turnsaver.cpp
 )
 target_include_directories(preview-core PUBLIC src)
-target_link_libraries(preview-core PUBLIC Cutefish::Toolkit PRIVATE PkgConfig::Png)
+find_package(Threads REQUIRED)
+target_link_libraries(preview-core PUBLIC Cutefish::Toolkit Threads::Threads PRIVATE PkgConfig::Png)
 
 # The glyphs, built in.
 file(GLOB PREVIEW_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/icons/*.svg)

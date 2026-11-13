@@ -4,6 +4,7 @@
 #include "application.h"
 #include "imagesequence.h"
 #include "previewsettings.h"
+#include "turnsaver.h"
 #include "views/previewwindow.h"
 
 #include "base/dbus.h"
@@ -18,6 +19,7 @@ using namespace cutefish;
 
 Application::Application(PreviewSettings& settings)
     : m_settings(settings)
+    , m_turnSaver(std::make_unique<TurnSaver>())
 {
 }
 
@@ -89,6 +91,7 @@ void Application::releaseWindow(PreviewWindow* window)
 
 void Application::quit()
 {
+    m_turnSaver->finish();
     // Later: this is called from handlers of the windows quitting closes.
     base::EventLoop::current()->post([] { ui::Application::instance()->quit(); });
 }
