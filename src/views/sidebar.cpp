@@ -40,10 +40,13 @@ static double plateInset(const ui::View* view)
     return std::round(kSmallSpacing * 1.5 * scale) / scale;
 }
 
-static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed, bool selected)
+// The selected thumbnail's plate is the accent, pressed or not.
+static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed, bool selected, bool accent)
 {
     ui::Color fill {0, 0, 0, 0};
-    if (pressed)
+    if (selected && accent)
+        fill = ui::Theme::current().highlight;
+    else if (pressed)
         fill = ui::color(ui::ColorId::ItemPressed);
     else if (selected)
         fill = ui::Theme::current().text.withAlpha(0.05);
@@ -92,7 +95,8 @@ protected:
         const ui::RectF area = thumbnailArea();
         m_thumbnail->setGeometry(area);
         const ui::SizeF number = m_number->sizeHint();
-        m_number->setColor(ui::ColorId::DisabledText);
+        m_number->setColor(m_row == m_sidebar.m_current ? ui::ColorRecipe(ui::ColorId::HighlightedText)
+                                                        : ui::ColorRecipe(ui::ColorId::DisabledText));
         m_number->setGeometry({inset, geometry().height - kThumbnailGap - number.height,
                                std::max(0.0, geometry().width - 2 * inset), number.height});
         if (m_sidebar.m_document)
@@ -101,7 +105,7 @@ protected:
 
     void paint(ui::Painter& painter) override
     {
-        paintPlate(painter, this, m_pressed, m_row == m_sidebar.m_current);
+        paintPlate(painter, this, m_pressed, m_row == m_sidebar.m_current, true);
         PdfDocument* document = m_sidebar.m_document;
         if (!document || m_row < 0 || m_row >= document->pageCount())
             return;
@@ -204,7 +208,7 @@ protected:
                               std::max(0.0, geometry().width - plateInset(this) - kThumbnailGap - left), title.height});
     }
 
-    void paint(ui::Painter& painter) override { paintPlate(painter, this, m_pressed, false); }
+    void paint(ui::Painter& painter) override { paintPlate(painter, this, m_pressed, false, false); }
 
     void pointerPress(const ui::PointerEvent& event) override
     {
@@ -307,15 +311,20 @@ size_t Sidebar::count() const
 
 void Sidebar::setCurrent(int index)
 {
+    // The number's colour follows, set as the row lays out.
     if (m_current >= 0) {
-        if (ui::View* row = m_list->itemForRow(size_t(m_current)))
+        if (ui::View* row = m_list->itemForRow(size_t(m_current))) {
+            row->requestLayout();
             row->requestPaint();
+        }
     }
     m_current = index;
     if (index < 0)
         return;
-    if (ui::View* row = m_list->itemForRow(size_t(index)))
+    if (ui::View* row = m_list->itemForRow(size_t(index))) {
+        row->requestLayout();
         row->requestPaint();
+    }
     m_list->scrollToRow(size_t(index));
 }
 
