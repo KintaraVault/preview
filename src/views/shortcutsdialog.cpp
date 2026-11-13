@@ -173,23 +173,22 @@ void ShortcutsDialog::show()
         const char* title;
         std::vector<std::pair<const char*, const char*>> keys;
     };
-    // TRANSLATORS: key names stay as they are.
-    const char* trash = ui::commandKeys() ? "Ctrl+Backspace" : trNoop("Delete");
+    const char* trash = ui::commandKeys() ? "Ctrl+Backspace" : "Delete";
     const std::vector<Section> sections = {
         {trNoop("Images"), {
             {trNoop("Previous or next image"), "← →"},
-            {trNoop("Previous or next image"), trNoop("Page Up, Page Down")},
-            {trNoop("Previous or next image"), trNoop("Shift+Space, Space")},
-            {trNoop("First or last image"), trNoop("Home, End")},
+            {trNoop("Previous or next image"), "Page Up, Page Down"},
+            {trNoop("Previous or next image"), "Shift+Space, Space"},
+            {trNoop("First or last image"), "Home, End"},
             {trNoop("Rotate left or right"), "Ctrl+L, Ctrl+R"},
             {trNoop("Copy"), "Ctrl+C"},
             {trNoop("Move to Trash"), trash},
         }},
         {trNoop("PDF Documents"), {
             {trNoop("Previous or next page"), "← →"},
-            {trNoop("A screenful up or down"), trNoop("Page Up, Page Down")},
-            {trNoop("A screenful up or down"), trNoop("Shift+Space, Space")},
-            {trNoop("First or last page"), trNoop("Home, End")},
+            {trNoop("A screenful up or down"), "Page Up, Page Down"},
+            {trNoop("A screenful up or down"), "Shift+Space, Space"},
+            {trNoop("First or last page"), "Home, End"},
             {trNoop("Go to page"), "Ctrl+Alt+G"},
             {trNoop("Find"), "Ctrl+F"},
             {trNoop("Next or previous match"), "Ctrl+G, Ctrl+Shift+G"},
@@ -220,7 +219,7 @@ void ShortcutsDialog::show()
     for (const Section& section : sections) {
         auto* card = column->addChild<Card>();
         for (const auto& [text, keys] : section.keys)
-            card->addChild<Row>(tr(text), tr(keys));
+            card->addChild<Row>(tr(text), keys);
         column->addSection(tr(section.title), card);
     }
     m_dialog->show();
