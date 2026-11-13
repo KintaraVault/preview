@@ -1118,6 +1118,11 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('0'), [this] { zoomToFit(); });
     window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
     window.addShortcut(ctrl, ui::key::letter('c'), [this] { copy(); });
+    window.addShortcut(ctrl, ui::key::letter('a'), [this] { selectAll(); });
+    window.addShortcut(ctrl, ui::key::letter('f'), [this] { showFind(); });
+    window.addShortcut(ctrl, ui::key::letter('g'), [this] { findNext(false); });
+    window.addShortcut(ctrl | shift, ui::key::letter('g'), [this] { findNext(true); });
+    window.addShortcut(ctrl | ui::AltModifier, ui::key::letter('g'), [this] { showGoToPage(); });
     window.addShortcut(ctrl, ui::key::letter('l'), [this] { rotate(-1); });
     window.addShortcut(ctrl, ui::key::letter('r'), [this] { rotate(1); });
     window.addShortcut(none, ui::key::Delete, [this] { moveToTrash(); });

@@ -185,6 +185,17 @@ void ShortcutsDialog::show()
             {trNoop("Copy"), "Ctrl+C"},
             {trNoop("Move to Trash"), trash},
         }},
+        {trNoop("PDF Documents"), {
+            {trNoop("Previous or next page"), "← →"},
+            {trNoop("A screenful up or down"), trNoop("Page Up, Page Down")},
+            {trNoop("A screenful up or down"), trNoop("Shift+Space, Space")},
+            {trNoop("First or last page"), trNoop("Home, End")},
+            {trNoop("Go to page"), "Ctrl+Alt+G"},
+            {trNoop("Find"), "Ctrl+F"},
+            {trNoop("Next or previous match"), "Ctrl+G, Ctrl+Shift+G"},
+            {trNoop("Select all"), "Ctrl+A"},
+            {trNoop("Copy"), "Ctrl+C"},
+        }},
         {trNoop("Zoom"), {
             {trNoop("Zoom in or out"), "Ctrl+= Ctrl+-"},
             {trNoop("Zoom to fit"), "Ctrl+0"},

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-11 20:03+0800\n"
+"POT-Creation-Date: 2026-11-12 19:16+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/views/cards.cpp
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
 msgid "Find"
 msgstr ""
 
@@ -93,7 +93,7 @@ msgstr ""
 msgid "Images"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "PDF Documents"
 msgstr ""
 
@@ -300,6 +300,30 @@ msgstr ""
 
 #: src/views/shortcutsdialog.cpp
 msgid "Rotate left or right"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
 msgstr ""
 
 #: src/views/shortcutsdialog.cpp
