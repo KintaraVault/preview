@@ -104,7 +104,8 @@ public:
     explicit HeaderRow(PreviewWindow& owner, ui::WindowHeader* header)
         : m_header(header)
     {
-        sidebar = addButton("sidebar-left", [&owner] { owner.toggleSidebar(); });
+        // The toolkit's sidebar glyph is drawn on 24 pixels with a one-pixel line.
+        sidebar = addButton("sidebar", [&owner] { owner.toggleSidebar(); }, 24);
         previous = addButton("chevron-left", [&owner] { owner.step(-1); });
         next = addButton("chevron-right", [&owner] { owner.step(1); });
         position = addChild<ui::Label>();
@@ -166,10 +167,10 @@ protected:
     }
 
 private:
-    ui::HeaderButton* addButton(const char* glyph, std::function<void()> action)
+    ui::HeaderButton* addButton(const char* glyph, std::function<void()> action, double glyphSize = 16)
     {
         auto* button = addChild<ui::HeaderButton>(std::string(), kButtonSize);
-        button->setGlyph(glyph, 16);
+        button->setGlyph(glyph, glyphSize);
         button->onClicked = std::move(action);
         return button;
     }
@@ -365,6 +366,16 @@ Sidebar* PreviewWindow::sidebar() const
 std::string PreviewWindow::positionText() const
 {
     return m_root->row->position->isVisible() ? m_root->row->position->text() : std::string();
+}
+
+ui::View* PreviewWindow::sidebarButton() const
+{
+    return m_root->row->sidebar;
+}
+
+ui::View* PreviewWindow::zoomInButton() const
+{
+    return m_root->row->zoomIn;
 }
 
 bool PreviewWindow::showsArrows() const

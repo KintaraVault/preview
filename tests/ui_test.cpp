@@ -451,3 +451,28 @@ TEST_F(UiTest, AnImageFitsBelowTheHeaderAndPansUnderIt)
         return window.window().grab().pixel(int(centre.x), int(header) - 1) != background;
     }));
 }
+
+// The sidebar toggle draws the toolkit's sidebar glyph at its own 24 pixels,
+// centred in its button, on the line of the other header buttons.
+TEST_F(UiTest, TheSidebarToggleIsCentredOnTheHeaderLine)
+{
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    window.window().grab();
+    View* toggle = window.sidebarButton();
+    View* zoomIn = window.zoomInButton();
+    const PointF toggleTop = toggle->mapToWindow({});
+    const PointF zoomTop = zoomIn->mapToWindow({});
+    EXPECT_EQ(toggle->geometry().size(), zoomIn->geometry().size());
+    EXPECT_EQ(toggleTop.y, zoomTop.y);
+    for (const double scale : {1.0, 2.0}) {
+        const Rect ink = TestInput::inkRect(*toggle, scale);
+        // The glyph's frame, 15 x 11 on a 24 grid with a one-pixel line.
+        EXPECT_EQ(ink.width, int(16 * scale));
+        EXPECT_EQ(ink.height, int(12 * scale));
+        EXPECT_EQ(ink.x * 2 + ink.width, int(toggle->geometry().width * scale));
+        EXPECT_EQ(ink.y * 2 + ink.height, int(toggle->geometry().height * scale));
+    }
+}

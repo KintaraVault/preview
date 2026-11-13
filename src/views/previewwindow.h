@@ -21,6 +21,7 @@ class Animation;
 class FileChooser;
 class Menu;
 class Toast;
+class View;
 class Window;
 struct ImageInfo;
 }
@@ -98,6 +99,8 @@ public:
     std::string positionText() const;
     std::string titleText() const;
     double chromeOpacity() const { return m_chromeOpacity; }
+    cutefish::ui::View* sidebarButton() const;
+    cutefish::ui::View* zoomInButton() const;
     // The header's previous arrow and place label, in the window.
     bool showsArrows() const;
     cutefish::ui::RectF previousArrowGeometry() const;
