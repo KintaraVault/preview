@@ -7,9 +7,11 @@
 
 #include "cutefish/pdf/document.h"
 
+#include "base/geometry.h"
 #include "base/lru_cache.h"
 #include "base/signal.h"
 #include "ui/geometry.h"
+#include "ui/raster_image.h"
 
 #include <functional>
 #include <map>
@@ -63,6 +65,12 @@ public:
     const std::vector<cutefish::pdf::Link>* links(int page, PdfWorker::Urgency urgency = PdfWorker::Urgency::Near);
     // Text and links asked for pages outside these are not read after all.
     void keepPageRequests(int first, int last);
+    // The page fitted into `box` device pixels; another box asks again.
+    const cutefish::ui::RasterImage* thumbnail(int page, cutefish::base::Size box);
+    // The page's thumbnail in whatever box it came, as a stand-in.
+    const cutefish::ui::RasterImage* anyThumbnail(int page);
+    // Thumbnails asked for pages outside these are not drawn after all.
+    void keepThumbnailRequests(int first, int last);
 
     // The point of the page as shown it goes to. The caller keeps the request.
     [[nodiscard]] PdfRequest resolve(const cutefish::pdf::Destination& destination,
@@ -75,12 +83,23 @@ public:
     cutefish::base::Signal<> stateChanged;
     // Its text or links arrived.
     cutefish::base::Signal<int> pageDataChanged;
+    cutefish::base::Signal<int> thumbnailChanged;
 
 private:
     struct PageData
     {
         std::optional<cutefish::pdf::PageText> text;
         std::optional<std::vector<cutefish::pdf::Link>> links;
+    };
+    struct Thumbnail
+    {
+        cutefish::base::Size box;
+        cutefish::ui::RasterImage image;
+    };
+    struct PendingThumbnail
+    {
+        cutefish::base::Size box;
+        PdfRequest request;
     };
 
     void opened(int status);
@@ -96,4 +115,6 @@ private:
     cutefish::base::LruCache<int, PageData> m_pages;
     std::unordered_map<int, PdfRequest> m_textRequests;
     std::unordered_map<int, PdfRequest> m_linkRequests;
+    cutefish::base::LruCache<int, Thumbnail> m_thumbnails;
+    std::unordered_map<int, PendingThumbnail> m_thumbnailRequests;
 };

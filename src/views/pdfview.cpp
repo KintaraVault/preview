@@ -209,6 +209,8 @@ void PdfView::Canvas::paint(ui::Painter& painter)
         painter.fillRect(content, kPageColor);
         painter.save();
         painter.clip(content);
+        if (const ui::RasterImage* thumbnail = document->anyThumbnail(page))
+            painter.drawImage(thumbnail->skImage(), content);
         // Tiles of other zooms under those of this one.
         for (const bool current : {false, true}) {
             for (const Tile& tile : m_view->m_tiles) {
@@ -346,6 +348,7 @@ void PdfView::setDocument(PdfDocument* document)
         }
         m_heightsBefore.push_back(height);
         m_subscriptions.push_back(document->pageDataChanged.connect([this](int) { m_canvas->requestPaint(); }));
+        m_subscriptions.push_back(document->thumbnailChanged.connect([this](int) { m_canvas->requestPaint(); }));
     }
     m_zoom = fitZoom();
     m_lastSize = {};

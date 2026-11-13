@@ -13,11 +13,13 @@ using namespace cutefish;
 using Urgency = PdfWorker::Urgency;
 
 static constexpr size_t kPagesKept = 64;
+static constexpr size_t kThumbnailBytes = size_t(64) * 1024 * 1024;
 
 PdfDocument::PdfDocument(std::string path)
     : m_path(std::move(path))
     , m_worker(std::make_unique<PdfWorker>())
     , m_pages(kPagesKept)
+    , m_thumbnails(kThumbnailBytes)
 {
     m_opening = m_worker->open(m_path, {}, [this](int status) { opened(status); });
 }
@@ -113,6 +115,51 @@ void PdfDocument::keepPageRequests(int first, int last)
     const auto outside = [first, last](const auto& entry) { return entry.first < first || entry.first > last; };
     std::erase_if(m_textRequests, outside);
     std::erase_if(m_linkRequests, outside);
+}
+
+const ui::RasterImage* PdfDocument::thumbnail(int page, base::Size box)
+{
+    if (m_state != State::Ready || page < 0 || page >= pageCount() || box.isEmpty())
+        return nullptr;
+    const Thumbnail* entry = m_thumbnails.find(page);
+    if (entry && entry->box == box)
+        return &entry->image;
+    const auto pending = m_thumbnailRequests.find(page);
+    if (pending != m_thumbnailRequests.end() && pending->second.box == box && pending->second.request.isPending())
+        return nullptr;
+    const ui::SizeF size = m_sizes[size_t(page)];
+    const double scale = std::min(box.width() / size.width, box.height() / size.height);
+    const base::Rect region(0, 0, std::max(1, int(std::round(size.width * scale))),
+                            std::max(1, int(std::round(size.height * scale))));
+    PendingThumbnail& request = m_thumbnailRequests[page];
+    request.box = box;
+    request.request = m_worker->run(
+            Urgency::Background,
+            [page, scale, region](const pdf::Document* document, const std::atomic<bool>* cancelled) {
+                pdf::Bitmap bitmap = document->render(page, scale, region, cancelled);
+                return ui::RasterImage(bitmap.width, bitmap.height, std::move(bitmap.pixels), true);
+            },
+            [this, page, box](ui::RasterImage image) {
+                m_thumbnailRequests.erase(page);
+                if (image.isNull())
+                    return;
+                const size_t bytes = image.sizeInBytes();
+                m_thumbnails.insert(page, std::make_unique<Thumbnail>(Thumbnail {box, std::move(image)}), bytes);
+                thumbnailChanged(page);
+            });
+    return nullptr;
+}
+
+const ui::RasterImage* PdfDocument::anyThumbnail(int page)
+{
+    const Thumbnail* entry = m_thumbnails.find(page);
+    return entry ? &entry->image : nullptr;
+}
+
+void PdfDocument::keepThumbnailRequests(int first, int last)
+{
+    std::erase_if(m_thumbnailRequests,
+                  [first, last](const auto& entry) { return entry.first < first || entry.first > last; });
 }
 
 PdfRequest PdfDocument::resolve(const pdf::Destination& destination, std::function<void(int page, ui::PointF point)> done)
