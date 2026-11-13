@@ -15,6 +15,7 @@ find_package(CutefishToolkit REQUIRED)
 find_package(CutefishFiles REQUIRED)
 
 add_library(preview-core STATIC
+    src/imagesequence.cpp
     src/previewsettings.cpp
 )
 target_include_directories(preview-core PUBLIC src)
