@@ -536,10 +536,9 @@ TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
     if (pdf.sidebarShown())
         pdf.toggleSidebar();
     pdf.window().grab();
-    // The name and the page line keep room for text past the toggle, 8
-    // further than an image's first arrow starts.
+    // The name keeps room for text past the toggle, 8 further than an
+    // image's first arrow starts.
     EXPECT_EQ(pdf.titleGeometry().x, arrow.x + 8);
-    EXPECT_EQ(pdf.subtitleGeometry().x, arrow.x + 8);
     EXPECT_EQ(pdf.titleGeometry().x, std::round(pdf.titleGeometry().x));
 }
 
@@ -562,23 +561,40 @@ TEST_F(PdfUiTest, TheCurrentPageIsWhatShowsBelowTheHeader)
     EXPECT_EQ(view->currentPage(), 1);
 }
 
-// The name and "Page 1 of 3" sit as a pair centred on the header's line,
-// on whole pixels at 1x and 2x.
-TEST_F(PdfUiTest, ThePdfTitleIsTwoLinesCentredOnTheHeader)
+// The name, then "Page 1 of 3" 8 after its drawn end on the same baseline,
+// centred on the header's line, at 1x and 2x.
+TEST_F(PdfUiTest, ThePdfTitleIsOneLineWithThePageAfterTheName)
 {
     PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
     for (const double scale : {1.0, 2.0}) {
         window.window().setScale(scale);
         window.window().grab();
         const RectF title = window.titleGeometry();
-        const RectF page = window.subtitleGeometry();
+        const RectF page = window.pageTextGeometry();
         EXPECT_EQ(window.positionText(), "Page 1 of 3");
-        EXPECT_EQ(page.y, title.bottom());
-        EXPECT_EQ(page.x, title.x);
-        EXPECT_NEAR((title.y + page.bottom()) / 2, PreviewWindow::kHeaderHeight / 2, 0.5);
+        EXPECT_FALSE(window.titleElided());
+        EXPECT_EQ(page.x, std::ceil(window.titleTextEnd() - title.x) + title.x + 8);
+        EXPECT_EQ(page.y, title.y);
+        EXPECT_DOUBLE_EQ(window.pageTextBaseline(), window.titleBaseline());
+        EXPECT_EQ(std::round(window.pageTextBaseline() * scale), std::round(window.titleBaseline() * scale));
+        EXPECT_NEAR(title.y + title.height / 2, PreviewWindow::kHeaderHeight / 2, 0.5);
         EXPECT_EQ(title.y * scale, std::round(title.y * scale));
-        EXPECT_EQ(page.y * scale, std::round(page.y * scale));
     }
+}
+
+// A long name elides in the middle; the page text stays whole after it.
+TEST_F(PdfUiTest, ALongPdfNameElidesBeforeThePageText)
+{
+    const std::string name(120, 'n');
+    PreviewWindow& window = openPdf(writeFile(directory.filePath(name + ".pdf"), samplePdf()));
+    window.window().grab();
+    EXPECT_TRUE(window.titleElided());
+    EXPECT_EQ(window.positionText(), "Page 1 of 3");
+    const RectF title = window.titleGeometry();
+    const RectF page = window.pageTextGeometry();
+    EXPECT_EQ(page.x, std::ceil(window.titleTextEnd() - title.x) + title.x + 8);
+    // Whole, and inside the row before the zoom buttons.
+    EXPECT_LT(page.right(), window.window().size().width - 3 * 32);
 }
 
 // A page's thumbnail is 6 from its plate's sides and top, the number 4 under
@@ -723,6 +739,5 @@ TEST_F(PdfUiTest, TitlesKeepRoomAfterTheSidebarToggle)
             EXPECT_EQ(window->titleGeometry().x, toggleRight + 12);
             EXPECT_EQ(window->titleGeometry().x * scale, std::round(window->titleGeometry().x * scale));
         }
-        EXPECT_EQ(pdf.subtitleGeometry().x, pdf.titleGeometry().x);
     }
 }

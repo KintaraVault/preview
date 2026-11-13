@@ -95,7 +95,7 @@ public:
     ImagePage* imagePage() const;
     PdfPage* pdfPage() const;
     Sidebar* sidebar() const;
-    // The header's "3 of 24", or a PDF's "Page 5 of 120", and file name.
+    // The header's "3 of 24", or a PDF's "Page 5 of 120" where it shows, and file name.
     std::string positionText() const;
     std::string titleText() const;
     double chromeOpacity() const { return m_chromeOpacity; }
@@ -105,9 +105,14 @@ public:
     bool showsArrows() const;
     cutefish::ui::RectF previousArrowGeometry() const;
     cutefish::ui::RectF positionGeometry() const;
-    // The file name, and a PDF's page line under it, in the window.
+    // The file name, and a PDF's page text after it, in the window: the
+    // name's drawn end, whether it is elided, and the two baselines.
     cutefish::ui::RectF titleGeometry() const;
-    cutefish::ui::RectF subtitleGeometry() const;
+    cutefish::ui::RectF pageTextGeometry() const;
+    double titleTextEnd() const;
+    bool titleElided() const;
+    double titleBaseline() const;
+    double pageTextBaseline() const;
     bool hasShownToast() const { return m_toast != nullptr; }
 
 private:

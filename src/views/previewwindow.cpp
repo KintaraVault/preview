@@ -44,6 +44,7 @@
 #include "ui/window_header.h"
 
 #include <algorithm>
+#include <optional>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
@@ -65,6 +66,7 @@ static constexpr double kSidebarGap = 9;
 // From the sidebar toggle to a title after it: room for text, which the
 // buttons' own plates do not give.
 static constexpr double kTitleGap = 12;
+static constexpr double kPageTextGap = 8;
 // What the content keeps beside a shown sidebar at the window's minimum size,
 // as in Files: the sidebar grows only as the window does.
 static constexpr double kMinimumContentWidthBesideSidebar = kMinimumContentWidth - Sidebar::kDefaultWidth;
@@ -105,8 +107,8 @@ protected:
 
 // The header's own part: the sidebar toggle after the window buttons, the
 // arrows with the place in the sequence and the file name from the
-// sidebar's edge, the zoom buttons at the end. A PDF has the file name over
-// the page instead, the two centred together on the header's line.
+// sidebar's edge, the zoom buttons at the end. A PDF has no arrows: its file
+// name, then the page in the secondary colour on the same line.
 class PreviewWindow::HeaderRow : public ui::View
 {
 public:
@@ -121,10 +123,8 @@ public:
         title = addChild<ui::Label>();
         title->setWeight(700);
         title->setElide(ui::Label::Elide::Middle);
-        subtitle = addChild<ui::Label>();
-        subtitle->setFontSize(11);
-        subtitle->setElide(ui::Label::Elide::Right);
-        subtitle->setVisible(false);
+        page = addChild<ui::Label>();
+        page->setVisible(false);
         zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
         zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
         rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
@@ -136,7 +136,9 @@ public:
     ui::HeaderButton* next;
     ui::Label* position;
     ui::Label* title;
-    ui::Label* subtitle;
+    // "Page 5 of 120", shown while showsPage is set and it fits.
+    ui::Label* page;
+    bool showsPage = false;
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
     ui::HeaderButton* rotate;
@@ -176,20 +178,30 @@ protected:
         right -= kButtonSize;
         const ui::SizeF hint = title->sizeHint();
         title->setColor(ui::ColorId::Text);
-        if (subtitle->isVisible()) {
+        if (showsPage) {
             // In line with the page's left edge at fit.
             if (sidebarWidth > 0)
                 x = std::max(x, sidebarWidth + PdfView::kMargin);
             else
                 x = sidebar->geometry().right() + kTitleGap;
-            const ui::SizeF below = subtitle->sizeHint();
-            const double width = std::max(0.0, right - 8 - x);
-            const double y = centeredStart(height, std::ceil(hint.height) + std::ceil(below.height));
-            title->setGeometry({x, y, width, std::ceil(hint.height)});
-            subtitle->setColor(ui::ColorId::DisabledText);
-            subtitle->setGeometry({x, y + std::ceil(hint.height), width, std::ceil(below.height)});
+            // The page text stays whole while it fits; the name takes the rest.
+            const double available = std::max(0.0, right - 8 - x);
+            const ui::SizeF pageHint = page->sizeHint();
+            const double pageWidth = std::ceil(pageHint.width);
+            page->setVisible(pageWidth <= available);
+            const double nameWidth = page->isVisible() ? std::max(0.0, available - kPageTextGap - pageWidth)
+                                                       : available;
+            const double y = centeredStart(height, hint.height);
+            title->setGeometry({x, y, std::min(nameWidth, std::ceil(hint.width)), hint.height});
+            if (page->isVisible()) {
+                const std::optional<ui::Label::LineGeometry> line = title->lineGeometry(0);
+                const double nameEnd = x + std::ceil(line ? line->width : 0);
+                page->setColor(ui::ColorId::DisabledText);
+                page->setGeometry({nameEnd + kPageTextGap, y, pageWidth, pageHint.height});
+            }
             return;
         }
+        page->setVisible(false);
         // A lone title after the toggle keeps the same room as a PDF's.
         const double left = !previous->isVisible() && !position->isVisible() && sidebarWidth <= 0
                 ? sidebar->geometry().right() + kTitleGap
@@ -427,8 +439,8 @@ Sidebar* PreviewWindow::sidebar() const
 
 std::string PreviewWindow::positionText() const
 {
-    if (m_root->row->subtitle->isVisible())
-        return m_root->row->subtitle->text();
+    if (m_root->row->showsPage)
+        return m_root->row->page->isVisible() ? m_root->row->page->text() : std::string();
     return m_root->row->position->isVisible() ? m_root->row->position->text() : std::string();
 }
 
@@ -439,11 +451,35 @@ ui::RectF PreviewWindow::titleGeometry() const
     return {origin.x, origin.y, label->geometry().width, label->geometry().height};
 }
 
-ui::RectF PreviewWindow::subtitleGeometry() const
+ui::RectF PreviewWindow::pageTextGeometry() const
 {
-    const ui::View* label = m_root->row->subtitle;
+    const ui::View* label = m_root->row->page;
     const ui::PointF origin = label->mapToWindow({});
     return {origin.x, origin.y, label->geometry().width, label->geometry().height};
+}
+
+double PreviewWindow::titleTextEnd() const
+{
+    const ui::Label* label = m_root->row->title;
+    const std::optional<ui::Label::LineGeometry> line = label->lineGeometry(0);
+    return label->mapToWindow({}).x + (line ? line->width : 0);
+}
+
+bool PreviewWindow::titleElided() const
+{
+    return m_root->row->title->isElided();
+}
+
+double PreviewWindow::titleBaseline() const
+{
+    const ui::Label* label = m_root->row->title;
+    return label->mapToWindow({}).y + label->baselineOffset();
+}
+
+double PreviewWindow::pageTextBaseline() const
+{
+    const ui::Label* label = m_root->row->page;
+    return label->mapToWindow({}).y + label->baselineOffset();
 }
 
 ui::View* PreviewWindow::sidebarButton() const
@@ -661,9 +697,9 @@ void PreviewWindow::updateHeader()
     // TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
     row->position->setText(format(tr("{index} of {count}"),
                                   {{"index", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
-    row->subtitle->setVisible(pdf && m_root->pdf->isReady());
-    // TRANSLATORS: under a PDF's name in the header: the page most in sight and the number of pages.
-    row->subtitle->setText(format(tr("Page {page} of {count}"),
+    row->showsPage = pdf && m_root->pdf->isReady();
+    // TRANSLATORS: after a PDF's name on the header's line: the page most in sight and the number of pages.
+    row->page->setText(format(tr("Page {page} of {count}"),
                                   {{"page", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
     row->title->setVisible(document);
     row->title->setText(shownName());
