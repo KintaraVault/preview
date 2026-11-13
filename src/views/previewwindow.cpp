@@ -98,7 +98,8 @@ protected:
 
 // The header's own part: the sidebar toggle after the window buttons, the
 // arrows with the place in the sequence and the file name from the
-// sidebar's edge, the zoom buttons at the end.
+// sidebar's edge, the zoom buttons at the end. A PDF has the file name over
+// the page instead, the two centred together on the header's line.
 class PreviewWindow::HeaderRow : public ui::View
 {
 public:
@@ -113,6 +114,10 @@ public:
         title = addChild<ui::Label>();
         title->setWeight(700);
         title->setElide(ui::Label::Elide::Middle);
+        subtitle = addChild<ui::Label>();
+        subtitle->setFontSize(11);
+        subtitle->setElide(ui::Label::Elide::Right);
+        subtitle->setVisible(false);
         zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
         zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
         rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
@@ -124,6 +129,7 @@ public:
     ui::HeaderButton* next;
     ui::Label* position;
     ui::Label* title;
+    ui::Label* subtitle;
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
     ui::HeaderButton* rotate;
@@ -161,9 +167,18 @@ protected:
         right -= kButtonSize;
         zoomOut->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         right -= kButtonSize;
-        const double left = x + 8;
         const ui::SizeF hint = title->sizeHint();
         title->setColor(ui::ColorId::Text);
+        if (subtitle->isVisible()) {
+            const ui::SizeF below = subtitle->sizeHint();
+            const double width = std::max(0.0, right - 8 - x);
+            const double y = centeredStart(height, std::ceil(hint.height) + std::ceil(below.height));
+            title->setGeometry({x, y, width, std::ceil(hint.height)});
+            subtitle->setColor(ui::ColorId::DisabledText);
+            subtitle->setGeometry({x, y + std::ceil(hint.height), width, std::ceil(below.height)});
+            return;
+        }
+        const double left = x + 8;
         title->setGeometry({left, centeredStart(height, hint.height), std::max(0.0, right - 8 - left), hint.height});
     }
 
@@ -366,7 +381,23 @@ Sidebar* PreviewWindow::sidebar() const
 
 std::string PreviewWindow::positionText() const
 {
+    if (m_root->row->subtitle->isVisible())
+        return m_root->row->subtitle->text();
     return m_root->row->position->isVisible() ? m_root->row->position->text() : std::string();
+}
+
+ui::RectF PreviewWindow::titleGeometry() const
+{
+    const ui::View* label = m_root->row->title;
+    const ui::PointF origin = label->mapToWindow({});
+    return {origin.x, origin.y, label->geometry().width, label->geometry().height};
+}
+
+ui::RectF PreviewWindow::subtitleGeometry() const
+{
+    const ui::View* label = m_root->row->subtitle;
+    const ui::PointF origin = label->mapToWindow({});
+    return {origin.x, origin.y, label->geometry().width, label->geometry().height};
 }
 
 ui::View* PreviewWindow::sidebarButton() const
@@ -577,14 +608,17 @@ void PreviewWindow::updateHeader()
     // A PDF goes through its pages in other ways; its arrows would step pages.
     row->previous->setVisible(multiple && !pdf);
     row->next->setVisible(multiple && !pdf);
-    row->position->setVisible(multiple);
+    row->position->setVisible(multiple && !pdf);
     const int index = currentIndex();
     row->previous->setEnabled(index > 0);
     row->next->setEnabled(index + 1 < count());
-    // TRANSLATORS: the shown image's place among the window's images, or the
-    // page's among the document's, such as "3 of 24".
+    // TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
     row->position->setText(format(tr("{index} of {count}"),
                                   {{"index", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
+    row->subtitle->setVisible(pdf && m_root->pdf->isReady());
+    // TRANSLATORS: under a PDF's name in the header: the page most in sight and the number of pages.
+    row->subtitle->setText(format(tr("Page {page} of {count}"),
+                                  {{"page", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
     row->title->setVisible(document);
     row->title->setText(shownName());
     row->zoomOut->setVisible(document);

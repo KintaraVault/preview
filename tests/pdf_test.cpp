@@ -165,7 +165,7 @@ TEST_F(PdfUiTest, APdfOpensOnItsFirstPageFittedToTheWidth)
 {
     PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
     EXPECT_EQ(window.kind(), DocumentKind::Pdf);
-    EXPECT_EQ(window.positionText(), "1 of 3");
+    EXPECT_EQ(window.positionText(), "Page 1 of 3");
     EXPECT_EQ(window.titleText(), "sample.pdf");
     // More than one page: the sidebar shows, numbered pages in it.
     EXPECT_TRUE(window.sidebarShown());
@@ -190,7 +190,7 @@ TEST_F(PdfUiTest, KeysGoThroughThePagesAndScreenfuls)
     PdfView* view = window.pdfPage()->view();
     press(window, key::Right);
     EXPECT_EQ(view->currentPage(), 1);
-    EXPECT_EQ(window.positionText(), "2 of 3");
+    EXPECT_EQ(window.positionText(), "Page 2 of 3");
     EXPECT_EQ(window.sidebar()->current(), 1);
     EXPECT_NEAR(view->pageRect(1).y, PreviewWindow::kHeaderHeight + PdfView::kMargin, 1);
     press(window, key::End);
@@ -395,7 +395,7 @@ TEST_F(PdfUiTest, ALargeDocumentShowsItsFirstPageAtOnce)
     PdfPage* page = window.pdfPage();
     ASSERT_TRUE(until(window, [&] { return page->isReady() && page->view()->sharpTileCount() > 0; }));
     const int64_t firstPage = timer.elapsedMs();
-    EXPECT_EQ(window.positionText(), "1 of 2000");
+    EXPECT_EQ(window.positionText(), "Page 1 of 2000");
     EXPECT_LT(firstPage, 1000);
     ASSERT_TRUE(waitFor(loop(), [&] { return window.sidebar()->hasContents(); }));
     // Only what is in sight and near it is drawn.
@@ -514,7 +514,7 @@ TEST_F(PdfUiTest, PagesRestBelowTheHeaderAndScrollUnderItsBackdrop)
     EXPECT_EQ(top * 2, std::round(top * 2));
 }
 
-// A PDF has no arrows; its page number starts where an image's first arrow does.
+// A PDF has no arrows; its name and page line start where an image's first arrow does.
 TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
 {
     std::filesystem::create_directory(directory.filePath("images"));
@@ -530,14 +530,16 @@ TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
     PreviewWindow& pdf = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
     ASSERT_NE(&pdf, &images);
     EXPECT_FALSE(pdf.showsArrows());
-    EXPECT_EQ(pdf.positionText(), "1 of 3");
+    EXPECT_EQ(pdf.positionText(), "Page 1 of 3");
     // Both without the sidebar.
     ASSERT_FALSE(images.sidebarShown());
     if (pdf.sidebarShown())
         pdf.toggleSidebar();
     pdf.window().grab();
-    EXPECT_EQ(pdf.positionGeometry().x, arrow.x);
-    EXPECT_EQ(pdf.positionGeometry().x, std::round(pdf.positionGeometry().x));
+    // The name and the page line start where an image's first arrow does.
+    EXPECT_EQ(pdf.titleGeometry().x, arrow.x);
+    EXPECT_EQ(pdf.subtitleGeometry().x, arrow.x);
+    EXPECT_EQ(pdf.titleGeometry().x, std::round(pdf.titleGeometry().x));
 }
 
 // The page that shows the most below the header is current; what lies past
@@ -557,6 +559,25 @@ TEST_F(PdfUiTest, TheCurrentPageIsWhatShowsBelowTheHeader)
     EXPECT_EQ(view->currentPage(), 0);
     view->setScrollPosition({0, view->scrollPosition().y + 10});
     EXPECT_EQ(view->currentPage(), 1);
+}
+
+// The name and "Page 1 of 3" sit as a pair centred on the header's line,
+// on whole pixels at 1x and 2x.
+TEST_F(PdfUiTest, ThePdfTitleIsTwoLinesCentredOnTheHeader)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    for (const double scale : {1.0, 2.0}) {
+        window.window().setScale(scale);
+        window.window().grab();
+        const RectF title = window.titleGeometry();
+        const RectF page = window.subtitleGeometry();
+        EXPECT_EQ(window.positionText(), "Page 1 of 3");
+        EXPECT_EQ(page.y, title.bottom());
+        EXPECT_EQ(page.x, title.x);
+        EXPECT_NEAR((title.y + page.bottom()) / 2, PreviewWindow::kHeaderHeight / 2, 0.5);
+        EXPECT_EQ(title.y * scale, std::round(title.y * scale));
+        EXPECT_EQ(page.y * scale, std::round(page.y * scale));
+    }
 }
 
 // A page's thumbnail is 6 from its plate's sides and top, the number 4 under
