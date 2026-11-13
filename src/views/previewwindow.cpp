@@ -9,9 +9,11 @@
 
 #include "base/event_loop.h"
 #include "base/i18n.h"
+#include "base/url.h"
 #include "ui/cell_layout.h"
 #include "ui/application.h"
 #include "ui/color_provider.h"
+#include "ui/file_drop_area.h"
 #include "ui/header_button.h"
 #include "ui/keys.h"
 #include "ui/label.h"
@@ -142,9 +144,10 @@ private:
     ui::WindowHeader* m_header;
 };
 
-// The window's content: the page under the header, and in full screen the
-// page under the header too, on black.
-class PreviewWindow::Root : public ui::View
+// The window's content: the sidebar down the left edge, the page beside it
+// under the header, and in full screen the page under the header too, on
+// black. Files dropped on it open as File > Open opens them.
+class PreviewWindow::Root : public ui::FileDropArea
 {
 public:
     explicit Root(PreviewWindow& owner)
@@ -154,6 +157,13 @@ public:
         image = addChild<ImagePage>();
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
+        filter = [](const std::string& url) { return base::url::isLocalFile(url); };
+        onDropped = [this](const std::vector<std::string>& urls) {
+            std::vector<std::string> paths;
+            for (const std::string& url : urls)
+                paths.push_back(base::url::toLocalFile(url).value_or(std::string()));
+            m_owner.m_application.open(paths);
+        };
     }
 
     double sidebarWidth() const { return sidebar->isVisible() ? Sidebar::kWidth : 0; }
