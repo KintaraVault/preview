@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "base/file_watcher.h"
 #include "base/signal.h"
 
 #include <memory>
@@ -10,14 +11,14 @@
 #include <vector>
 
 // The images a window steps through, one of them current: those of a
-// folder, or the files it was given.
+// folder, followed as files come and go, or the files it was given.
 class ImageSequence
 {
 public:
     // The file and the images beside it, by name with numbers in order,
     // hidden files left out.
     static std::unique_ptr<ImageSequence> folderOf(const std::string& path);
-    // These files in this order.
+    // These files in this order; one that leaves the disk leaves the sequence.
     static std::unique_ptr<ImageSequence> files(std::vector<std::string> paths);
 
     ImageSequence(const ImageSequence&) = delete;
@@ -36,10 +37,19 @@ public:
 
     // The files or the current one changed.
     cutefish::base::Signal<> changed;
+    // The current file was written over.
+    cutefish::base::Signal<> currentWritten;
 
 private:
-    ImageSequence(std::vector<std::string> paths, int index);
+    ImageSequence(std::vector<std::string> paths, int index, bool followsFolder);
+
+    void watch();
+    void folderChanged(const std::string& folder, const std::string& name);
+    // Keeps the current file where it is still there, else its place.
+    void replace(std::vector<std::string> paths);
 
     std::vector<std::string> m_paths;
     int m_index = 0;
+    bool m_followsFolder = false;
+    std::vector<cutefish::base::FileWatch> m_watches;
 };

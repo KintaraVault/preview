@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <set>
 
 using namespace cutefish;
 namespace fs = std::filesystem;
@@ -38,10 +39,18 @@ static std::vector<std::string> folderImages(const fs::path& folder, const std::
     return paths;
 }
 
-ImageSequence::ImageSequence(std::vector<std::string> paths, int index)
+static bool exists(const std::string& path)
+{
+    std::error_code error;
+    return fs::is_regular_file(path, error);
+}
+
+ImageSequence::ImageSequence(std::vector<std::string> paths, int index, bool followsFolder)
     : m_paths(std::move(paths))
     , m_index(index)
+    , m_followsFolder(followsFolder)
 {
+    watch();
 }
 
 std::unique_ptr<ImageSequence> ImageSequence::folderOf(const std::string& path)
@@ -50,12 +59,12 @@ std::unique_ptr<ImageSequence> ImageSequence::folderOf(const std::string& path)
     std::vector<std::string> paths = folderImages(file.parent_path(), file.filename().string());
     const auto found = std::find(paths.begin(), paths.end(), file.string());
     const int index = found == paths.end() ? 0 : int(found - paths.begin());
-    return std::unique_ptr<ImageSequence>(new ImageSequence(std::move(paths), index));
+    return std::unique_ptr<ImageSequence>(new ImageSequence(std::move(paths), index, true));
 }
 
 std::unique_ptr<ImageSequence> ImageSequence::files(std::vector<std::string> paths)
 {
-    return std::unique_ptr<ImageSequence>(new ImageSequence(std::move(paths), 0));
+    return std::unique_ptr<ImageSequence>(new ImageSequence(std::move(paths), 0, false));
 }
 
 bool ImageSequence::isImage(const std::string& path)
@@ -77,4 +86,46 @@ void ImageSequence::setCurrentIndex(int index)
         return;
     m_index = index;
     changed.emit();
+}
+
+void ImageSequence::replace(std::vector<std::string> paths)
+{
+    if (paths == m_paths)
+        return;
+    const std::string current = currentPath();
+    const auto found = std::find(paths.begin(), paths.end(), current);
+    if (found != paths.end())
+        m_index = int(found - paths.begin());
+    else
+        m_index = std::clamp(m_index, 0, std::max(0, int(paths.size()) - 1));
+    m_paths = std::move(paths);
+    changed.emit();
+}
+
+void ImageSequence::watch()
+{
+    std::set<std::string> folders;
+    for (const std::string& path : m_paths)
+        folders.insert(fs::path(path).parent_path().string());
+    for (const std::string& folder : folders) {
+        m_watches.push_back(base::FileWatch::directory(
+                folder, [this, folder](const std::string& name) { folderChanged(folder, name); }));
+    }
+}
+
+void ImageSequence::folderChanged(const std::string& folder, const std::string& name)
+{
+    const std::string current = currentPath();
+    if (m_followsFolder) {
+        replace(folderImages(folder, exists(current) ? fs::path(current).filename().string() : std::string()));
+    } else {
+        std::vector<std::string> paths;
+        for (const std::string& path : m_paths) {
+            if (exists(path))
+                paths.push_back(path);
+        }
+        replace(std::move(paths));
+    }
+    if (!name.empty() && currentPath() == current && current == (fs::path(folder) / name).string())
+        currentWritten.emit();
 }

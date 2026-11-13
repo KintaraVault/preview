@@ -7,6 +7,7 @@
 #include "imagesequence.h"
 #include "sidebar.h"
 
+#include "base/event_loop.h"
 #include "base/i18n.h"
 #include "ui/cell_layout.h"
 #include "ui/application.h"
@@ -272,6 +273,8 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequenceConnections.clear();
     m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
+    m_sequenceConnections.push_back(
+            m_sequence->currentWritten.connect([this] { m_root->image->load(m_sequence->currentPath()); }));
     m_sidebarShown = m_application.settings().sidebarShown(kind());
     m_mapPending = !m_mapped;
     m_root->sidebar->setItems(m_sequence->paths());
@@ -293,6 +296,22 @@ void PreviewWindow::raise(const std::string& activationToken)
 
 void PreviewWindow::sequenceChanged()
 {
+    if (m_sequence->isEmpty()) {
+        // Not from inside the sequence's own signal.
+        base::EventLoop::current()->post([this, alive = std::weak_ptr<bool>(m_alive)] {
+            if (alive.expired() || !m_sequence || !m_sequence->isEmpty())
+                return;
+            m_sequenceConnections.clear();
+            m_sequence.reset();
+            // The next file sizes the window again, as the first one did.
+            m_sized = false;
+            m_root->image->clear();
+            m_root->requestLayout();
+            updateHeader();
+            updateTitle();
+        });
+        return;
+    }
     m_root->sidebar->setItems(m_sequence->paths());
     if (m_sequence->currentPath() != m_root->image->shown().path)
         m_root->image->load(m_sequence->currentPath());

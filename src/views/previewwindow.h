@@ -94,4 +94,5 @@ private:
     // Shown once its first file is ready, which sizes it.
     bool m_mapPending = false;
     std::string m_activationToken;
+    std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 };
