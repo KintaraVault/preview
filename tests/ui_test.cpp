@@ -10,13 +10,18 @@
 #include "waitfor.h"
 
 #include "ui/application.h"
+#include "ui/clipboard.h"
 #include "ui/keys.h"
 #include "ui/test_input.h"
+#include "ui/theme.h"
 #include "ui/window.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 using namespace cutefish::ui;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -143,4 +148,72 @@ TEST_F(UiTest, AWelcomeWindowIsReusedAndAShownFileRaisesItsWindow)
     EXPECT_EQ(application.windows().size(), 1u);
     application.open({});
     EXPECT_EQ(application.windows().size(), 2u);
+}
+
+TEST_F(UiTest, TheSidebarIsKeptForImages)
+{
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    window.window().grab();
+    EXPECT_FALSE(window.sidebar()->isVisible());
+    window.toggleSidebar();
+    window.window().grab();
+    EXPECT_TRUE(window.sidebar()->isVisible());
+    EXPECT_TRUE(settings.sidebarShown(DocumentKind::Image));
+}
+
+TEST_F(UiTest, CopyOffersTheImageAndItsUrl)
+{
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    press(window, key::letter('c'), ControlModifier);
+    const std::vector<std::string> types = Clipboard::mimeTypes();
+    EXPECT_NE(std::find(types.begin(), types.end(), "image/png"), types.end());
+    EXPECT_NE(std::find(types.begin(), types.end(), "text/uri-list"), types.end());
+}
+
+TEST_F(UiTest, ASwipeOnAFittedImageStepsOnce)
+{
+    std::vector<std::string> paths;
+    for (const char* name : {"1.png", "2.png", "3.png"})
+        paths.push_back(writePng(directory.filePath(name), 40, 30));
+    application.open({paths[0]});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, paths[0]));
+    window.window().grab();
+    const PointF center {240, 200};
+    ScrollEvent event;
+    event.precise = true;
+    for (int i = 0; i < 10; ++i) {
+        event.deltaX = 20;
+        TestInput::scroll(window.window(), center, event);
+    }
+    ScrollEvent stop;
+    stop.precise = true;
+    stop.stop = true;
+    TestInput::scroll(window.window(), center, stop);
+    EXPECT_TRUE(showing(window, paths[1]));
+    runFor(loop(), 100ms);
+    EXPECT_EQ(window.imagePage()->shown().path, paths[1]);
+}
+
+TEST_F(UiTest, TheFullScreenHeaderFadesWhenThePointerRests)
+{
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    WindowStates states;
+    states.fullScreen = true;
+    TestInput::configure(window.window(), 1280, 800, states);
+    // The header over the black around the image.
+    EXPECT_EQ(window.window().grab().pixel(640, 20), Theme::current().background);
+    EXPECT_EQ(window.chromeOpacity(), 1);
+    EXPECT_TRUE(waitFor(loop(), [&] { return window.chromeOpacity() == 0; }, 3s));
+    TestInput::movePointer(window.window(), {100, 100});
+    EXPECT_TRUE(waitFor(loop(), [&] { return window.chromeOpacity() == 1; }));
 }
