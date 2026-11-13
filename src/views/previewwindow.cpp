@@ -904,6 +904,16 @@ void PreviewWindow::buildMainMenu()
         go->setItemEnabled(goToPage, false);
     };
 
+    ui::Menu* tools = m_mainMenu->addSubmenu(tr("Tools"));
+    const size_t rotateLeft = tools->addItem(tr("Rotate Left"), [this] { rotate(-1); });
+    tools->setItemKeyEquivalent(rotateLeft, "l", ctrl);
+    const size_t rotateRight = tools->addItem(tr("Rotate Right"), [this] { rotate(1); });
+    tools->setItemKeyEquivalent(rotateRight, "r", ctrl);
+    tools->onAboutToShow = [this, tools, rotateLeft, rotateRight] {
+        tools->setItemEnabled(rotateLeft, canRotate());
+        tools->setItemEnabled(rotateRight, canRotate());
+    };
+
     ui::Menu* windowMenu = m_mainMenu->addSubmenu(tr("Window"));
     windowMenu->setRole(ui::MenuRole::Windows);
     windowMenu->addItem(tr("Minimize"), [this] { m_window->minimize(); });

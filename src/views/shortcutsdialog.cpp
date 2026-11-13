@@ -181,6 +181,7 @@ void ShortcutsDialog::show()
             {trNoop("Previous or next image"), trNoop("Page Up, Page Down")},
             {trNoop("Previous or next image"), trNoop("Shift+Space, Space")},
             {trNoop("First or last image"), trNoop("Home, End")},
+            {trNoop("Rotate left or right"), "Ctrl+L, Ctrl+R"},
             {trNoop("Copy"), "Ctrl+C"},
             {trNoop("Move to Trash"), trash},
         }},
