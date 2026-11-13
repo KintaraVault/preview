@@ -82,6 +82,12 @@ static size_t caretAt(const pdf::PageText& text, ui::PointF point)
     return point.x > box.x() + box.width() / 2 ? best + 1 : best;
 }
 
+static bool onCharacter(const pdf::PageText& text, ui::PointF point)
+{
+    return std::any_of(text.characters.begin(), text.characters.end(),
+                       [point](const pdf::Character& character) { return toRect(character.box).contains(point); });
+}
+
 static bool isWordCharacter(char32_t code)
 {
     return code >= 0x80 || (code >= '0' && code <= '9') || (code >= 'a' && code <= 'z') || (code >= 'A' && code <= 'Z')
@@ -127,6 +133,22 @@ public:
     }
     double heightForWidth(double) const override { return sizeHint().height; }
     bool acceptsPointer() const override { return true; }
+
+    void updateCursor(ui::PointF content)
+    {
+        ui::CursorShape shape = ui::CursorShape::Default;
+        PdfDocument* document = m_view->m_document;
+        ui::PointF point;
+        const int page = document ? m_view->pagePoint(content, &point) : -1;
+        if (page >= 0 && m_view->linkAt(content))
+            shape = ui::CursorShape::Pointer;
+        else if (page >= 0 && m_view->pageRect(page).contains(content - m_view->scrollPosition())) {
+            const pdf::PageText* text = document->text(page, PdfWorker::Urgency::Near);
+            if (text && onCharacter(*text, point))
+                shape = ui::CursorShape::Text;
+        }
+        setCursorShape(shape);
+    }
 
 protected:
     void paint(ui::Painter& painter) override;
@@ -769,4 +791,6 @@ bool PdfView::gesture(const ui::GestureEvent& event)
 void PdfView::hoverMove(const ui::PointerEvent& event)
 {
     m_pointer = event.position;
+    if (m_document)
+        m_canvas->updateCursor(scrollPosition() + event.position);
 }
