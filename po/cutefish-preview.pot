@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-08 20:33+0800\n"
+"POT-Creation-Date: 2026-11-10 19:08+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -14,6 +14,14 @@ msgstr ""
 
 #: src/views/imagepage.cpp
 msgid "This image could not be displayed."
+msgstr ""
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr ""
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
 msgstr ""
 
 #: src/views/previewwindow.cpp cutefish-preview.desktop
