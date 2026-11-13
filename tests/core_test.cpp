@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "imagesequence.h"
+#include "previewsettings.h"
 #include "testutil.h"
 #include "waitfor.h"
 
@@ -100,4 +101,26 @@ TEST(ImageSequenceTest, GivenFilesLeaveWhenRemoved)
     std::filesystem::remove(b);
     EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 1; }));
     EXPECT_EQ(sequence->paths(), (std::vector<std::string> {a}));
+}
+
+TEST(PreviewSettingsTest, SidebarAndRecentFilesAreKept)
+{
+    TemporaryDir directory;
+    const std::string file = directory.filePath("preview.conf");
+    const std::string a = writeFile(directory.filePath("a.png"));
+    const std::string b = writeFile(directory.filePath("b.png"));
+    {
+        PreviewSettings settings(file);
+        EXPECT_FALSE(settings.sidebarShown(DocumentKind::Image));
+        settings.setSidebarShown(DocumentKind::Image, true);
+        settings.addRecentFile(a);
+        settings.addRecentFile(b);
+        settings.addRecentFile(a);
+        settings.addRecentFile(directory.filePath("gone.png"));
+    }
+    PreviewSettings settings(file);
+    EXPECT_TRUE(settings.sidebarShown(DocumentKind::Image));
+    EXPECT_EQ(settings.recentFiles(), (std::vector<std::string> {a, b}));
+    settings.clearRecentFiles();
+    EXPECT_TRUE(PreviewSettings(file).recentFiles().empty());
 }
