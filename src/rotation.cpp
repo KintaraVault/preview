@@ -255,7 +255,43 @@ static std::vector<png_byte> turnedPixels(const std::vector<png_byte>& pixels, u
     return out;
 }
 
-// Copies the ancillary chunks that describe the pixels or the file.
+// Unknown chunks whose fourth letter is upper case are not safe to copy
+// once the image data changes (such as iDOT, offsets into the old IDAT);
+// the colour description ones do not depend on the pixels' places, and
+// stay when this libpng does not know them.
+static bool keepsUnknown(const png_unknown_chunk& chunk)
+{
+    const bool safeToCopy = chunk.name[3] & 0x20;
+    for (const char* name : {"cICP", "mDCV", "cLLI"}) {
+        if (std::memcmp(chunk.name, name, 4) == 0)
+            return true;
+    }
+    return safeToCopy && std::memcmp(chunk.name, "acTL", 4) != 0;
+}
+
+// The Exif orientation set to 1: the turned pixels are what is shown, as
+// the decoder does not read a PNG's eXIf; a reader that does then agrees.
+static std::string uprightExif(const png_bytep exif, png_uint_32 length)
+{
+    std::string data(reinterpret_cast<const char*>(exif), length);
+    if (data.size() < 8 || (data.compare(0, 2, "II") != 0 && data.compare(0, 2, "MM") != 0))
+        return data;
+    Tiff tiff {data, 0, data[0] == 'I'};
+    const size_t ifd = tiff.get(4, 4);
+    if (ifd + 2 > data.size())
+        return data;
+    const uint32_t count = tiff.get(ifd, 2);
+    for (uint32_t i = 0; i < count && ifd + 2 + (i + 1) * 12 <= data.size(); ++i) {
+        const size_t entry = ifd + 2 + i * 12;
+        if (tiff.get(entry, 2) == kOrientationTag)
+            tiff.put(entry + 8, 2, 1);
+    }
+    return data;
+}
+
+// Copies the chunks that describe the pixels or the file, from before or
+// after IDAT, all to be written before it. Left out: oFFs, a position on a
+// page that a turn invalidates, and the unsafe unknown chunks above.
 static void copyChunks(png_structp read, png_infop info, png_structp write, png_infop out, bool swapsAxes)
 {
     png_colorp palette = nullptr;
@@ -297,17 +333,22 @@ static void copyChunks(png_structp read, png_infop info, png_structp write, png_
         png_set_tIME(write, out, time);
     png_uint_32 exifLength = 0;
     png_bytep exif = nullptr;
-    if (png_get_eXIf_1(read, info, &exifLength, &exif))
-        png_set_eXIf_1(write, out, exifLength, exif);
+    if (png_get_eXIf_1(read, info, &exifLength, &exif)) {
+        std::string upright = uprightExif(exif, exifLength);
+        png_set_eXIf_1(write, out, png_uint_32(upright.size()), reinterpret_cast<png_bytep>(upright.data()));
+    }
     png_textp text = nullptr;
     int textCount = 0;
     if (png_get_text(read, info, &text, &textCount) > 0)
         png_set_text(write, out, text, textCount);
     png_unknown_chunkp unknown = nullptr;
     const int unknownCount = png_get_unknown_chunks(read, info, &unknown);
-    if (unknownCount > 0) {
-        png_set_keep_unknown_chunks(write, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
-        png_set_unknown_chunks(write, out, unknown, unknownCount);
+    for (int i = 0; i < unknownCount; ++i) {
+        if (!keepsUnknown(unknown[i]))
+            continue;
+        png_unknown_chunk chunk = unknown[i];
+        chunk.location = PNG_HAVE_PLTE;
+        png_set_unknown_chunks(write, out, &chunk, 1);
     }
 }
 
