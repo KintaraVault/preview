@@ -558,3 +558,37 @@ TEST_F(PdfUiTest, TheCurrentPageIsWhatShowsBelowTheHeader)
     view->setScrollPosition({0, view->scrollPosition().y + 10});
     EXPECT_EQ(view->currentPage(), 1);
 }
+
+// A page's thumbnail is 6 from its plate's sides and top, the number 4 under
+// the thumbnail and 6 above the plate's bottom, at 1x and 2x.
+TEST_F(PdfUiTest, PageThumbnailsKeepOneGapToTheirPlate)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    Sidebar* sidebar = window.sidebar();
+    ASSERT_TRUE(window.sidebarShown());
+    for (const double scale : {1.0, 2.0}) {
+        window.window().setScale(scale);
+        window.window().grab();
+        const RectF row = sidebar->rowGeometry(1);
+        const RectF thumbnail = sidebar->pageThumbnailGeometry(1, scale);
+        const RectF number = sidebar->pageNumberGeometry(1);
+        ASSERT_GT(row.height, 0);
+        // The plate is 9 in from the sidebar's sides.
+        const double plateLeft = row.x + 9;
+        const double plateRight = row.right() - 9;
+        EXPECT_EQ(thumbnail.x - plateLeft, 6);
+        EXPECT_EQ(plateRight - thumbnail.right(), 6);
+        EXPECT_EQ(thumbnail.y - row.y, 6);
+        EXPECT_EQ(thumbnail.width, 160);
+        EXPECT_EQ(number.y - thumbnail.bottom(), 4);
+        EXPECT_EQ(row.bottom() - number.bottom(), 6);
+        // On whole device pixels, as many as the render has.
+        EXPECT_EQ(thumbnail.width * scale, std::round(thumbnail.width * scale));
+        EXPECT_EQ(thumbnail.height * scale, std::round(thumbnail.height * scale));
+    }
+    EXPECT_TRUE(until(window, [&] { return window.pdfPage()->document()->anyThumbnail(1) != nullptr; }));
+    const cutefish::ui::RasterImage* image = window.pdfPage()->document()->anyThumbnail(1);
+    const RectF thumbnail = sidebar->pageThumbnailGeometry(1, window.window().scale());
+    EXPECT_EQ(image->width(), int(std::round(thumbnail.width * window.window().scale())));
+    EXPECT_EQ(image->height(), int(std::round(thumbnail.height * window.window().scale())));
+}

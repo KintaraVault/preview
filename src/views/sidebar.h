@@ -18,7 +18,6 @@ struct OutlineItem;
 
 namespace cutefish::ui {
 class ListView;
-class SegmentedControl;
 }
 
 class PdfDocument;
@@ -55,12 +54,14 @@ public:
     const std::string& contentsTitle(size_t row) const;
     void toggleContentsRow(size_t row);
     void activateContentsRow(size_t row);
-    void retranslate();
+    // The thumbnail and the number of a page row in sight, in the window;
+    // empty when the row is not.
+    cutefish::ui::RectF pageThumbnailGeometry(int page, double ratio) const;
+    cutefish::ui::RectF pageNumberGeometry(int page) const;
+    cutefish::ui::RectF rowGeometry(int page) const;
 
     std::function<void(int index)> onActivated;
     std::function<void(const cutefish::pdf::Destination& destination)> onDestinationActivated;
-    // Thumbnails or contents picked.
-    std::function<void()> onModeChanged;
 
 protected:
     void layout() override;
@@ -79,9 +80,10 @@ private:
     void outlineChanged();
     void flattenOutline();
     void keepVisibleThumbnails();
+    // A document's rows follow its pages' shape and the window's scale.
+    void updateRowHeight();
 
     double m_headerHeight;
-    cutefish::ui::SegmentedControl* m_modes;
     cutefish::ui::ListView* m_list;
     cutefish::ui::ListView* m_outline;
     std::vector<std::string> m_paths;
@@ -91,4 +93,8 @@ private:
     std::set<const cutefish::pdf::OutlineItem*> m_open;
     bool m_showsContents = false;
     int m_current = -1;
+    // A page thumbnail's box height, for the document's rows, from the
+    // largest height to width of its pages.
+    double m_pageHeight = 0;
+    double m_pageAspect = 0;
 };

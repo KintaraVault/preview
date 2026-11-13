@@ -1008,7 +1008,6 @@ void PreviewWindow::retranslate()
     m_root->welcome->retranslate();
     m_root->image->retranslate();
     m_root->pdf->retranslate();
-    m_root->sidebar->retranslate();
     updateHeader();
     updateTitle();
 }

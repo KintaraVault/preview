@@ -4,7 +4,6 @@
 #include "sidebar.h"
 #include "pdfdocument.h"
 
-#include "base/i18n.h"
 #include "ui/cell_layout.h"
 #include "ui/color_provider.h"
 #include "ui/icon.h"
@@ -12,7 +11,6 @@
 #include "ui/label.h"
 #include "ui/list_view.h"
 #include "ui/painter.h"
-#include "ui/segmented_control.h"
 #include "ui/theme.h"
 #include "ui/window.h"
 
@@ -20,7 +18,6 @@
 #include <cmath>
 
 using namespace cutefish;
-using cutefish::i18n::tr;
 using ui::rounding::centeredStart;
 
 static constexpr double kSmallSpacing = 6;
@@ -29,6 +26,12 @@ static constexpr double kRowSpacing = 3;
 // From the selection's edge to the thumbnail.
 static constexpr double kThumbnailGap = 8;
 static constexpr double kNumberGap = 4;
+// A page's thumbnail inside its plate: this far from its sides and top, and
+// from the number to the plate's bottom.
+static constexpr double kPageGap = 6;
+static constexpr double kPageWidth = 160;
+static constexpr double kPageMaximumHeight = 240;
+static constexpr double kNumberFontSize = 11;
 static constexpr double kOutlineRowHeight = 28;
 static constexpr double kOutlineIndent = 14;
 static constexpr double kChevronSize = 12;
@@ -69,7 +72,7 @@ public:
         m_thumbnail->setThumbnail(true);
         m_thumbnail->setFillMode(ui::ImageView::FillMode::PreserveAspectFit);
         m_number = addChild<ui::Label>();
-        m_number->setFontSize(11);
+        m_number->setFontSize(kNumberFontSize);
         m_number->setTextAlignment(ui::Label::TextAlignment::Center);
     }
 
@@ -97,8 +100,8 @@ protected:
         const ui::SizeF number = m_number->sizeHint();
         m_number->setColor(m_row == m_sidebar.m_current ? ui::ColorRecipe(ui::ColorId::HighlightedText)
                                                         : ui::ColorRecipe(ui::ColorId::DisabledText));
-        m_number->setGeometry({inset, geometry().height - kThumbnailGap - number.height,
-                               std::max(0.0, geometry().width - 2 * inset), number.height});
+        m_number->setGeometry({inset, area.bottom() + kNumberGap, std::max(0.0, geometry().width - 2 * inset),
+                               std::ceil(number.height)});
         if (m_sidebar.m_document)
             requestThumbnail();
     }
@@ -109,20 +112,20 @@ protected:
         PdfDocument* document = m_sidebar.m_document;
         if (!document || m_row < 0 || m_row >= document->pageCount())
             return;
-        const ui::SizeF page = document->pageSizes()[size_t(m_row)];
-        const ui::RectF area = thumbnailArea();
-        const double scale = std::min(area.width / page.width, area.height / page.height);
-        const double width = page.width * scale;
-        const double height = page.height * scale;
-        const double ratio = painter.scale();
-        const ui::RectF rect {std::round((area.x + (area.width - width) / 2) * ratio) / ratio,
-                              std::round((area.y + (area.height - height) / 2) * ratio) / ratio, width, height};
-        const double line = 1 / ratio;
+        const ui::RectF rect = pageRect(painter.scale());
+        const double line = 1 / painter.scale();
         const ui::Theme& theme = ui::Theme::current();
-        painter.fillRect(rect.adjusted(-line, -line, line, line), theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15));
-        painter.fillRect(rect, {255, 255, 255, 255});
-        if (const ui::RasterImage* image = document->anyThumbnail(m_row))
+        // Concentric with the plate, a page gap inside it.
+        const double radius = theme.mediumRadius - kPageGap;
+        painter.drawRoundedRect(rect.adjusted(-line, -line, line, line), {radius + line, 0, ui::Corners::Circular},
+                                theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15));
+        painter.drawRoundedRect(rect, {radius, 0, ui::Corners::Circular}, {255, 255, 255, 255});
+        if (const ui::RasterImage* image = document->anyThumbnail(m_row)) {
+            painter.save();
+            painter.clipRoundedRect(rect, radius);
             painter.drawImage(image->skImage(), rect);
+            painter.restore();
+        }
     }
 
     void pointerPress(const ui::PointerEvent& event) override
@@ -143,22 +146,51 @@ protected:
             m_sidebar.onActivated(m_row);
     }
 
-private:
+public:
+    // A file's thumbnail fits in it; a page's is fitted and centred in it.
     ui::RectF thumbnailArea() const
     {
+        if (m_sidebar.m_document)
+            return {plateInset(this) + kPageGap, kPageGap, kPageWidth, m_sidebar.m_pageHeight};
         const double inset = plateInset(this) + kThumbnailGap;
-        const double bottom = m_sidebar.m_document ? kThumbnailGap + m_number->sizeHint().height + kNumberGap
-                                                   : kThumbnailGap;
         return {inset, kThumbnailGap, std::max(0.0, geometry().width - 2 * inset),
-                std::max(0.0, geometry().height - kThumbnailGap - bottom)};
+                std::max(0.0, geometry().height - 2 * kThumbnailGap)};
+    }
+
+    // The page's thumbnail, on whole device pixels and as many of them as
+    // its render has.
+    ui::RectF pageRect(double ratio) const
+    {
+        const base::Size pixels = pagePixels(ratio);
+        const ui::RectF area = thumbnailArea();
+        const double width = pixels.width() / ratio;
+        const double height = pixels.height() / ratio;
+        return {std::round((area.x + (area.width - width) / 2) * ratio) / ratio,
+                std::round((area.y + (area.height - height) / 2) * ratio) / ratio, width, height};
+    }
+
+    ui::Label* number() const { return m_number; }
+
+private:
+    // The page fitted into the area's device pixels: the full width, or the
+    // full height for a page too tall for it; asked for as the render's box,
+    // so the render has exactly these pixels.
+    base::Size pagePixels(double ratio) const
+    {
+        const ui::SizeF page = m_sidebar.m_document->pageSizes()[size_t(m_row)];
+        const ui::RectF area = thumbnailArea();
+        const int width = int(std::round(area.width * ratio));
+        const int height = int(std::round(area.height * ratio));
+        const int fitted = std::max(1, int(std::round(page.height * width / page.width)));
+        if (fitted <= height)
+            return {width, fitted};
+        return {std::max(1, int(std::round(page.width * height / page.height))), height};
     }
 
     void requestThumbnail()
     {
-        const ui::RectF area = thumbnailArea();
         const double ratio = window() && window()->scale() > 0 ? window()->scale() : 1;
-        m_sidebar.m_document->thumbnail(m_row, base::Size(int(std::ceil(area.width * ratio)),
-                                                          int(std::ceil(area.height * ratio))));
+        m_sidebar.m_document->thumbnail(m_row, pagePixels(ratio));
     }
 
     Sidebar& m_sidebar;
@@ -243,14 +275,6 @@ private:
 Sidebar::Sidebar(double headerHeight)
     : m_headerHeight(headerHeight)
 {
-    m_modes = addChild<ui::SegmentedControl>();
-    m_modes->setContentHeight(28);
-    m_modes->setVisible(false);
-    m_modes->onCurrentChanged = [this](int index) {
-        setShowsContents(index == 1);
-        if (onModeChanged)
-            onModeChanged();
-    };
     m_list = addChild<ui::ListView>();
     m_list->setRowHeight(kRowHeight);
     m_list->setSpacing(kRowSpacing);
@@ -262,18 +286,12 @@ Sidebar::Sidebar(double headerHeight)
     m_outline = addChild<ui::ListView>();
     m_outline->setVisible(false);
     m_outline->setRowHeight(kOutlineRowHeight);
+    m_outline->setMargins({0, kSmallSpacing, 0, 0});
     m_outline->createItem = [this] { return std::make_unique<OutlineRow>(*this); };
     m_outline->bindItem = [](ui::View* item, size_t row) { static_cast<OutlineRow*>(item)->bind(row); };
-    retranslate();
 }
 
 Sidebar::~Sidebar() = default;
-
-void Sidebar::retranslate()
-{
-    m_modes->setItems({tr("Thumbnails"), tr("Contents")});
-    m_modes->setCurrentIndex(m_showsContents ? 1 : 0);
-}
 
 void Sidebar::setItems(const std::vector<std::string>& paths)
 {
@@ -302,6 +320,14 @@ void Sidebar::setDocument(PdfDocument* document)
         }));
         m_subscriptions.push_back(document->outlineChanged.connect([this] { outlineChanged(); }));
     }
+    // One height for every row: that of the page tallest for its width at
+    // the thumbnail's width, so pages of other shapes centre in the same box.
+    m_pageAspect = 0;
+    if (document) {
+        for (const ui::SizeF& page : document->pageSizes())
+            m_pageAspect = std::max(m_pageAspect, page.height / page.width);
+    }
+    updateRowHeight();
     m_list->setRowCount(document ? size_t(document->pageCount()) : 0);
     m_list->reload();
     outlineChanged();
@@ -345,7 +371,6 @@ void Sidebar::setShowsContents(bool contents)
 {
     contents = contents && hasContents();
     m_showsContents = contents;
-    m_modes->setCurrentIndex(contents ? 1 : 0);
     m_list->setVisible(!contents);
     m_outline->setVisible(contents);
     requestLayout();
@@ -355,7 +380,6 @@ void Sidebar::outlineChanged()
 {
     m_open.clear();
     flattenOutline();
-    m_modes->setVisible(hasContents());
     setShowsContents(m_showsContents);
 }
 
@@ -399,22 +423,60 @@ void Sidebar::keepVisibleThumbnails()
 {
     if (!m_document)
         return;
-    const double step = kRowHeight + kRowSpacing;
+    const double step = m_list->rowHeight() + kRowSpacing;
     const double top = std::max(0.0, m_list->scrollPosition().y - kSmallSpacing);
     const int first = int(top / step);
     const int last = int((top + m_list->geometry().height) / step);
     m_document->keepThumbnailRequests(first - 1, last + 1);
 }
 
+ui::RectF Sidebar::rowGeometry(int page) const
+{
+    const ui::View* row = m_list->itemForRow(size_t(page));
+    if (!row)
+        return {};
+    const ui::PointF origin = row->mapToWindow({});
+    return {origin.x, origin.y, row->geometry().width, row->geometry().height};
+}
+
+ui::RectF Sidebar::pageThumbnailGeometry(int page, double ratio) const
+{
+    const auto* row = static_cast<const Row*>(m_list->itemForRow(size_t(page)));
+    if (!row || !m_document)
+        return {};
+    const ui::RectF rect = row->pageRect(ratio);
+    const ui::PointF origin = row->mapToWindow(rect.topLeft());
+    return {origin.x, origin.y, rect.width, rect.height};
+}
+
+ui::RectF Sidebar::pageNumberGeometry(int page) const
+{
+    const auto* row = static_cast<const Row*>(m_list->itemForRow(size_t(page)));
+    if (!row)
+        return {};
+    const ui::View* number = row->number();
+    const ui::PointF origin = number->mapToWindow({});
+    return {origin.x, origin.y, number->geometry().width, number->geometry().height};
+}
+
+void Sidebar::updateRowHeight()
+{
+    if (!m_document) {
+        m_list->setRowHeight(kRowHeight);
+        return;
+    }
+    // On whole device pixels, so the tallest page fills its box exactly.
+    const double ratio = window() && window()->scale() > 0 ? window()->scale() : 1;
+    m_pageHeight = std::round(std::min(m_pageAspect * kPageWidth, kPageMaximumHeight) * ratio) / ratio;
+    ui::Label number("0");
+    number.setFontSize(kNumberFontSize);
+    m_list->setRowHeight(kPageGap + m_pageHeight + kNumberGap + std::ceil(number.sizeHint().height) + kPageGap);
+}
+
 void Sidebar::layout()
 {
-    double top = m_headerHeight + kSmallSpacing;
-    if (m_modes->isVisible()) {
-        const double inset = plateInset(this);
-        const double height = m_modes->sizeHint().height;
-        m_modes->setGeometry({inset, top, std::max(0.0, geometry().width - 2 * inset), height});
-        top += height + kSmallSpacing;
-    }
+    updateRowHeight();
+    const double top = m_headerHeight + kSmallSpacing;
     const ui::RectF rest {0, top, geometry().width, std::max(0.0, geometry().height - top)};
     m_list->setGeometry(rest);
     m_outline->setGeometry(rest);
