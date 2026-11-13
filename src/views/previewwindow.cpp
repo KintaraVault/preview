@@ -37,6 +37,7 @@
 #include "ui/menu.h"
 #include "ui/painter.h"
 #include "ui/shortcut_convention.h"
+#include "ui/sidebar_divider.h"
 #include "ui/theme.h"
 #include "ui/toast.h"
 #include "ui/window.h"
@@ -61,6 +62,9 @@ static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
+// What the content keeps beside a shown sidebar at the window's minimum size,
+// as in Files: the sidebar grows only as the window does.
+static constexpr double kMinimumContentWidthBesideSidebar = kMinimumContentWidth - Sidebar::kDefaultWidth;
 
 // The header. In full screen it has a strip of its own, the window's colour
 // with a hairline along its bottom, to stay readable over the image; else
@@ -213,6 +217,19 @@ public:
         pdfBackdrop = addChild<ui::HeaderBackdrop>(pdf->view());
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
+        divider = addChild<ui::SidebarDivider>(Sidebar::kMinimumWidth, Sidebar::kMaximumWidth, Sidebar::kDefaultWidth);
+        divider->setName("sidebarDivider");
+        divider->onResized = [this](double width) {
+            m_owner.m_sidebarWidth = width;
+            sidebar->setResizing(true);
+            requestLayout();
+        };
+        divider->onFinished = [this](double width) {
+            m_owner.m_sidebarWidth = width;
+            sidebar->setResizing(false);
+            m_owner.m_application.settings().setSidebarWidth(width);
+            requestLayout();
+        };
         filter = [](const std::string& url) { return base::url::isLocalFile(url); };
         onDropped = [this](const std::vector<std::string>& urls) {
             std::vector<std::string> paths;
@@ -222,7 +239,17 @@ public:
         };
     }
 
-    double sidebarWidth() const { return sidebar->isVisible() ? Sidebar::kWidth : 0; }
+    // As wide as asked, within what leaves the content its width at the
+    // window's minimum size.
+    double sidebarWidth() const
+    {
+        if (!sidebar->isVisible())
+            return 0;
+        const double widest = std::max(Sidebar::kMinimumWidth,
+                                       std::min(Sidebar::kMaximumWidth,
+                                                geometry().width - kMinimumContentWidthBesideSidebar));
+        return std::min(m_owner.m_sidebarWidth, widest);
+    }
 
     Sidebar* sidebar;
     ImagePage* image;
@@ -232,6 +259,7 @@ public:
     ui::HeaderBackdrop* pdfBackdrop;
     HeaderBar* bar;
     HeaderRow* row;
+    ui::SidebarDivider* divider;
 
 protected:
     void layout() override
@@ -247,6 +275,10 @@ protected:
         // The content runs under the header and rests below it.
         const double inset = fullScreen ? 0 : kHeaderHeight;
         sidebar->setGeometry({0, 0, left, rect.height});
+        divider->setVisible(left > 0);
+        divider->setSidebarWidth(left);
+        divider->setGeometry({left - ui::SidebarDivider::kWidth / 2, kHeaderHeight, ui::SidebarDivider::kWidth,
+                              std::max(0.0, rect.height - kHeaderHeight)});
         const double width = std::max(0.0, rect.width - left);
         const ui::RectF content {left, 0, width, rect.height};
         image->setTopInset(inset);
@@ -297,6 +329,8 @@ PreviewWindow::PreviewWindow(Application& application)
     , m_window(std::make_unique<ui::Window>())
     , m_jump(std::make_unique<PdfRequest>())
 {
+    m_sidebarWidth = std::clamp(m_application.settings().sidebarWidth(Sidebar::kDefaultWidth), Sidebar::kMinimumWidth,
+                                Sidebar::kMaximumWidth);
     m_window->setTitle(tr("Preview"));
     m_window->resize({720, 540});
     m_window->setMinimumSize({kMinimumContentWidth, kMinimumContentHeight + kHeaderHeight});
@@ -661,7 +695,7 @@ ui::SizeF PreviewWindow::windowSizeFor(const ui::ImageInfo& info) const
     ui::SizeF area = m_window->availableSize();
     if (area.width <= 0 || area.height <= 0)
         area = {1280, 800};
-    const double sidebar = m_sidebarShown ? Sidebar::kWidth : 0;
+    const double sidebar = m_sidebarShown ? m_sidebarWidth : 0;
     ui::SizeF content {kMinimumContentWidth, kMinimumContentHeight};
     if (info.readable && info.width > 0 && info.height > 0) {
         // One image pixel to a device pixel, shrunk into a large share of the work area.
@@ -686,7 +720,7 @@ ui::SizeF PreviewWindow::windowSizeForPage(ui::SizeF page) const
     ui::SizeF area = m_window->availableSize();
     if (area.width <= 0 || area.height <= 0)
         area = {1280, 800};
-    const double sidebar = m_sidebarShown ? Sidebar::kWidth : 0;
+    const double sidebar = m_sidebarShown ? m_sidebarWidth : 0;
     const double width = std::min(page.width + 2 * PdfView::kMargin, std::floor(area.width * 0.9) - sidebar);
     const double height = std::min(page.height + 2 * PdfView::kMargin, std::floor(area.height * 0.85) - kHeaderHeight);
     return {std::max(kMinimumContentWidth, std::round(width)) + sidebar,
@@ -698,7 +732,7 @@ ui::SizeF PreviewWindow::viewportFor(const ui::ImageInfo& info) const
     if (m_sized || isFullScreen() || m_window->states().maximized)
         return m_root->image->viewport();
     const ui::SizeF size = windowSizeFor(info);
-    return {size.width - (m_sidebarShown ? Sidebar::kWidth : 0), size.height - kHeaderHeight};
+    return {size.width - (m_sidebarShown ? m_sidebarWidth : 0), size.height - kHeaderHeight};
 }
 
 void PreviewWindow::step(int delta)

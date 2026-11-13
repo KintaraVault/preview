@@ -155,6 +155,8 @@ private:
     // recent files.
     std::set<std::string> m_opened;
     bool m_sidebarShown = false;
+    // Of every kind, as last dragged in any window.
+    double m_sidebarWidth;
     // The window took its size from its file.
     bool m_sized = false;
     bool m_mapped = false;

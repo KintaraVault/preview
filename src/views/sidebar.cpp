@@ -21,6 +21,7 @@ using namespace cutefish;
 using ui::rounding::centeredStart;
 
 static constexpr double kSmallSpacing = 6;
+// A file row at the default width; rows grow with the sidebar.
 static constexpr double kRowHeight = 120;
 static constexpr double kRowSpacing = 3;
 // From the selection's edge to the thumbnail.
@@ -29,8 +30,7 @@ static constexpr double kNumberGap = 4;
 // A page's thumbnail inside its plate: this far from its sides and top, and
 // from the number to the plate's bottom.
 static constexpr double kPageGap = 6;
-static constexpr double kPageWidth = 160;
-static constexpr double kPageMaximumHeight = 240;
+static constexpr double kPageMaximumAspect = 1.5;
 static constexpr double kNumberFontSize = 11;
 static constexpr double kOutlineRowHeight = 28;
 static constexpr double kOutlineIndent = 14;
@@ -151,7 +151,7 @@ public:
     ui::RectF thumbnailArea() const
     {
         if (m_sidebar.m_document)
-            return {plateInset(this) + kPageGap, kPageGap, kPageWidth, m_sidebar.m_pageHeight};
+            return {plateInset(this) + kPageGap, kPageGap, m_sidebar.m_pageWidth, m_sidebar.m_pageHeight};
         const double inset = plateInset(this) + kThumbnailGap;
         return {inset, kThumbnailGap, std::max(0.0, geometry().width - 2 * inset),
                 std::max(0.0, geometry().height - 2 * kThumbnailGap)};
@@ -189,6 +189,8 @@ private:
 
     void requestThumbnail()
     {
+        if (m_sidebar.m_resizing)
+            return;
         const double ratio = window() && window()->scale() > 0 ? window()->scale() : 1;
         m_sidebar.m_document->thumbnail(m_row, pagePixels(ratio));
     }
@@ -461,16 +463,29 @@ ui::RectF Sidebar::pageNumberGeometry(int page) const
 
 void Sidebar::updateRowHeight()
 {
-    if (!m_document) {
-        m_list->setRowHeight(kRowHeight);
-        return;
-    }
-    // On whole device pixels, so the tallest page fills its box exactly.
     const double ratio = window() && window()->scale() > 0 ? window()->scale() : 1;
-    m_pageHeight = std::round(std::min(m_pageAspect * kPageWidth, kPageMaximumHeight) * ratio) / ratio;
-    ui::Label number("0");
-    number.setFontSize(kNumberFontSize);
-    m_list->setRowHeight(kPageGap + m_pageHeight + kNumberGap + std::ceil(number.sizeHint().height) + kPageGap);
+    const double width = geometry().width > 0 ? geometry().width : kDefaultWidth;
+    double height = 0;
+    if (!m_document) {
+        height = std::round(kRowHeight * width / kDefaultWidth * ratio) / ratio;
+    } else {
+        // On whole device pixels, so the tallest page fills its box exactly.
+        m_pageWidth = std::max(1.0, width - 2 * (plateInset(this) + kPageGap));
+        m_pageHeight = std::round(std::min(m_pageAspect, kPageMaximumAspect) * m_pageWidth * ratio) / ratio;
+        ui::Label number("0");
+        number.setFontSize(kNumberFontSize);
+        height = kPageGap + m_pageHeight + kNumberGap + std::ceil(number.sizeHint().height) + kPageGap;
+    }
+    m_list->setRowHeight(height);
+}
+
+void Sidebar::setResizing(bool resizing)
+{
+    if (resizing == m_resizing)
+        return;
+    m_resizing = resizing;
+    if (!resizing)
+        m_list->reload();
 }
 
 void Sidebar::layout()

@@ -29,6 +29,9 @@ public:
     // `unset` until the sidebar is toggled for the kind.
     bool sidebarShown(DocumentKind kind, bool unset = false) const;
     void setSidebarShown(DocumentKind kind, bool shown);
+    // One for every kind; `unset` until the sidebar is resized.
+    double sidebarWidth(double unset) const;
+    void setSidebarWidth(double width);
 
     // Local paths, newest first; files gone from disk are left out.
     std::vector<std::string> recentFiles() const;

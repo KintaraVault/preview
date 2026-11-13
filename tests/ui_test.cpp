@@ -484,3 +484,30 @@ TEST_F(UiTest, TheSidebarToggleIsCentredOnTheHeaderLine)
         EXPECT_EQ(ink.y * 2 + ink.height, int(toggle->geometry().height * scale));
     }
 }
+
+// For images the arrows start 9 past the sidebar's edge at any width, and
+// the rows grow with it, 120 tall at 190 wide.
+TEST_F(UiTest, TheImageHeaderAndRowsFollowTheSidebarsWidth)
+{
+    std::vector<std::string> paths;
+    for (const char* name : {"1.png", "2.png"})
+        paths.push_back(writePng(directory.filePath(name), 40, 30));
+    application.open({paths[0]});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, paths[0]));
+    ASSERT_TRUE(waitFor(loop(), [&] { return window.count() == 2; }));
+    TestInput::configure(window.window(), 1000, 700, {});
+    window.toggleSidebar();
+    window.window().grab();
+    EXPECT_EQ(window.previousArrowGeometry().x, Sidebar::kDefaultWidth + 9);
+    EXPECT_EQ(window.sidebar()->rowGeometry(0).height, 120);
+    const double edge = window.sidebar()->geometry().width;
+    TestInput::movePointer(window.window(), {edge, 200});
+    TestInput::press(window.window(), {edge, 200});
+    TestInput::movePointer(window.window(), {285, 200});
+    TestInput::release(window.window(), {285, 200});
+    window.window().grab();
+    EXPECT_EQ(window.sidebar()->geometry().width, 285);
+    EXPECT_EQ(window.previousArrowGeometry().x, 285 + 9);
+    EXPECT_EQ(window.sidebar()->rowGeometry(0).height, 180);
+}

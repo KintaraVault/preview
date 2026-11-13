@@ -12,6 +12,7 @@
 using namespace cutefish;
 
 static constexpr const char* kRecentKey = "Recent/Files";
+static constexpr const char* kSidebarWidthKey = "Sidebar/Width";
 
 static std::string sidebarKey(DocumentKind kind)
 {
@@ -47,6 +48,18 @@ void PreviewSettings::setSidebarShown(DocumentKind kind, bool shown)
 {
     base::Settings settings(m_file);
     settings.setValue(sidebarKey(kind), shown);
+    settings.sync();
+}
+
+double PreviewSettings::sidebarWidth(double unset) const
+{
+    return base::Settings(m_file).doubleValue(kSidebarWidthKey, unset);
+}
+
+void PreviewSettings::setSidebarWidth(double width)
+{
+    base::Settings settings(m_file);
+    settings.setValue(kSidebarWidthKey, width);
     settings.sync();
 }
 

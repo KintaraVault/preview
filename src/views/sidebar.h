@@ -29,7 +29,10 @@ class PdfDocument;
 class Sidebar : public cutefish::ui::View
 {
 public:
-    static constexpr double kWidth = 190;
+    // The Files sidebar's range, which a divider on its edge resizes within.
+    static constexpr double kDefaultWidth = 190;
+    static constexpr double kMinimumWidth = 140;
+    static constexpr double kMaximumWidth = 400;
 
     // The header's height, which the thumbnails start below.
     explicit Sidebar(double headerHeight);
@@ -42,6 +45,9 @@ public:
     void setCurrent(int index);
     // Thumbnails read again, of files written since.
     void refresh();
+    // While its width is being dragged, page thumbnails draw what they have,
+    // scaled; at the end they are rendered at their new size.
+    void setResizing(bool resizing);
     int current() const { return m_current; }
     size_t count() const;
 
@@ -93,8 +99,11 @@ private:
     std::set<const cutefish::pdf::OutlineItem*> m_open;
     bool m_showsContents = false;
     int m_current = -1;
-    // A page thumbnail's box height, for the document's rows, from the
-    // largest height to width of its pages.
+    // A page thumbnail's box, for the document's rows: the width less the
+    // plate's and the page's insets, and the height of the page tallest for
+    // its width, at most one and a half widths.
+    double m_pageWidth = 0;
     double m_pageHeight = 0;
     double m_pageAspect = 0;
+    bool m_resizing = false;
 };

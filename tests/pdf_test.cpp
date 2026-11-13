@@ -613,3 +613,88 @@ TEST_F(PdfUiTest, PageThumbnailsKeepOneGapToTheirPlate)
     EXPECT_EQ(image->width(), int(std::round(thumbnail.width * window.window().scale())));
     EXPECT_EQ(image->height(), int(std::round(thumbnail.height * window.window().scale())));
 }
+
+namespace {
+
+// Drags the sidebar's edge to `x` in the window.
+void dragSidebarEdge(PreviewWindow& window, double x)
+{
+    const double edge = window.sidebar()->geometry().width;
+    TestInput::movePointer(window.window(), {edge, 200});
+    TestInput::press(window.window(), {edge, 200});
+    TestInput::movePointer(window.window(), {x, 200});
+    TestInput::release(window.window(), {x, 200});
+    window.window().grab();
+}
+
+} // namespace
+
+// The edge moves within 140 to 400, and no further than leaves the content
+// what it has beside the sidebar at the window's minimum size; the width is
+// kept for the next window.
+TEST_F(PdfUiTest, TheSidebarResizesWithinItsRangeAndIsKept)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    ASSERT_TRUE(window.sidebarShown());
+    EXPECT_EQ(window.sidebar()->geometry().width, Sidebar::kDefaultWidth);
+    const double windowWidth = window.window().size().width;
+    dragSidebarEdge(window, 2000);
+    EXPECT_EQ(window.sidebar()->geometry().width,
+              std::min(Sidebar::kMaximumWidth, windowWidth - (480 - Sidebar::kDefaultWidth)));
+    dragSidebarEdge(window, 10);
+    EXPECT_EQ(window.sidebar()->geometry().width, Sidebar::kMinimumWidth);
+    TestInput::configure(window.window(), 1200, 700, {});
+    window.window().grab();
+    dragSidebarEdge(window, 2000);
+    EXPECT_EQ(window.sidebar()->geometry().width, Sidebar::kMaximumWidth);
+    dragSidebarEdge(window, 250.4);
+    EXPECT_EQ(window.sidebar()->geometry().width, 250);
+    EXPECT_EQ(settings.sidebarWidth(0), 250);
+    EXPECT_EQ(PreviewSettings(directory.filePath("preview.conf")).sidebarWidth(0), 250);
+
+    // What hangs on its edge follows: the name and the content beside it.
+    EXPECT_EQ(window.titleGeometry().x, 250 + 9);
+    PdfView* view = window.pdfPage()->view();
+    EXPECT_EQ(view->mapToWindow({}).x, 250);
+    EXPECT_EQ(view->mapToWindow(view->pageRect(0).topLeft()).x, 250 + PdfView::kMargin);
+
+    application.open({writeFile(directory.filePath("other.pdf"), samplePdf())});
+    PreviewWindow& other = *application.windows().back();
+    ASSERT_TRUE(waitFor(loop(), [&] { return other.pdfPage()->isReady(); }));
+    other.window().grab();
+    EXPECT_EQ(other.sidebar()->geometry().width, 250);
+}
+
+// At another width the thumbnail keeps 6 to its plate and the number 4 and
+// 6, at 1x and 2x, and is rendered again at the drawn size.
+TEST_F(PdfUiTest, PageThumbnailsFollowTheSidebarsWidth)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    TestInput::configure(window.window(), 1000, 700, {});
+    window.window().grab();
+    dragSidebarEdge(window, 271);
+    Sidebar* sidebar = window.sidebar();
+    ASSERT_EQ(sidebar->geometry().width, 271);
+    for (const double scale : {1.0, 2.0}) {
+        window.window().setScale(scale);
+        window.window().grab();
+        const RectF row = sidebar->rowGeometry(1);
+        const RectF thumbnail = sidebar->pageThumbnailGeometry(1, scale);
+        const RectF number = sidebar->pageNumberGeometry(1);
+        EXPECT_EQ(thumbnail.x - (row.x + 9), 6);
+        EXPECT_EQ(row.right() - 9 - thumbnail.right(), 6);
+        EXPECT_EQ(thumbnail.y - row.y, 6);
+        EXPECT_EQ(thumbnail.width, 271 - 30);
+        EXPECT_EQ(number.y - thumbnail.bottom(), 4);
+        EXPECT_EQ(row.bottom() - number.bottom(), 6);
+        EXPECT_EQ(thumbnail.height * scale, std::round(thumbnail.height * scale));
+    }
+    const double scale = window.window().scale();
+    const RectF thumbnail = sidebar->pageThumbnailGeometry(1, scale);
+    PdfDocument* document = window.pdfPage()->document();
+    EXPECT_TRUE(until(window, [&] {
+        const cutefish::ui::RasterImage* image = document->anyThumbnail(1);
+        return image && image->width() == int(std::round(thumbnail.width * scale))
+                && image->height() == int(std::round(thumbnail.height * scale));
+    }));
+}
