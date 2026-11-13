@@ -63,6 +63,11 @@ ImageSequence::ImageSequence(std::vector<std::string> paths, int index, bool fol
     , m_index(index)
     , m_followsFolder(followsFolder)
 {
+    // Copying a file in alone brings its creation, writes, attributes and
+    // rename one by one.
+    m_settle.setSingleShot(true);
+    m_settle.setInterval(std::chrono::milliseconds(100));
+    m_settle.onTimeout = [this] { applyChanges(); };
     watch();
 }
 
@@ -134,6 +139,13 @@ void ImageSequence::watch()
 
 void ImageSequence::folderChanged(const std::string& folder, const std::string& name)
 {
+    if (!name.empty() && (fs::path(folder) / name).string() == currentPath())
+        m_currentTouched = true;
+    m_settle.start();
+}
+
+void ImageSequence::applyChanges()
+{
     const std::string current = currentPath();
     if (m_followsFolder) {
         listFolder();
@@ -145,7 +157,9 @@ void ImageSequence::folderChanged(const std::string& folder, const std::string& 
         }
         replace(std::move(paths));
     }
-    if (!name.empty() && currentPath() == current && current == (fs::path(folder) / name).string())
+    const bool written = m_currentTouched && exists(current);
+    m_currentTouched = false;
+    if (written)
         currentWritten.emit();
 }
 

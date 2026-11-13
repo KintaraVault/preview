@@ -6,6 +6,7 @@
 #include "base/file_watcher.h"
 #include "base/signal.h"
 #include "base/thread_pool.h"
+#include "base/timer.h"
 
 #include <memory>
 #include <string>
@@ -40,9 +41,10 @@ public:
     // place, or the previous one at the end.
     void remove(const std::string& path);
 
-    // The files or the current one changed.
+    // The files or the current one changed. Changes on disk arrive together,
+    // once a burst of them has been quiet for 100 ms.
     cutefish::base::Signal<> changed;
-    // The current file was written over.
+    // The current file was written over, once per burst.
     cutefish::base::Signal<> currentWritten;
 
 private:
@@ -50,6 +52,7 @@ private:
 
     void watch();
     void folderChanged(const std::string& folder, const std::string& name);
+    void applyChanges();
     // Reads the folder on a worker and takes its images in.
     void listFolder();
     // Keeps the current file where it is still there, else its place.
@@ -59,5 +62,7 @@ private:
     int m_index = 0;
     bool m_followsFolder = false;
     std::vector<cutefish::base::FileWatch> m_watches;
+    cutefish::base::Timer m_settle;
     cutefish::base::Job m_listing;
+    bool m_currentTouched = false;
 };

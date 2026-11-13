@@ -96,6 +96,29 @@ TEST(ImageSequenceTest, TheFolderIsFollowed)
     EXPECT_EQ(sequence->currentPath(), b);
 }
 
+TEST(ImageSequenceTest, ABurstOfChangesArrivesOnce)
+{
+    auto& loop = Application::instance()->loop();
+    TemporaryDir directory;
+    const std::string a = writeFile(directory.filePath("a.png"));
+    const auto sequence = ImageSequence::folderOf(a);
+    // The first listing, which finds nothing new.
+    runFor(loop, std::chrono::milliseconds(200));
+    int changes = 0;
+    int written = 0;
+    const auto changed = sequence->changed.connect([&changes] { ++changes; });
+    const auto rewritten = sequence->currentWritten.connect([&written] { ++written; });
+    for (int i = 0; i < 50; ++i) {
+        writeFile(directory.filePath("b" + std::to_string(i) + ".png"));
+        if (i % 10 == 0)
+            writeFile(a, "again " + std::to_string(i) + "\n");
+    }
+    EXPECT_TRUE(waitFor(loop, [&] { return sequence->count() == 51; }));
+    runFor(loop, std::chrono::milliseconds(300));
+    EXPECT_EQ(changes, 1);
+    EXPECT_EQ(written, 1);
+}
+
 TEST(ImageSequenceTest, GivenFilesLeaveWhenRemoved)
 {
     auto& loop = Application::instance()->loop();
