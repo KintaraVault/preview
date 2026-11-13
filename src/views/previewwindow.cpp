@@ -601,27 +601,37 @@ void PreviewWindow::goTo(int index)
 
 void PreviewWindow::zoomIn()
 {
+    PdfView* pages = m_root->pdf->view();
     ImageViewer* viewer = m_root->image->viewer();
-    if (m_root->image->showsImage())
+    if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
+        pages->zoomBy(kZoomStep, pages->center(), true);
+    else if (m_kind == DocumentKind::Image && m_root->image->showsImage())
         viewer->zoomBy(kZoomStep, viewer->center(), true);
 }
 
 void PreviewWindow::zoomOut()
 {
+    PdfView* pages = m_root->pdf->view();
     ImageViewer* viewer = m_root->image->viewer();
-    if (m_root->image->showsImage())
+    if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
+        pages->zoomBy(1 / kZoomStep, pages->center(), true);
+    else if (m_kind == DocumentKind::Image && m_root->image->showsImage())
         viewer->zoomBy(1 / kZoomStep, viewer->center(), true);
 }
 
 void PreviewWindow::zoomToFit()
 {
-    if (m_root->image->showsImage())
+    if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
+        m_root->pdf->view()->zoomToFit();
+    else if (m_kind == DocumentKind::Image && m_root->image->showsImage())
         m_root->image->viewer()->zoomToFit();
 }
 
 void PreviewWindow::zoomToActualSize()
 {
-    if (m_root->image->showsImage())
+    if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
+        m_root->pdf->view()->zoomToActualSize();
+    else if (m_kind == DocumentKind::Image && m_root->image->showsImage())
         m_root->image->viewer()->zoomToActualSize();
 }
 
