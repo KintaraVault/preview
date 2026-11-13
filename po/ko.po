@@ -1,0 +1,373 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-13 17:03+0800\n"
+"PO-Revision-Date: 2026-11-13 17:03+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
+msgid "Find"
+msgstr "찾기"
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
+msgstr "페이지로 이동(1–{count})"
+
+#: src/views/imagepage.cpp
+msgid "This image could not be displayed."
+msgstr "이 이미지를 표시할 수 없습니다."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr "“{name}”의 암호가 올바르지 않습니다. 다시 시도하십시오."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr "“{name}” 파일은 보호되어 있습니다. 열려면 암호를 입력하십시오."
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr "암호"
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr "취소"
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr "열기"
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr "암호 필요"
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
+msgstr "암호 입력…"
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr "이 문서는 암호로 보호되어 있습니다."
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
+msgstr "이 문서를 열 수 없습니다."
+
+#: src/views/pdfpage.cpp
+msgid "No matches"
+msgstr "일치 항목 없음"
+
+#. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
+#. TRANSLATORS: the shown image's place among the window's images, or the
+#. page's among the document's, such as "3 of 24".
+#: src/views/pdfpage.cpp src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr "{index}/{count}"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr "미리보기"
+
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
+msgstr "{name} 파일을 회전할 수 없습니다: JPEG 또는 PNG 이미지로 읽을 수 없습니다"
+
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: {reason}"
+msgstr "{name} 파일을 회전할 수 없습니다: {reason}"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Images"
+msgstr "이미지"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "PDF Documents"
+msgstr "PDF 문서"
+
+#: src/views/previewwindow.cpp
+msgid "Images and PDF Documents"
+msgstr "이미지 및 PDF 문서"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Copy"
+msgstr "복사"
+
+#: src/views/previewwindow.cpp
+msgid "Show in Files"
+msgstr "파일에서 보기"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Move to Trash"
+msgstr "휴지통으로 이동"
+
+#: src/views/previewwindow.cpp
+msgid "Copy Link"
+msgstr "링크 복사"
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr "모두 선택"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images and PDF documents"
+msgstr "이미지와 PDF 문서를 봅니다"
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr "미리보기 정보"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr "미리보기 숨기기"
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr "미리보기 종료"
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr "파일"
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr "열기…"
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr "최근 항목 열기"
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr "최근 파일 지우기"
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr "창 닫기"
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr "편집"
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr "찾기…"
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr "다음 찾기"
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr "이전 찾기"
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr "보기"
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr "사이드바 보기"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Thumbnails"
+msgstr "썸네일"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Contents"
+msgstr "목차"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr "확대"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr "축소"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr "화면에 맞추기"
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr "실제 크기"
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr "전체 화면 시작"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr "사이드바 가리기"
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr "전체 화면 종료"
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr "이동"
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr "이전"
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr "다음"
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr "처음"
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr "마지막"
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr "페이지로 이동…"
+
+#: src/views/previewwindow.cpp
+msgid "Tools"
+msgstr "도구"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Left"
+msgstr "왼쪽으로 회전"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Right"
+msgstr "오른쪽으로 회전"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Window"
+msgstr "창"
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr "최소화"
+
+#: src/views/previewwindow.cpp
+msgctxt "window command"
+msgid "Zoom"
+msgstr "확대/축소"
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr "도움말"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr "키보드 단축키"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr "이전 또는 다음 이미지"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr "처음 또는 마지막 이미지"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Rotate left or right"
+msgstr "왼쪽 또는 오른쪽으로 회전"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr "이전 또는 다음 페이지"
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr "한 화면 위 또는 아래로"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr "처음 또는 마지막 페이지"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr "페이지로 이동"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr "다음 또는 이전 일치 항목"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
+msgstr "모두 선택"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
+msgstr "확대/축소"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr "확대 또는 축소"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr "화면에 맞추기"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr "실제 크기"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr "전체 화면"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr "전체 화면 종료"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr "파일 열기"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr "닫기"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr "키보드 단축키"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
+msgstr "종료"
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image Here"
+msgstr "여기에 이미지를 놓으십시오"
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr "또는 파일을 열어 보십시오."
+
+#: src/views/welcomepage.cpp
+msgid "Recent"
+msgstr "최근 항목"
+
+#: src/views/welcomepage.cpp
+msgid "Clear"
+msgstr "지우기"
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;PDF;Document;"
+msgstr "이미지;사진;그림;뷰어;미리보기;PDF;문서;Image;Picture;Photo;Viewer;Document;"

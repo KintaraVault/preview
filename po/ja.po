@@ -1,0 +1,373 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-13 17:03+0800\n"
+"PO-Revision-Date: 2026-11-13 17:03+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
+msgid "Find"
+msgstr "検索"
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
+msgstr "指定ページへ移動（1～{count}）"
+
+#: src/views/imagepage.cpp
+msgid "This image could not be displayed."
+msgstr "このイメージを表示できませんでした。"
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr "「{name}」のパスワードが正しくありません。もう一度お試しください。"
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr "「{name}」は保護されています。開くにはパスワードを入力してください。"
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr "パスワード"
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr "開く"
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr "パスワードが必要です"
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
+msgstr "パスワードを入力…"
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr "この書類はパスワードで保護されています。"
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
+msgstr "この書類を開けませんでした。"
+
+#: src/views/pdfpage.cpp
+msgid "No matches"
+msgstr "一致なし"
+
+#. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
+#. TRANSLATORS: the shown image's place among the window's images, or the
+#. page's among the document's, such as "3 of 24".
+#: src/views/pdfpage.cpp src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr "{index}/{count}"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr "プレビュー"
+
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
+msgstr "{name} を回転できませんでした: JPEG または PNG イメージとして読み込めません"
+
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: {reason}"
+msgstr "{name} を回転できませんでした: {reason}"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Images"
+msgstr "イメージ"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "PDF Documents"
+msgstr "PDF 書類"
+
+#: src/views/previewwindow.cpp
+msgid "Images and PDF Documents"
+msgstr "イメージと PDF 書類"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Copy"
+msgstr "コピー"
+
+#: src/views/previewwindow.cpp
+msgid "Show in Files"
+msgstr "「ファイル」で表示"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Move to Trash"
+msgstr "ゴミ箱に入れる"
+
+#: src/views/previewwindow.cpp
+msgid "Copy Link"
+msgstr "リンクをコピー"
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr "すべてを選択"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images and PDF documents"
+msgstr "イメージや PDF 書類を表示します"
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr "プレビューについて"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr "プレビューを非表示"
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr "プレビューを終了"
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr "ファイル"
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr "開く…"
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr "最近使った項目を開く"
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr "最近使ったファイルを消去"
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr "ウインドウを閉じる"
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr "編集"
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr "検索…"
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr "次を検索"
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr "前を検索"
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr "表示"
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr "サイドバーを表示"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Thumbnails"
+msgstr "サムネイル"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Contents"
+msgstr "目次"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr "拡大"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr "縮小"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr "ウインドウに合わせる"
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr "実際のサイズ"
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr "フルスクリーンにする"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr "サイドバーを非表示"
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr "フルスクリーンを解除"
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr "移動"
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr "前へ"
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr "次へ"
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr "最初へ"
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr "最後へ"
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr "指定ページへ移動…"
+
+#: src/views/previewwindow.cpp
+msgid "Tools"
+msgstr "ツール"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Left"
+msgstr "左に回転"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Right"
+msgstr "右に回転"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Window"
+msgstr "ウインドウ"
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr "最小化"
+
+#: src/views/previewwindow.cpp
+msgctxt "window command"
+msgid "Zoom"
+msgstr "ズーム"
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr "ヘルプ"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr "キーボードショートカット"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr "前または次のイメージ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr "最初または最後のイメージ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Rotate left or right"
+msgstr "左または右に回転"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr "前または次のページ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr "1 画面分上または下へ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr "最初または最後のページ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr "指定ページへ移動"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr "次または前の一致"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
+msgstr "すべてを選択"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
+msgstr "拡大/縮小"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr "拡大または縮小"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr "ウインドウに合わせる"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr "実際のサイズ"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr "フルスクリーン"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr "フルスクリーンを解除"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr "ファイルを開く"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr "閉じる"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr "キーボードショートカット"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
+msgstr "終了"
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image Here"
+msgstr "ここにイメージをドロップ"
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr "または、ファイルを開いて表示します。"
+
+#: src/views/welcomepage.cpp
+msgid "Recent"
+msgstr "最近使った項目"
+
+#: src/views/welcomepage.cpp
+msgid "Clear"
+msgstr "消去"
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;PDF;Document;"
+msgstr "Image;Picture;Photo;Viewer;PDF;Document;イメージ;画像;写真;ビューア;書類;ドキュメント;"

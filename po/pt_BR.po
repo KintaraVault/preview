@@ -1,0 +1,373 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-13 17:03+0800\n"
+"PO-Revision-Date: 2026-11-13 12:00+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
+msgid "Find"
+msgstr "Localizar"
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
+msgstr "Ir para a página (1–{count})"
+
+#: src/views/imagepage.cpp
+msgid "This image could not be displayed."
+msgstr "Não foi possível exibir esta imagem."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr "A senha de “{name}” está incorreta. Tente novamente."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr "“{name}” está protegido. Digite a senha para abri-lo."
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr "Senha"
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr "Abrir"
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr "Senha necessária"
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
+msgstr "Digitar senha…"
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr "Este documento está protegido por senha."
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
+msgstr "Não foi possível abrir este documento."
+
+#: src/views/pdfpage.cpp
+msgid "No matches"
+msgstr "Nenhuma ocorrência"
+
+#. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
+#. TRANSLATORS: the shown image's place among the window's images, or the
+#. page's among the document's, such as "3 of 24".
+#: src/views/pdfpage.cpp src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr "{index} de {count}"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr "Pré-visualização"
+
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
+msgstr "Não foi possível girar {name}: não é possível lê-lo como imagem JPEG ou PNG"
+
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: {reason}"
+msgstr "Não foi possível girar {name}: {reason}"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Images"
+msgstr "Imagens"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "PDF Documents"
+msgstr "Documentos PDF"
+
+#: src/views/previewwindow.cpp
+msgid "Images and PDF Documents"
+msgstr "Imagens e documentos PDF"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Copy"
+msgstr "Copiar"
+
+#: src/views/previewwindow.cpp
+msgid "Show in Files"
+msgstr "Mostrar no Arquivos"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Move to Trash"
+msgstr "Mover para a lixeira"
+
+#: src/views/previewwindow.cpp
+msgid "Copy Link"
+msgstr "Copiar link"
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr "Selecionar tudo"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images and PDF documents"
+msgstr "Visualize imagens e documentos PDF"
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr "Sobre a Pré-visualização"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr "Ocultar Pré-visualização"
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr "Encerrar Pré-visualização"
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr "Arquivo"
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr "Abrir…"
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr "Abrir recente"
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr "Limpar arquivos recentes"
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr "Fechar janela"
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr "Editar"
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr "Localizar…"
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr "Localizar próxima"
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr "Localizar anterior"
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr "Visualizar"
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr "Mostrar barra lateral"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Thumbnails"
+msgstr "Miniaturas"
+
+#: src/views/previewwindow.cpp src/views/sidebar.cpp
+msgid "Contents"
+msgstr "Sumário"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr "Ampliar"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr "Reduzir"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr "Ajustar à janela"
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr "Tamanho real"
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr "Entrar em tela cheia"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr "Ocultar barra lateral"
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr "Sair da tela cheia"
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr "Ir"
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr "Anterior"
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr "Próximo"
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr "Primeiro"
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr "Último"
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr "Ir para a página…"
+
+#: src/views/previewwindow.cpp
+msgid "Tools"
+msgstr "Ferramentas"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Left"
+msgstr "Girar para a esquerda"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Right"
+msgstr "Girar para a direita"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Window"
+msgstr "Janela"
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr "Minimizar"
+
+#: src/views/previewwindow.cpp
+msgctxt "window command"
+msgid "Zoom"
+msgstr "Zoom"
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr "Ajuda"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr "Atalhos de teclado"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr "Imagem anterior ou seguinte"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr "Primeira ou última imagem"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Rotate left or right"
+msgstr "Girar para a esquerda ou para a direita"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr "Página anterior ou seguinte"
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr "Uma tela para cima ou para baixo"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr "Primeira ou última página"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr "Ir para a página"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr "Ocorrência seguinte ou anterior"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
+msgstr "Selecionar tudo"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
+msgstr "Ampliação"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr "Ampliar ou reduzir"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr "Ajustar à janela"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr "Tamanho real"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr "Tela cheia"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr "Sair da tela cheia"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr "Abrir um arquivo"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr "Fechar"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr "Atalhos de teclado"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
+msgstr "Encerrar"
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image Here"
+msgstr "Solte uma imagem aqui"
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr "Ou abra um arquivo para visualizá-lo."
+
+#: src/views/welcomepage.cpp
+msgid "Recent"
+msgstr "Recentes"
+
+#: src/views/welcomepage.cpp
+msgid "Clear"
+msgstr "Limpar"
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;PDF;Document;"
+msgstr "Imagem;Figura;Foto;Fotografia;Visualizador;PDF;Documento;Image;Photo;Viewer;"
