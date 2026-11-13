@@ -651,6 +651,7 @@ void PreviewWindow::turnSaved(const std::string& path, int error)
     }
     if (!more || error) {
         m_ownWrite[path] = fileStamp(path);
+        m_root->sidebar->refresh();
         // Decoded again as the file is now, which shows as it did; the turn
         // on screen goes with it in the same frame.
         if (m_root->image->shown().path == path)

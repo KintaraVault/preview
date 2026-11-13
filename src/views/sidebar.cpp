@@ -124,6 +124,11 @@ void Sidebar::setCurrent(int index)
         m_list->scrollToRow(size_t(index));
 }
 
+void Sidebar::refresh()
+{
+    m_list->reload();
+}
+
 void Sidebar::layout()
 {
     const double top = m_headerHeight + kSmallSpacing;

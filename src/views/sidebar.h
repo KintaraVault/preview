@@ -26,6 +26,8 @@ public:
 
     void setItems(const std::vector<std::string>& paths);
     void setCurrent(int index);
+    // Thumbnails read again, of files written since.
+    void refresh();
     int current() const { return m_current; }
 
     std::function<void(int index)> onActivated;
