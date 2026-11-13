@@ -6,6 +6,7 @@
 #include "previewsettings.h"
 
 #include "base/dbus.h"
+#include "base/event_loop.h"
 #include "base/i18n.h"
 #include "base/url.h"
 #include "ui/application.h"
@@ -16,6 +17,11 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+
+#include <csignal>
+#include <sys/epoll.h>
+#include <sys/signalfd.h>
+#include <unistd.h>
 
 using namespace cutefish;
 using namespace std::chrono_literals;
@@ -58,6 +64,15 @@ int main(int argc, char** argv)
     if (!parseArguments(argc, argv, &paths, &status))
         return status;
 
+    // Logging out ends the process with SIGTERM, which waits for the turns
+    // still to be written. Blocked before any thread starts, so the signals
+    // reach the fd.
+    sigset_t signals;
+    sigemptyset(&signals);
+    sigaddset(&signals, SIGTERM);
+    sigaddset(&signals, SIGHUP);
+    sigprocmask(SIG_BLOCK, &signals, nullptr);
+
     ui::Application app(argc, argv);
     app.setApplicationId("cutefish-preview");
     i18n::setDomain("cutefish-preview");
@@ -75,6 +90,15 @@ int main(int argc, char** argv)
                 return 0;
         }
     }
+    const int signalFd = signalfd(-1, &signals, SFD_NONBLOCK | SFD_CLOEXEC);
+    app.loop().watch(signalFd, EPOLLIN, [&application, signalFd](uint32_t) {
+        signalfd_siginfo info;
+        while (::read(signalFd, &info, sizeof(info)) == ssize_t(sizeof(info))) {
+        }
+        application.quit();
+    });
     application.open(paths, app.takeActivationToken());
-    return app.run();
+    const int result = app.run();
+    ::close(signalFd);
+    return result;
 }
