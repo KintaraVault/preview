@@ -20,6 +20,7 @@ pkg_check_modules(Png REQUIRED IMPORTED_TARGET libpng)
 
 add_library(preview-core STATIC
     src/imagesequence.cpp
+    src/pdfdocument.cpp
     src/pdfworker.cpp
     src/previewsettings.cpp
     src/rotation.cpp
