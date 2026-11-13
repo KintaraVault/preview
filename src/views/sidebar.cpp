@@ -44,7 +44,8 @@ static double plateInset(const ui::View* view)
 }
 
 // The selected thumbnail's plate is the accent, pressed or not.
-static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed, bool selected, bool accent)
+static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed, bool selected, bool accent,
+                       ui::Corners corners = ui::Corners::Circular)
 {
     ui::Color fill {0, 0, 0, 0};
     if (selected && accent)
@@ -57,7 +58,7 @@ static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed,
         return;
     const double inset = plateInset(view);
     painter.drawRoundedRect({inset, 0, view->geometry().width - inset * 2, view->geometry().height},
-                            {ui::Theme::current().mediumRadius, 0, ui::Corners::Circular}, fill);
+                            {ui::Theme::current().mediumRadius, 0, corners}, fill);
 }
 
 // One thumbnail on the selection's rounded plate: a file's, or a page's
@@ -108,21 +109,25 @@ protected:
 
     void paint(ui::Painter& painter) override
     {
-        paintPlate(painter, this, m_pressed, m_row == m_sidebar.m_current, true);
         PdfDocument* document = m_sidebar.m_document;
+        const ui::Theme& theme = ui::Theme::current();
+        // A page row is a card: continuous corners where the theme has them;
+        // a file row keeps the controls' circular ones.
+        const ui::Corners corners = document && theme.continuousCorners ? ui::Corners::Continuous
+                                                                         : ui::Corners::Circular;
+        paintPlate(painter, this, m_pressed, m_row == m_sidebar.m_current, true, corners);
         if (!document || m_row < 0 || m_row >= document->pageCount())
             return;
         const ui::RectF rect = pageRect(painter.scale());
         const double line = 1 / painter.scale();
-        const ui::Theme& theme = ui::Theme::current();
         // Concentric with the plate, a page gap inside it.
         const double radius = theme.mediumRadius - kPageGap;
-        painter.drawRoundedRect(rect.adjusted(-line, -line, line, line), {radius + line, 0, ui::Corners::Circular},
+        painter.drawRoundedRect(rect.adjusted(-line, -line, line, line), {radius + line, 0, corners},
                                 theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15));
-        painter.drawRoundedRect(rect, {radius, 0, ui::Corners::Circular}, {255, 255, 255, 255});
+        painter.drawRoundedRect(rect, {radius, 0, corners}, {255, 255, 255, 255});
         if (const ui::RasterImage* image = document->anyThumbnail(m_row)) {
             painter.save();
-            painter.clipRoundedRect(rect, radius);
+            painter.clipRoundedRect(rect, radius, corners);
             painter.drawImage(image->skImage(), rect);
             painter.restore();
         }
