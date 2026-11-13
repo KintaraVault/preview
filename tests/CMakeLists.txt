@@ -10,3 +10,10 @@ add_executable(preview-core-tests
 )
 target_link_libraries(preview-core-tests PRIVATE preview-ui GTest::gtest)
 gtest_discover_tests(preview-core-tests)
+
+add_executable(preview-ui-tests
+    main.cpp
+    ui_test.cpp
+)
+target_link_libraries(preview-ui-tests PRIVATE preview-ui GTest::gtest)
+gtest_discover_tests(preview-ui-tests)
