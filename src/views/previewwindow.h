@@ -143,6 +143,9 @@ private:
     std::map<std::string, PendingTurn> m_turns;
     std::string m_savingPath;
     cutefish::base::Job m_turnJob;
+    // The files' stamps after our own saves, which their folder watch reports
+    // as well.
+    std::map<std::string, std::string> m_ownWrite;
     std::unique_ptr<cutefish::ui::Toast> m_toast;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;

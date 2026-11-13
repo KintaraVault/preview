@@ -43,6 +43,8 @@
 #include <filesystem>
 #include <utility>
 
+#include <sys/stat.h>
+
 using namespace cutefish;
 using namespace std::chrono_literals;
 using cutefish::i18n::format;
@@ -54,6 +56,16 @@ static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
+
+// What tells one write of a file from another.
+static std::string fileStamp(const std::string& path)
+{
+    struct stat st;
+    if (::stat(path.c_str(), &st) != 0)
+        return {};
+    return std::to_string(st.st_ino) + ":" + std::to_string(st.st_size) + ":" + std::to_string(st.st_mtim.tv_sec) + "."
+            + std::to_string(st.st_mtim.tv_nsec);
+}
 
 // The header's strip: the window's colour over the content, so the header
 // stays readable over a full screen image, and a hairline along its bottom.
@@ -638,6 +650,7 @@ void PreviewWindow::turnSaved(const std::string& path, int error)
                               {"reason", std::strerror(error)}}));
     }
     if (!more || error) {
+        m_ownWrite[path] = fileStamp(path);
         // Decoded again as the file is now, which shows as it did; the turn
         // on screen goes with it in the same frame.
         if (m_root->image->shown().path == path)
@@ -651,6 +664,9 @@ void PreviewWindow::currentWritten()
     const std::string path = m_sequence->currentPath();
     // Our own save: its reload is under way already.
     if (m_savingPath == path || m_turns.contains(path))
+        return;
+    const auto own = m_ownWrite.find(path);
+    if (own != m_ownWrite.end() && own->second == fileStamp(path))
         return;
     m_root->image->load(path);
 }
