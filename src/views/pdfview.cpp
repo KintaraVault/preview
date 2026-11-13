@@ -81,6 +81,17 @@ static size_t caretAt(const pdf::PageText& text, ui::PointF point)
     return point.x > box.x() + box.width() / 2 ? best + 1 : best;
 }
 
+static bool isWordCharacter(char32_t code)
+{
+    return code >= 0x80 || (code >= '0' && code <= '9') || (code >= 'a' && code <= 'z') || (code >= 'A' && code <= 'Z')
+            || code == '_' || code == '\'';
+}
+
+static bool isLineBreak(char32_t code)
+{
+    return code == '\n' || code == '\r';
+}
+
 size_t PdfView::TileHash::operator()(const TileKey& key) const
 {
     size_t hash = std::hash<int64_t>()(key.scale);
@@ -207,8 +218,22 @@ void PdfView::Canvas::pointerPress(const ui::PointerEvent& event)
         m_view->clearSelection();
         return;
     }
+    const std::vector<pdf::Character>& characters = text->characters;
     size_t first = position.index;
     size_t last = position.index;
+    if (event.clickCount == 2) {
+        while (first > 0 && isWordCharacter(characters[first - 1].code))
+            --first;
+        while (last < characters.size() && isWordCharacter(characters[last].code))
+            ++last;
+        if (first == last && last < characters.size())
+            ++last;
+    } else if (event.clickCount >= 3) {
+        while (first > 0 && !isLineBreak(characters[first - 1].code))
+            --first;
+        while (last < characters.size() && !isLineBreak(characters[last].code))
+            ++last;
+    }
     if (event.clickCount == 1 && (event.modifiers & ui::ShiftModifier) && m_view->hasSelection())
         m_view->setSelection(m_view->m_anchor, position);
     else
