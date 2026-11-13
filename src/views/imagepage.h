@@ -67,6 +67,11 @@ public:
     void preload(const std::vector<std::string>& paths);
     void clear();
     void retranslate();
+    // The top this far down lies under the header: the image fits, and the
+    // rest centres, below it.
+    void setTopInset(double inset);
+    // The page's size below the inset.
+    cutefish::ui::SizeF viewport() const;
 
     // What is on screen; it trails load() while the next image decodes.
     const ShownFile& shown() const { return m_shown; }
@@ -111,4 +116,5 @@ private:
     bool m_keepsView = false;
     bool m_busyElapsed = false;
     bool m_wasLoading = false;
+    double m_topInset = 0;
 };

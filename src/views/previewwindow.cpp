@@ -29,6 +29,7 @@
 #include "ui/color_provider.h"
 #include "ui/file_chooser.h"
 #include "ui/file_drop_area.h"
+#include "ui/header_backdrop.h"
 #include "ui/header_button.h"
 #include "ui/image.h"
 #include "ui/keys.h"
@@ -60,8 +61,9 @@ static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
 
-// The header's strip: the window's colour over the content, so the header
-// stays readable over a full screen image, and a hairline along its bottom.
+// The header. In full screen it has a strip of its own, the window's colour
+// with a hairline along its bottom, to stay readable over the image; else
+// the content's header backdrop lies under it.
 class PreviewWindow::HeaderBar : public ui::View
 {
 public:
@@ -76,12 +78,15 @@ public:
     ui::WindowHeader* header;
     // Where the content starts, past the sidebar.
     double contentLeft = 0;
+    bool strip = false;
 
 protected:
     void layout() override { header->setGeometry(localRect()); }
 
     void paint(ui::Painter& painter) override
     {
+        if (!strip)
+            return;
         const ui::RectF rect = localRect();
         painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::Theme::current().background);
         const double line = 1 / painter.scale();
@@ -183,6 +188,9 @@ public:
         image = addChild<ImagePage>();
         pdf = addChild<PdfPage>();
         welcome = addChild<WelcomePage>();
+        // Over the content, under the header.
+        imageBackdrop = addChild<ui::HeaderBackdrop>(image->viewer());
+        pdfBackdrop = addChild<ui::HeaderBackdrop>(pdf->view());
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
         filter = [](const std::string& url) { return base::url::isLocalFile(url); };
@@ -200,6 +208,8 @@ public:
     ImagePage* image;
     PdfPage* pdf;
     WelcomePage* welcome;
+    ui::HeaderBackdrop* imageBackdrop;
+    ui::HeaderBackdrop* pdfBackdrop;
     HeaderBar* bar;
     HeaderRow* row;
 
@@ -213,12 +223,24 @@ protected:
         pdf->setVisible(pdfShown);
         welcome->setVisible(m_owner.isWelcome());
         const double left = sidebarWidth();
-        const double top = m_owner.isFullScreen() ? 0 : kHeaderHeight;
+        const bool fullScreen = m_owner.isFullScreen();
+        // The content runs under the header and rests below it.
+        const double inset = fullScreen ? 0 : kHeaderHeight;
         sidebar->setGeometry({0, 0, left, rect.height});
-        const ui::RectF content {left, top, std::max(0.0, rect.width - left), std::max(0.0, rect.height - top)};
+        const double width = std::max(0.0, rect.width - left);
+        const ui::RectF content {left, 0, width, rect.height};
+        image->setTopInset(inset);
         image->setGeometry(content);
+        pdf->view()->setTopInset(inset);
         pdf->setGeometry(content);
-        welcome->setGeometry(content);
+        pdf->requestLayout();
+        welcome->setGeometry({left, kHeaderHeight, width, std::max(0.0, rect.height - kHeaderHeight)});
+        imageBackdrop->setVisible(!fullScreen && image->isVisible());
+        pdfBackdrop->setVisible(!fullScreen && pdfShown);
+        imageBackdrop->setGeometry({left, 0, width, kHeaderHeight});
+        pdfBackdrop->setGeometry({left, 0, width, kHeaderHeight});
+        bar->strip = fullScreen;
+        bar->requestPaint();
         bar->contentLeft = left;
         bar->setGeometry({0, 0, rect.width, kHeaderHeight});
         row->sidebarWidth = left;
@@ -605,7 +627,7 @@ ui::SizeF PreviewWindow::windowSizeForPage(ui::SizeF page) const
 ui::SizeF PreviewWindow::viewportFor(const ui::ImageInfo& info) const
 {
     if (m_sized || isFullScreen() || m_window->states().maximized)
-        return m_root->image->geometry().size();
+        return m_root->image->viewport();
     const ui::SizeF size = windowSizeFor(info);
     return {size.width - (m_sidebarShown ? Sidebar::kWidth : 0), size.height - kHeaderHeight};
 }

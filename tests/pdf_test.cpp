@@ -18,9 +18,12 @@
 #include "ui/clipboard.h"
 #include "ui/keys.h"
 #include "ui/test_input.h"
+#include "ui/theme.h"
 #include "ui/window.h"
 
 #include <gtest/gtest.h>
+
+#include <cmath>
 
 using namespace cutefish::ui;
 using namespace std::chrono_literals;
@@ -187,14 +190,14 @@ TEST_F(PdfUiTest, KeysGoThroughThePagesAndScreenfuls)
     EXPECT_EQ(view->currentPage(), 1);
     EXPECT_EQ(window.positionText(), "2 of 3");
     EXPECT_EQ(window.sidebar()->current(), 1);
-    EXPECT_NEAR(view->pageRect(1).y, PdfView::kMargin, 1);
+    EXPECT_NEAR(view->pageRect(1).y, PreviewWindow::kHeaderHeight + PdfView::kMargin, 1);
     press(window, key::End);
     EXPECT_EQ(view->currentPage(), 2);
     press(window, key::Home);
     EXPECT_EQ(view->currentPage(), 0);
     EXPECT_EQ(view->scrollPosition().y, 0);
     press(window, key::Space);
-    EXPECT_NEAR(view->scrollPosition().y, view->geometry().height - 40, 1);
+    EXPECT_NEAR(view->scrollPosition().y, view->geometry().height - PreviewWindow::kHeaderHeight - 40, 1);
     press(window, key::Space, ShiftModifier);
     EXPECT_EQ(view->scrollPosition().y, 0);
 
@@ -478,4 +481,33 @@ TEST_F(PdfUiTest, ANewerCopyDropsALongOneStillReading)
     EXPECT_EQ(copied("Page"), "Page");
     runFor(loop(), 500ms);
     EXPECT_EQ(copied("Page"), "Page");
+}
+
+// The pages run under the header and rest below it: at the top nothing of
+// the header's backdrop shows, scrolled it does; a page gone to lands below.
+TEST_F(PdfUiTest, PagesRestBelowTheHeaderAndScrollUnderItsBackdrop)
+{
+    PreviewWindow& window = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    PdfView* view = window.pdfPage()->view();
+    ASSERT_TRUE(settled(window));
+    const double header = PreviewWindow::kHeaderHeight;
+    EXPECT_EQ(view->mapToWindow({}).y, 0);
+    EXPECT_EQ(view->topInset(), header);
+    EXPECT_EQ(view->mapToWindow(view->pageRect(0).topLeft()).y, header + PdfView::kMargin);
+    const int x = int(view->mapToWindow(view->center()).x);
+    const Color background = Theme::current().background;
+    EXPECT_EQ(window.window().grab().pixel(x, int(header) - 1), background);
+
+    press(window, key::Right);
+    EXPECT_EQ(view->mapToWindow(view->pageRect(1).topLeft()).y, header + PdfView::kMargin);
+    ASSERT_TRUE(settled(window));
+    EXPECT_NE(window.window().grab().pixel(x, int(header) - 1), background);
+
+    // On whole device pixels at twice the size too.
+    window.window().setScale(2);
+    press(window, key::Home);
+    ASSERT_TRUE(settled(window));
+    const double top = view->mapToWindow(view->pageRect(0).topLeft()).y;
+    EXPECT_EQ(top, header + PdfView::kMargin);
+    EXPECT_EQ(top * 2, std::round(top * 2));
 }

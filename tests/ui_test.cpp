@@ -426,3 +426,28 @@ TEST_F(UiTest, AFailedTurnIsToldWhereTheFileIs)
     EXPECT_TRUE(first.hasShownToast());
     EXPECT_FALSE(second.hasShownToast());
 }
+
+// An image fits below the header, centred there, with nothing of the
+// header's backdrop; zoomed and moved up, it shows under the backdrop.
+TEST_F(UiTest, AnImageFitsBelowTheHeaderAndPansUnderIt)
+{
+    const std::string path = writePng(directory.filePath("big.png"), 1600, 1200);
+    application.open({path});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, path));
+    window.window().grab();
+    ImageViewer* viewer = window.imagePage()->viewer();
+    const double header = PreviewWindow::kHeaderHeight;
+    const SizeF size = window.window().size();
+    const PointF centre = viewer->mapToWindow(viewer->center());
+    EXPECT_EQ(centre.x, size.width / 2);
+    EXPECT_EQ(centre.y, header + (size.height - header) / 2);
+    const Color background = Theme::current().background;
+    EXPECT_EQ(window.window().grab().pixel(int(centre.x), int(header) - 1), background);
+
+    viewer->zoomTo(viewer->zoom() * 3, viewer->center(), false);
+    viewer->setScrollPosition({viewer->scrollPosition().x, 400});
+    EXPECT_TRUE(waitFor(loop(), [&] {
+        return window.window().grab().pixel(int(centre.x), int(header) - 1) != background;
+    }));
+}

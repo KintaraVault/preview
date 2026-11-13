@@ -332,7 +332,7 @@ void PdfView::Canvas::pointerMove(const ui::PointerEvent& event)
         m_view->setSelection(m_view->m_anchor, position);
     m_pointerInWindow = mapToWindow(event.position);
     const double y = m_view->mapFromWindow(m_pointerInWindow).y;
-    const bool outside = y < 0 || y > m_view->geometry().height;
+    const bool outside = y < m_view->m_topInset || y > m_view->geometry().height;
     if (!m_dragged || !m_selecting || !outside)
         m_autoScroll.stop();
     else if (!m_autoScroll.isActive())
@@ -342,8 +342,9 @@ void PdfView::Canvas::pointerMove(const ui::PointerEvent& event)
 void PdfView::Canvas::autoScroll()
 {
     const double y = m_view->mapFromWindow(m_pointerInWindow).y;
+    const double top = m_view->m_topInset;
     const double height = m_view->geometry().height;
-    const double dy = y < 0 ? y : y > height ? y - height : 0;
+    const double dy = y < top ? y - top : y > height ? y - height : 0;
     if (!m_pressed || !m_selecting || dy == 0) {
         m_autoScroll.stop();
         return;
@@ -420,6 +421,16 @@ void PdfView::setDocument(PdfDocument* document)
     setScrollPosition({0, 0});
 }
 
+void PdfView::setTopInset(double inset)
+{
+    if (inset == m_topInset)
+        return;
+    m_topInset = inset;
+    setVerticalBarPadding(inset, 0);
+    m_canvas->requestLayout();
+    requestLayout();
+}
+
 double PdfView::ratio() const
 {
     return window() && window()->scale() > 0 ? window()->scale() : 1;
@@ -445,7 +456,7 @@ double PdfView::minimumZoom() const
 
 double PdfView::pageTop(int page, double zoom) const
 {
-    return kMargin + m_heightsBefore[size_t(page)] * zoom + page * kPageGap;
+    return m_topInset + kMargin + m_heightsBefore[size_t(page)] * zoom + page * kPageGap;
 }
 
 double PdfView::pageLeft(int page, double zoom) const
@@ -463,7 +474,8 @@ double PdfView::contentHeight(double zoom) const
     if (!m_document)
         return geometry().height;
     const int count = m_document->pageCount();
-    return std::max(geometry().height, 2 * kMargin + m_heightsBefore.back() * zoom + (count - 1) * kPageGap);
+    return std::max(geometry().height,
+                    m_topInset + 2 * kMargin + m_heightsBefore.back() * zoom + (count - 1) * kPageGap);
 }
 
 int PdfView::pageAt(double y) const
@@ -628,7 +640,7 @@ void PdfView::updateCurrentPage()
 {
     if (!m_document || m_keepCurrentPage)
         return;
-    const double top = scrollPosition().y;
+    const double top = scrollPosition().y + m_topInset;
     const double bottom = top + geometry().height;
     int best = m_currentPage;
     double bestHeight = -1;
@@ -656,7 +668,7 @@ void PdfView::goToPage(int page)
         return;
     page = std::clamp(page, 0, m_document->pageCount() - 1);
     m_keepCurrentPage = true;
-    setPosition({scrollPosition().x, snap(pageTop(page, m_zoom)) - kMargin});
+    setPosition({scrollPosition().x, snap(pageTop(page, m_zoom)) - kMargin - m_topInset});
     m_keepCurrentPage = false;
     if (page != m_currentPage) {
         m_currentPage = page;
@@ -673,14 +685,14 @@ void PdfView::goTo(int page, ui::PointF point)
     ui::PointF position = scrollPosition();
     if (x < position.x || x > position.x + geometry().width)
         position.x = x - kMargin;
-    position.y = snap(pageTop(page, m_zoom)) + point.y * m_zoom - kMargin;
+    position.y = snap(pageTop(page, m_zoom)) + point.y * m_zoom - kMargin - m_topInset;
     setPosition(position);
 }
 
 void PdfView::scrollScreen(int direction)
 {
     const ui::PointF position = scrollPosition();
-    setPosition({position.x, position.y + direction * std::max(1.0, geometry().height - 40)});
+    setPosition({position.x, position.y + direction * std::max(1.0, geometry().height - m_topInset - 40)});
 }
 
 void PdfView::setSelection(TextPosition anchor, TextPosition focus)
@@ -741,7 +753,8 @@ void PdfView::scrollToMatch()
     const ui::PointF pan = scrollPosition();
     const ui::PointF origin = viewPoint(m_matchPage, {points.x, points.y});
     const ui::RectF content {origin.x + pan.x, origin.y + pan.y, points.width * m_zoom, points.height * m_zoom};
-    const ui::RectF shown {pan.x, pan.y, geometry().width, geometry().height};
+    // Below the header, where it can be read.
+    const ui::RectF shown {pan.x, pan.y + m_topInset, geometry().width, geometry().height - m_topInset};
     if (content.x >= shown.x && content.right() <= shown.right() && content.y >= shown.y
         && content.bottom() <= shown.bottom())
         return;
@@ -749,7 +762,7 @@ void PdfView::scrollToMatch()
     ui::PointF position = pan;
     if (content.x < shown.x || content.right() > shown.right())
         position.x = content.x + content.width / 2 - shown.width / 2;
-    position.y = content.y + content.height / 2 - shown.height / 2;
+    position.y = content.y + content.height / 2 - shown.height / 2 - m_topInset;
     setPosition(position);
 }
 

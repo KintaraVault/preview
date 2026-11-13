@@ -278,7 +278,7 @@ void PdfPage::layout()
     m_view->setGeometry(rect);
     const auto place = [&](ui::View* card, double implicitWidth, double height) {
         const double width = std::min(implicitWidth, std::max(0.0, rect.width - kCardInset * 2));
-        card->setGeometry({rect.width - kCardInset - width, kCardInset, width, height});
+        card->setGeometry({rect.width - kCardInset - width, m_view->topInset() + kCardInset, width, height});
     };
     place(m_find, FindCard::implicitWidth, FindCard::implicitHeight);
     place(m_goToPage, GoToPageCard::implicitWidth, GoToPageCard::implicitHeight);
@@ -288,7 +288,8 @@ void PdfPage::layout()
     const ui::SizeF message = m_message->sizeHint();
     const ui::SizeF button = m_unlock->sizeHint();
     const double height = message.height + (m_unlock->isVisible() ? 16 + button.height : 0);
-    const double top = centeredStart(rect.height, height);
+    const double inset = m_view->topInset();
+    const double top = inset + centeredStart(std::max(0.0, rect.height - inset), height);
     m_message->setGeometry({centeredStart(rect.width, message.width), top, message.width, message.height});
     m_unlock->setGeometry({centeredStart(rect.width, button.width), top + message.height + 16, button.width,
                            button.height});

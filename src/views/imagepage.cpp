@@ -183,7 +183,7 @@ void ImagePage::preload(const std::vector<std::string>& paths)
                 [this, ahead](ShownFile file) {
                     if (!decodesAhead(file.info))
                         return;
-                    const ui::SizeF pixels = fittedPixels(file.info, geometry().size());
+                    const ui::SizeF pixels = fittedPixels(file.info, viewport());
                     ahead->setSourceSize({pixels.width / ratio(), pixels.height / ratio()});
                     ahead->setSource(file.path);
                     requestLayout();
@@ -214,6 +214,20 @@ void ImagePage::retranslate()
     requestLayout();
 }
 
+void ImagePage::setTopInset(double inset)
+{
+    if (inset == m_topInset)
+        return;
+    m_topInset = inset;
+    m_viewer->setTopInset(inset);
+    requestLayout();
+}
+
+ui::SizeF ImagePage::viewport() const
+{
+    return {geometry().width, std::max(0.0, geometry().height - m_topInset)};
+}
+
 double ImagePage::ratio() const
 {
     return window() && window()->scale() > 0 ? window()->scale() : 1;
@@ -236,7 +250,7 @@ void ImagePage::stage(ShownFile file)
         present(std::move(file));
         return;
     }
-    const ui::SizeF pixels = fittedPixels(file.info, viewportFor ? viewportFor(file.info) : geometry().size());
+    const ui::SizeF pixels = fittedPixels(file.info, viewportFor ? viewportFor(file.info) : viewport());
     m_pending = file;
     m_preloader->onStatusChanged = [this](ui::ImageView::Status status) {
         if (m_pending && status != ui::ImageView::Status::Loading)
@@ -257,7 +271,7 @@ void ImagePage::present(ShownFile file)
     m_pending.reset();
     m_stall.stop();
     const ui::SizeF prepared = decodesAhead(file.info)
-            ? fittedPixels(file.info, viewportFor ? viewportFor(file.info) : geometry().size())
+            ? fittedPixels(file.info, viewportFor ? viewportFor(file.info) : viewport())
             : ui::SizeF();
     const bool keepsView = m_keepsView && file.path == m_shown.path && m_viewer->isZoomed();
     const double zoom = m_viewer->zoom();
@@ -299,17 +313,18 @@ void ImagePage::layout()
     // pixel to a device pixel there.
     if (showsImage() && ratio() != m_shownRatio && !m_describe.isPending() && !m_pending)
         load(m_shown.path);
-    const ui::RectF rect = localRect();
-    m_viewer->setGeometry(rect);
-    m_busy->setGeometry({centeredStart(rect.width, 22), centeredStart(rect.height, 22), 22, 22});
+    m_viewer->setGeometry(localRect());
+    // What is centred is centred below the header.
+    const ui::RectF rect {0, m_topInset, geometry().width, std::max(0.0, geometry().height - m_topInset)};
+    m_busy->setGeometry({centeredStart(rect.width, 22), rect.y + centeredStart(rect.height, 22), 22, 22});
     const ui::SizeF failed = m_failed->sizeHint();
     m_failed->setColor(ui::Theme::current().text);
-    m_failed->setGeometry({centeredStart(rect.width, failed.width), centeredStart(rect.height, failed.height),
+    m_failed->setGeometry({centeredStart(rect.width, failed.width), rect.y + centeredStart(rect.height, failed.height),
                            failed.width, failed.height});
     const ui::SizeF card = m_card->sizeHint();
     const double cardWidth = std::min(card.width, std::max(0.0, rect.width - 2 * kCardSpacing));
-    m_card->setGeometry({centeredStart(rect.width, cardWidth), centeredStart(rect.height, card.height), cardWidth,
-                         card.height});
+    m_card->setGeometry({centeredStart(rect.width, cardWidth), rect.y + centeredStart(rect.height, card.height),
+                         cardWidth, card.height});
     m_preloader->setGeometry({0, 0, 1, 1});
     for (ui::ImageView* ahead : m_ahead)
         ahead->setGeometry({0, 0, 1, 1});

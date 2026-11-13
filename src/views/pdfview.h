@@ -54,7 +54,15 @@ public:
     void zoomTo(double target, cutefish::ui::PointF at, bool animate);
     void zoomToFit() { zoomTo(fitZoom(), center(), true); }
     void zoomToActualSize() { zoomTo(1, center(), true); }
-    cutefish::ui::PointF center() const { return {geometry().width / 2, geometry().height / 2}; }
+    // The middle of the area below the top inset.
+    cutefish::ui::PointF center() const
+    {
+        return {geometry().width / 2, m_topInset + (geometry().height - m_topInset) / 2};
+    }
+    // The top this far down lies under a floating header: pages rest below
+    // it and scroll under it, and what is gone to lands below it.
+    void setTopInset(double inset);
+    double topInset() const { return m_topInset; }
     // Device pixels per point that the tiles drawn last were asked at.
     double renderScale() const { return m_renderScale; }
 
@@ -167,6 +175,7 @@ private:
     std::vector<double> m_heightsBefore;
     double m_widest = 0;
     double m_zoom = 1;
+    double m_topInset = 0;
     bool m_fitted = true;
     cutefish::ui::SizeF m_lastSize;
     double m_renderScale = 0;
