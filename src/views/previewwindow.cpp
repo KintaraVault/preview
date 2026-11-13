@@ -953,7 +953,7 @@ void PreviewWindow::showAbout()
         m_about = std::make_unique<ui::AboutDialog>(m_window.get());
         m_about->setName(tr("Preview"));
         m_about->setDescription(tr("View images and PDF documents"));
-        m_about->setIconSource("accessories-document-viewer");
+        m_about->setIconSource("cutefish-preview");
         m_about->onLinkActivated = [this](const std::string& link) {
             m_application.openUri(link, m_about->window() ? m_about->window() : m_window.get());
         };

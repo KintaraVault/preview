@@ -185,7 +185,7 @@ WelcomePage::WelcomePage()
     setScrollDirections(false, true);
     setClipsChildren(true);
     m_column = setContent<Column>(*this);
-    m_icon = m_column->addChild<ui::ThemeIcon>("accessories-document-viewer", kIconSize);
+    m_icon = m_column->addChild<ui::ThemeIcon>("cutefish-preview", kIconSize);
     m_title = m_column->addChild<ui::Label>();
     m_title->setFontSize(15 * 4.0 / 3);
     m_title->setWeight(500);
