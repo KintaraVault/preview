@@ -1,9 +1,11 @@
 # Preview
 
-The image viewer of Cutefish Desktop. It opens an image with the other
-images of its folder, steps through them from the keyboard, the arrows or a
-swipe, and zooms and pans with the pointer, the touchpad or the keys, with
-thumbnails in a sidebar and a full screen view.
+The image and PDF viewer of Cutefish Desktop. It opens an image with the
+other images of its folder, steps through them from the keyboard, the arrows
+or a swipe, and zooms and pans with the pointer, the touchpad or the keys,
+with thumbnails in a sidebar and a full screen view. A PDF scrolls as one
+column of pages, with page thumbnails and its contents in the sidebar,
+search, text selection and links.
 
 ## Dependencies
 
