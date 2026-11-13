@@ -7,7 +7,8 @@
 
 // Turning an image file a number of quarters clockwise, in place and
 // without loss: a JPEG by its EXIF orientation, its compressed data
-// untouched. The new file replaces the old one in one rename, with the old
+// untouched; a PNG encoded again, its depth, palette, colour profile and
+// text kept. The new file replaces the old one in one rename, with the old
 // one's permissions.
 namespace rotation {
 

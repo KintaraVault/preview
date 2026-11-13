@@ -5,10 +5,16 @@
 
 #include "base/file.h"
 
+#include <png.h>
+
+#include <algorithm>
 #include <cerrno>
+#include <csetjmp>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <optional>
+#include <vector>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -24,7 +30,7 @@ static constexpr uint16_t kShortType = 3;
 
 bool turnsType(const std::string& mimeType)
 {
-    return mimeType == "image/jpeg";
+    return mimeType == "image/jpeg" || mimeType == "image/png";
 }
 
 bool canTurn(const std::string& path, const std::string& mimeType)
@@ -199,6 +205,187 @@ static std::optional<std::string> turnedJpeg(std::string data, int quarterTurns)
     return data;
 }
 
+struct PngReader
+{
+    const std::string& data;
+    size_t offset = 8;
+};
+
+static void readPngData(png_structp png, png_bytep out, png_size_t length)
+{
+    auto* reader = static_cast<PngReader*>(png_get_io_ptr(png));
+    if (reader->offset + length > reader->data.size())
+        png_error(png, "truncated");
+    std::memcpy(out, reader->data.data() + reader->offset, length);
+    reader->offset += length;
+}
+
+static void writePngData(png_structp png, png_bytep in, png_size_t length)
+{
+    static_cast<std::string*>(png_get_io_ptr(png))->append(reinterpret_cast<const char*>(in), length);
+}
+
+static void flushPng(png_structp)
+{
+}
+
+// The pixels as libpng gives them, whole bytes per pixel, turned.
+static std::vector<png_byte> turnedPixels(const std::vector<png_byte>& pixels, uint32_t width, uint32_t height,
+                                          size_t bytes, int turns)
+{
+    std::vector<png_byte> out(pixels.size());
+    const uint32_t outWidth = turns % 2 ? height : width;
+    for (uint32_t y = 0; y < height; ++y) {
+        for (uint32_t x = 0; x < width; ++x) {
+            uint32_t tx = x;
+            uint32_t ty = y;
+            if (turns == 1) {
+                tx = height - 1 - y;
+                ty = x;
+            } else if (turns == 2) {
+                tx = width - 1 - x;
+                ty = height - 1 - y;
+            } else if (turns == 3) {
+                tx = y;
+                ty = width - 1 - x;
+            }
+            std::memcpy(&out[(size_t(ty) * outWidth + tx) * bytes], &pixels[(size_t(y) * width + x) * bytes], bytes);
+        }
+    }
+    return out;
+}
+
+// Copies the ancillary chunks that describe the pixels or the file.
+static void copyChunks(png_structp read, png_infop info, png_structp write, png_infop out, bool swapsAxes)
+{
+    png_colorp palette = nullptr;
+    int paletteSize = 0;
+    if (png_get_PLTE(read, info, &palette, &paletteSize))
+        png_set_PLTE(write, out, palette, paletteSize);
+    png_bytep alpha = nullptr;
+    int alphaCount = 0;
+    png_color_16p transparent = nullptr;
+    if (png_get_tRNS(read, info, &alpha, &alphaCount, &transparent))
+        png_set_tRNS(write, out, alpha, alphaCount, transparent);
+    png_color_16p background = nullptr;
+    if (png_get_bKGD(read, info, &background))
+        png_set_bKGD(write, out, background);
+    png_fixed_point gamma = 0;
+    if (png_get_gAMA_fixed(read, info, &gamma))
+        png_set_gAMA_fixed(write, out, gamma);
+    png_fixed_point whiteX, whiteY, redX, redY, greenX, greenY, blueX, blueY;
+    if (png_get_cHRM_fixed(read, info, &whiteX, &whiteY, &redX, &redY, &greenX, &greenY, &blueX, &blueY))
+        png_set_cHRM_fixed(write, out, whiteX, whiteY, redX, redY, greenX, greenY, blueX, blueY);
+    int intent = 0;
+    if (png_get_sRGB(read, info, &intent))
+        png_set_sRGB(write, out, intent);
+    png_charp profileName = nullptr;
+    int compression = 0;
+    png_bytep profile = nullptr;
+    png_uint_32 profileLength = 0;
+    if (png_get_iCCP(read, info, &profileName, &compression, &profile, &profileLength))
+        png_set_iCCP(write, out, profileName, compression, profile, profileLength);
+    png_color_8p significant = nullptr;
+    if (png_get_sBIT(read, info, &significant))
+        png_set_sBIT(write, out, significant);
+    png_uint_32 resX = 0, resY = 0;
+    int unit = 0;
+    if (png_get_pHYs(read, info, &resX, &resY, &unit))
+        png_set_pHYs(write, out, swapsAxes ? resY : resX, swapsAxes ? resX : resY, unit);
+    png_timep time = nullptr;
+    if (png_get_tIME(read, info, &time))
+        png_set_tIME(write, out, time);
+    png_uint_32 exifLength = 0;
+    png_bytep exif = nullptr;
+    if (png_get_eXIf_1(read, info, &exifLength, &exif))
+        png_set_eXIf_1(write, out, exifLength, exif);
+    png_textp text = nullptr;
+    int textCount = 0;
+    if (png_get_text(read, info, &text, &textCount) > 0)
+        png_set_text(write, out, text, textCount);
+    png_unknown_chunkp unknown = nullptr;
+    const int unknownCount = png_get_unknown_chunks(read, info, &unknown);
+    if (unknownCount > 0) {
+        png_set_keep_unknown_chunks(write, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
+        png_set_unknown_chunks(write, out, unknown, unknownCount);
+    }
+}
+
+// Decodes to whole bytes per pixel at the file's depth and encodes the
+// turned pixels with the same header and chunks.
+static std::optional<std::string> turnedPng(const std::string& data, int quarterTurns)
+{
+    if (data.size() < 8 || png_sig_cmp(reinterpret_cast<png_const_bytep>(data.data()), 0, 8) != 0)
+        return std::nullopt;
+    png_structp read = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info = png_create_info_struct(read);
+    png_infop endInfo = png_create_info_struct(read);
+    png_structp write = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop out = png_create_info_struct(write);
+    // libpng reports errors by longjmp, past anything made after setjmp, so
+    // all of it is made before.
+    std::string encoded;
+    std::vector<png_byte> pixels;
+    std::vector<png_bytep> rows;
+    volatile bool done = false;
+    PngReader reader {data};
+    if (setjmp(png_jmpbuf(read)) == 0 && setjmp(png_jmpbuf(write)) == 0) {
+        png_set_read_fn(read, &reader, readPngData);
+        png_set_sig_bytes(read, 8);
+        png_set_keep_unknown_chunks(read, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
+        png_read_info(read, info);
+        png_uint_32 width = 0, height = 0;
+        int depth = 0, colour = 0, interlace = 0;
+        png_get_IHDR(read, info, &width, &height, &depth, &colour, &interlace, nullptr, nullptr);
+        png_unknown_chunkp unknown = nullptr;
+        const int unknownCount = png_get_unknown_chunks(read, info, &unknown);
+        const bool animated = std::any_of(unknown, unknown + std::max(0, unknownCount), [](const png_unknown_chunk& chunk) {
+            return std::memcmp(chunk.name, "acTL", 4) == 0;
+        });
+        if (!animated) {
+            if (depth < 8)
+                png_set_packing(read);
+            png_set_interlace_handling(read);
+            png_read_update_info(read, info);
+            const size_t rowBytes = png_get_rowbytes(read, info);
+            const size_t bytes = rowBytes / width;
+            pixels.resize(rowBytes * height);
+            rows.resize(height);
+            for (png_uint_32 y = 0; y < height; ++y)
+                rows[y] = &pixels[y * rowBytes];
+            png_read_image(read, rows.data());
+            png_read_end(read, endInfo);
+
+            const int turns = ((quarterTurns % 4) + 4) % 4;
+            pixels = turnedPixels(pixels, width, height, bytes, turns);
+            const png_uint_32 outWidth = turns % 2 ? height : width;
+            const png_uint_32 outHeight = turns % 2 ? width : height;
+            png_set_write_fn(write, &encoded, writePngData, flushPng);
+            png_set_IHDR(write, out, outWidth, outHeight, depth, colour, interlace, PNG_COMPRESSION_TYPE_DEFAULT,
+                         PNG_FILTER_TYPE_DEFAULT);
+            copyChunks(read, info, write, out, turns % 2);
+            png_textp text = nullptr;
+            int textCount = 0;
+            if (png_get_text(read, endInfo, &text, &textCount) > 0)
+                png_set_text(write, out, text, textCount);
+            png_write_info(write, out);
+            if (depth < 8)
+                png_set_packing(write);
+            png_set_interlace_handling(write);
+            const size_t outRowBytes = size_t(outWidth) * bytes;
+            rows.resize(outHeight);
+            for (png_uint_32 y = 0; y < outHeight; ++y)
+                rows[y] = &pixels[y * outRowBytes];
+            png_write_image(write, rows.data());
+            png_write_end(write, nullptr);
+            done = true;
+        }
+    }
+    png_destroy_read_struct(&read, &info, &endInfo);
+    png_destroy_write_struct(&write, &out);
+    return done ? std::optional(std::move(encoded)) : std::nullopt;
+}
+
 int turn(const std::string& path, const std::string& mimeType, int quarterTurns)
 {
     if (((quarterTurns % 4) + 4) % 4 == 0)
@@ -206,8 +393,9 @@ int turn(const std::string& path, const std::string& mimeType, int quarterTurns)
     std::optional<std::string> data = base::file::read(path);
     if (!data)
         return ::access(path.c_str(), R_OK) != 0 ? errno : EIO;
-    const std::optional<std::string> turned
-            = mimeType == "image/jpeg" ? turnedJpeg(std::move(*data), quarterTurns) : std::nullopt;
+    const std::optional<std::string> turned = mimeType == "image/jpeg" ? turnedJpeg(std::move(*data), quarterTurns)
+            : mimeType == "image/png"                                    ? turnedPng(*data, quarterTurns)
+                                                                         : std::nullopt;
     if (!turned)
         return EINVAL;
     return replaceFile(path, *turned);

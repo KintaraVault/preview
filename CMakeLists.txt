@@ -14,13 +14,16 @@ include(CTest)
 find_package(CutefishToolkit REQUIRED)
 find_package(CutefishFiles REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Png REQUIRED IMPORTED_TARGET libpng)
+
 add_library(preview-core STATIC
     src/imagesequence.cpp
     src/previewsettings.cpp
     src/rotation.cpp
 )
 target_include_directories(preview-core PUBLIC src)
-target_link_libraries(preview-core PUBLIC Cutefish::Toolkit)
+target_link_libraries(preview-core PUBLIC Cutefish::Toolkit PRIVATE PkgConfig::Png)
 
 # The glyphs, built in.
 file(GLOB PREVIEW_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/icons/*.svg)
