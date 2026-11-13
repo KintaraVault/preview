@@ -959,7 +959,8 @@ void PreviewWindow::buildMainMenu()
     const uint32_t ctrl = ui::ControlModifier;
     const uint32_t shift = ui::ShiftModifier;
     const uint32_t alt = ui::AltModifier;
-    const auto image = [this] { return !isWelcome() && m_root->image->showsImage(); };
+    const auto image = [this] { return !isWelcome() && m_kind == DocumentKind::Image && m_root->image->showsImage(); };
+    const auto pdf = [this] { return !isWelcome() && m_kind == DocumentKind::Pdf && m_root->pdf->isReady(); };
 
     ui::Menu* application = m_mainMenu->addSubmenu(tr("Preview"));
     application->setRole(ui::MenuRole::Application);
@@ -1004,26 +1005,26 @@ void PreviewWindow::buildMainMenu()
     ui::Menu* edit = m_mainMenu->addSubmenu(tr("Edit"));
     const size_t copyRow = edit->addItem(tr("Copy"), [this] { copy(); });
     edit->setItemKeyEquivalent(copyRow, "c", ctrl);
-    const size_t selectAll = edit->addItem(tr("Select All"), [] {});
+    const size_t selectAll = edit->addItem(tr("Select All"), [this] { this->selectAll(); });
     edit->setItemKeyEquivalent(selectAll, "a", ctrl);
     edit->addSeparator();
-    const size_t find = edit->addItem(tr("Find…"), [] {});
+    const size_t find = edit->addItem(tr("Find…"), [this] { showFind(); });
     edit->setItemKeyEquivalent(find, "f", ctrl);
-    const size_t findNext = edit->addItem(tr("Find Next"), [] {});
+    const size_t findNext = edit->addItem(tr("Find Next"), [this] { this->findNext(false); });
     edit->setItemKeyEquivalent(findNext, "g", ctrl);
-    const size_t findPrevious = edit->addItem(tr("Find Previous"), [] {});
+    const size_t findPrevious = edit->addItem(tr("Find Previous"), [this] { this->findNext(true); });
     edit->setItemKeyEquivalent(findPrevious, "g", ctrl | shift);
-    edit->onAboutToShow = [edit, image, copyRow, selectAll, find, findNext, findPrevious] {
-        edit->setItemEnabled(copyRow, image());
+    edit->onAboutToShow = [this, edit, image, pdf, copyRow, selectAll, find, findNext, findPrevious] {
+        edit->setItemEnabled(copyRow, image() || (pdf() && m_root->pdf->view()->hasSelection()));
         // Text and search are a PDF's.
         for (const size_t row : {selectAll, find, findNext, findPrevious})
-            edit->setItemEnabled(row, false);
+            edit->setItemEnabled(row, pdf());
     };
 
     ui::Menu* view = m_mainMenu->addSubmenu(tr("View"));
     const size_t sidebarRow = view->addItem(tr("Show Sidebar"), [this] { toggleSidebar(); });
-    const size_t thumbnails = view->addItem(tr("Thumbnails"), [] {});
-    const size_t contents = view->addItem(tr("Contents"), [] {});
+    const size_t thumbnails = view->addItem(tr("Thumbnails"), [this] { setShowsContents(false); });
+    const size_t contents = view->addItem(tr("Contents"), [this] { setShowsContents(true); });
     view->addSeparator();
     const size_t zoomInRow = view->addItem(tr("Zoom In"), [this] { zoomIn(); });
     view->setItemKeyEquivalent(zoomInRow, "=", ctrl);
@@ -1036,15 +1037,17 @@ void PreviewWindow::buildMainMenu()
     view->addSeparator();
     const size_t fullScreen = view->addItem(tr("Enter Full Screen"), [this] { toggleFullScreen(); });
     view->setItemKeyEquivalent(fullScreen, "f", 0);
-    view->onAboutToShow = [this, view, image, sidebarRow, thumbnails, contents, zoomInRow, zoomOutRow, fit,
+    view->onAboutToShow = [this, view, image, pdf, sidebarRow, thumbnails, contents, zoomInRow, zoomOutRow, fit,
                            actual, fullScreen] {
         view->setItemText(sidebarRow, m_sidebarShown ? tr("Hide Sidebar") : tr("Show Sidebar"));
         view->setItemEnabled(sidebarRow, !isWelcome());
         // A PDF's sidebar shows thumbnails or its outline.
-        view->setItemEnabled(thumbnails, false);
-        view->setItemEnabled(contents, false);
+        view->setItemEnabled(thumbnails, pdf());
+        view->setItemEnabled(contents, pdf() && m_root->sidebar->hasContents());
+        view->setItemChecked(thumbnails, pdf() && m_sidebarShown && !m_root->sidebar->showsContents());
+        view->setItemChecked(contents, pdf() && m_sidebarShown && m_root->sidebar->showsContents());
         for (const size_t row : {zoomInRow, zoomOutRow, fit, actual})
-            view->setItemEnabled(row, image());
+            view->setItemEnabled(row, image() || pdf());
         view->setItemEnabled(fullScreen, !isWelcome() || isFullScreen());
         view->setItemText(fullScreen, isFullScreen() ? tr("Exit Full Screen") : tr("Enter Full Screen"));
     };
@@ -1059,16 +1062,16 @@ void PreviewWindow::buildMainMenu()
     const size_t last = go->addItem(tr("Last"), [this] { goTo(count() - 1); });
     go->setItemKeyEquivalent(last, "End", 0);
     go->addSeparator();
-    const size_t goToPage = go->addItem(tr("Go to Page…"), [] {});
+    const size_t goToPage = go->addItem(tr("Go to Page…"), [this] { showGoToPage(); });
     go->setItemKeyEquivalent(goToPage, "g", ctrl | alt);
-    go->onAboutToShow = [this, go, previous, next, first, last, goToPage] {
+    go->onAboutToShow = [this, go, pdf, previous, next, first, last, goToPage] {
         const int index = currentIndex();
         go->setItemEnabled(previous, index > 0);
         go->setItemEnabled(first, index > 0);
         go->setItemEnabled(next, index >= 0 && index + 1 < count());
         go->setItemEnabled(last, index >= 0 && index + 1 < count());
         // Pages are a PDF's.
-        go->setItemEnabled(goToPage, false);
+        go->setItemEnabled(goToPage, pdf());
     };
 
     ui::Menu* tools = m_mainMenu->addSubmenu(tr("Tools"));
