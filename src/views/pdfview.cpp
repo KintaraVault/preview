@@ -25,6 +25,8 @@ static constexpr double kDragDistance = 3;
 static const ui::Color kPageColor {255, 255, 255, 255};
 // Pages stay white in both modes, so these are the light ones.
 static const ui::Color kSelectionColor = ui::Color::rgb(0x0A84FF).withAlpha(0.3);
+static const ui::Color kMatchColor {255, 200, 0, 90};
+static const ui::Color kCurrentMatchColor {255, 152, 0, 140};
 
 static ui::RectF toRect(const base::RectF& rect)
 {
@@ -228,6 +230,13 @@ void PdfView::Canvas::paint(ui::Painter& painter)
                               points.height * zoom},
                              color);
         };
+        if (const std::vector<pdf::Match>* matches = document->matches(page)) {
+            for (size_t i = 0; i < matches->size(); ++i) {
+                const bool current = page == m_view->m_matchPage && int(i) == m_view->m_matchIndex;
+                for (const base::RectF& points : (*matches)[i].rects)
+                    fill(toRect(points), current ? kCurrentMatchColor : kMatchColor);
+            }
+        }
         if (m_view->hasSelection() && page >= start.page && page <= end.page) {
             if (const pdf::PageText* text = document->text(page)) {
                 const size_t first = page == start.page ? start.index : 0;
@@ -336,6 +345,7 @@ void PdfView::setDocument(PdfDocument* document)
     m_heightsBefore.clear();
     m_widest = 0;
     m_anchor = m_focus = {};
+    m_matchPage = m_matchIndex = -1;
     m_currentPage = 0;
     m_fitted = true;
     m_renderScale = 0;
@@ -349,6 +359,7 @@ void PdfView::setDocument(PdfDocument* document)
         m_heightsBefore.push_back(height);
         m_subscriptions.push_back(document->pageDataChanged.connect([this](int) { m_canvas->requestPaint(); }));
         m_subscriptions.push_back(document->thumbnailChanged.connect([this](int) { m_canvas->requestPaint(); }));
+        m_subscriptions.push_back(document->searchChanged.connect([this] { m_canvas->requestPaint(); }));
     }
     m_zoom = fitZoom();
     m_lastSize = {};
@@ -644,6 +655,44 @@ void PdfView::copy()
         if (!text.empty())
             ui::Clipboard::setText(text);
     });
+}
+
+void PdfView::setCurrentMatch(int page, int index)
+{
+    m_matchPage = page;
+    m_matchIndex = index;
+    m_canvas->requestPaint();
+    scrollToMatch();
+}
+
+void PdfView::scrollToMatch()
+{
+    const std::vector<pdf::Match>* matches = m_document ? m_document->matches(m_matchPage) : nullptr;
+    if (!matches || m_matchIndex < 0 || m_matchIndex >= int(matches->size()))
+        return;
+    const std::vector<base::RectF>& rects = (*matches)[size_t(m_matchIndex)].rects;
+    if (rects.empty())
+        return;
+    ui::RectF points = toRect(rects.front());
+    for (const base::RectF& rect : rects) {
+        const ui::RectF other = toRect(rect);
+        const double left = std::min(points.x, other.x);
+        const double top = std::min(points.y, other.y);
+        points = {left, top, std::max(points.right(), other.right()) - left, std::max(points.bottom(), other.bottom()) - top};
+    }
+    const ui::PointF pan = scrollPosition();
+    const ui::PointF origin = viewPoint(m_matchPage, {points.x, points.y});
+    const ui::RectF content {origin.x + pan.x, origin.y + pan.y, points.width * m_zoom, points.height * m_zoom};
+    const ui::RectF shown {pan.x, pan.y, geometry().width, geometry().height};
+    if (content.x >= shown.x && content.right() <= shown.right() && content.y >= shown.y
+        && content.bottom() <= shown.bottom())
+        return;
+    // Into the middle, where the eye finds it.
+    ui::PointF position = pan;
+    if (content.x < shown.x || content.right() > shown.right())
+        position.x = content.x + content.width / 2 - shown.width / 2;
+    position.y = content.y + content.height / 2 - shown.height / 2;
+    setPosition(position);
 }
 
 const pdf::Link* PdfView::linkAt(ui::PointF content)

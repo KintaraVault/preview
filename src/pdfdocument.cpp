@@ -203,3 +203,44 @@ PdfRequest PdfDocument::readText(TextPosition from, TextPosition to, std::functi
             },
             std::move(done));
 }
+
+void PdfDocument::setSearch(const std::string& query, int firstPage)
+{
+    m_search.cancel();
+    m_query = query;
+    m_matches.clear();
+    m_matchCount = 0;
+    m_searched = 0;
+    m_searchStart = std::clamp(firstPage, 0, std::max(0, pageCount() - 1));
+    if (m_query.empty() || m_state != State::Ready)
+        m_searched = pageCount();
+    else
+        searchNext();
+    searchChanged();
+}
+
+const std::vector<pdf::Match>* PdfDocument::matches(int page) const
+{
+    const auto found = m_matches.find(page);
+    return found == m_matches.end() ? nullptr : &found->second;
+}
+
+void PdfDocument::searchNext()
+{
+    if (m_searched >= pageCount())
+        return;
+    const int page = (m_searchStart + m_searched) % pageCount();
+    m_search = m_worker->run(
+            Urgency::Background,
+            [page, query = m_query](const pdf::Document* document, const std::atomic<bool>*) {
+                return document->find(page, query);
+            },
+            [this, page](std::vector<pdf::Match> found) {
+                m_matchCount += int(found.size());
+                if (!found.empty())
+                    m_matches[page] = std::move(found);
+                ++m_searched;
+                searchNext();
+                searchChanged();
+            });
+}

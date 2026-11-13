@@ -76,6 +76,11 @@ public:
     TextPosition selectionStart() const { return std::min(m_anchor, m_focus); }
     TextPosition selectionEnd() const { return std::max(m_anchor, m_focus); }
 
+    // The match tinted the strongest, scrolled into view; -1 for none.
+    void setCurrentMatch(int page, int index);
+    int matchPage() const { return m_matchPage; }
+    int matchIndex() const { return m_matchIndex; }
+
     // In the view's coordinates.
     cutefish::ui::RectF pageRect(int page) const;
     cutefish::ui::PointF viewPoint(int page, cutefish::ui::PointF point) const;
@@ -144,6 +149,7 @@ private:
     void tileArrived(Tile tile);
     void followLink(const cutefish::pdf::Link& link);
     const cutefish::pdf::Link* linkAt(cutefish::ui::PointF content);
+    void scrollToMatch();
 
     PdfDocument* m_document = nullptr;
     std::vector<cutefish::base::Subscription> m_subscriptions;
@@ -178,6 +184,8 @@ private:
 
     TextPosition m_anchor;
     TextPosition m_focus;
+    int m_matchPage = -1;
+    int m_matchIndex = -1;
     PdfRequest m_copy;
     PdfRequest m_resolve;
 };

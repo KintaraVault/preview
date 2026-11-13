@@ -29,9 +29,10 @@ struct TextPosition
     auto operator<=>(const TextPosition&) const = default;
 };
 
-// A PDF as the UI sees it, everything read on its worker. Asking for
-// something not there yet asks the worker and tells by a signal when it
-// arrives.
+// A PDF as the UI sees it, everything read on its worker: the pages' sizes
+// and the outline once, each page's text and links as they are asked for,
+// thumbnails, and a search through every page. Asking for something not
+// there yet asks the worker and tells by a signal when it arrives.
 class PdfDocument
 {
 public:
@@ -79,12 +80,22 @@ public:
     // UTF-8 from `from` up to `to`, lines of separate pages apart.
     [[nodiscard]] PdfRequest readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done);
 
+    // Every page searched, from `firstPage` on and round, without case.
+    void setSearch(const std::string& query, int firstPage);
+    const std::string& searchText() const { return m_query; }
+    // Matches of the pages searched so far.
+    const std::vector<cutefish::pdf::Match>* matches(int page) const;
+    int matchCount() const { return m_matchCount; }
+    bool searchFinished() const { return m_searched >= pageCount(); }
+
     PdfWorker& worker() { return *m_worker; }
 
     cutefish::base::Signal<> stateChanged;
     // Its text or links arrived.
     cutefish::base::Signal<int> pageDataChanged;
     cutefish::base::Signal<int> thumbnailChanged;
+    // More pages were searched.
+    cutefish::base::Signal<> searchChanged;
 
 private:
     struct PageData
@@ -104,6 +115,7 @@ private:
     };
 
     void opened(int status);
+    void searchNext();
     PageData& data(int page);
 
     std::string m_path;
@@ -118,4 +130,11 @@ private:
     std::unordered_map<int, PdfRequest> m_linkRequests;
     cutefish::base::LruCache<int, Thumbnail> m_thumbnails;
     std::unordered_map<int, PendingThumbnail> m_thumbnailRequests;
+
+    std::string m_query;
+    int m_searchStart = 0;
+    int m_searched = 0;
+    int m_matchCount = 0;
+    std::unordered_map<int, std::vector<cutefish::pdf::Match>> m_matches;
+    PdfRequest m_search;
 };
