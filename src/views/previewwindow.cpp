@@ -843,7 +843,14 @@ void PreviewWindow::openDialog()
     ui::FileChooser::Filter images;
     images.name = tr("Images");
     images.mimeTypes = ui::imageMimeTypes();
-    m_chooser->setFilters({images});
+    ui::FileChooser::Filter documents;
+    documents.name = tr("PDF Documents");
+    documents.mimeTypes = {"application/pdf"};
+    ui::FileChooser::Filter all;
+    all.name = tr("Images and PDF Documents");
+    all.mimeTypes = images.mimeTypes;
+    all.mimeTypes.push_back("application/pdf");
+    m_chooser->setFilters({all, images, documents});
     if (!isWelcome())
         m_chooser->setCurrentFolder(std::filesystem::path(currentPath()).parent_path().string());
     m_chooser->onAccepted = [this](const std::vector<std::string>& paths, const std::string&) {
