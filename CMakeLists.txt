@@ -51,3 +51,7 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 cutefish_add_translations(cutefish-preview SOURCES src DESKTOP_FILES cutefish-preview.desktop)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cutefish-preview.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
