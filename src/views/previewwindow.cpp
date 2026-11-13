@@ -403,6 +403,9 @@ void PreviewWindow::shown()
         m_window->activate(std::exchange(m_activationToken, std::string()));
     }
     const std::string& path = m_root->image->shown().path;
+    // A file still being turned shows the turns not written yet.
+    if (const int unwritten = m_application.turnSaver().unwrittenTurns(path))
+        m_root->image->viewer()->setQuarterTurns(unwritten);
     if (m_root->image->showsImage() && m_opened.erase(path))
         m_application.settings().addRecentFile(path);
     preloadNeighbours();
