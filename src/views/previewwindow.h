@@ -66,6 +66,7 @@ public:
     void toggleFullScreen();
     // The image and its file's URL.
     void copy();
+    void showInFiles();
     void openDialog();
     void close();
 

@@ -6,7 +6,9 @@
 #include "previewsettings.h"
 #include "views/previewwindow.h"
 
+#include "base/dbus.h"
 #include "base/event_loop.h"
+#include "base/url.h"
 #include "ui/application.h"
 #include "ui/window.h"
 
@@ -89,4 +91,14 @@ void Application::quit()
 {
     // Later: this is called from handlers of the windows quitting closes.
     base::EventLoop::current()->post([] { ui::Application::instance()->quit(); });
+}
+
+void Application::showInFiles(const std::string& path) const
+{
+    base::dbus::Connection* bus = ui::Application::instance()->sessionBus();
+    if (!bus)
+        return;
+    base::dbus::Proxy proxy(bus, "org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
+                            "org.freedesktop.FileManager1");
+    proxy.send("ShowItems", std::vector<std::string> {base::url::fromLocalFile(path)}, std::string());
 }

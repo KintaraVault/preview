@@ -33,6 +33,8 @@ public:
     void releaseWindow(PreviewWindow* window);
     void quit();
 
+    void showInFiles(const std::string& path) const;
+
 private:
     PreviewWindow* windowShowing(const std::string& path) const;
     // A window on its welcome page, or a new one.

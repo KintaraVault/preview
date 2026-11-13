@@ -536,6 +536,12 @@ void PreviewWindow::copy()
     ui::Clipboard::setMimeData(data);
 }
 
+void PreviewWindow::showInFiles()
+{
+    if (!isWelcome())
+        m_application.showInFiles(m_root->image->shown().path);
+}
+
 void PreviewWindow::openDialog()
 {
     m_chooser = std::make_unique<ui::FileChooser>(m_window.get());
