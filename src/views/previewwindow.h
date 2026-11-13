@@ -21,6 +21,7 @@ class AboutDialog;
 class Animation;
 class FileChooser;
 class Menu;
+class Toast;
 class Window;
 struct ImageInfo;
 }
@@ -142,6 +143,7 @@ private:
     std::map<std::string, PendingTurn> m_turns;
     std::string m_savingPath;
     cutefish::base::Job m_turnJob;
+    std::unique_ptr<cutefish::ui::Toast> m_toast;
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     std::unique_ptr<cutefish::ui::AboutDialog> m_about;

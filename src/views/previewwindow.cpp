@@ -33,11 +33,13 @@
 #include "ui/painter.h"
 #include "ui/shortcut_convention.h"
 #include "ui/theme.h"
+#include "ui/toast.h"
 #include "ui/window.h"
 #include "ui/window_header.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <utility>
 
@@ -627,6 +629,14 @@ void PreviewWindow::turnSaved(const std::string& path, int error)
 {
     m_savingPath.clear();
     const bool more = m_turns.contains(path);
+    if (error) {
+        m_turns.erase(path);
+        if (!m_toast)
+            m_toast = std::make_unique<ui::Toast>(m_window.get());
+        m_toast->show(format(tr("Could not rotate {name}: {reason}"),
+                             {{"name", std::filesystem::path(path).filename().string()},
+                              {"reason", std::strerror(error)}}));
+    }
     if (!more || error) {
         // Decoded again as the file is now, which shows as it did; the turn
         // on screen goes with it in the same frame.
