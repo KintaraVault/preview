@@ -297,3 +297,41 @@ TEST_F(UiTest, APinchZoomsAboutThePointer)
     TestInput::configure(window.window(), 1280, 800, states);
     pinch({700, 500});
 }
+
+// A turn shows at once, the file follows, and its own write reloads it once.
+TEST_F(UiTest, RotatingTurnsThePictureThenTheFile)
+{
+    const std::string png = writePng(directory.filePath("a.png"), 60, 30);
+    std::string tga = std::string("\0\0\2", 3) + std::string(9, '\0') + std::string("\4\0\3\0\x18\0", 6);
+    tga += std::string(4 * 3 * 3, '\x40');
+    const std::string other = writeFile(directory.filePath("b.tga"), tga);
+    application.open({png, other});
+    PreviewWindow& window = onlyWindow();
+    ASSERT_TRUE(showing(window, png));
+    ImageViewer* viewer = window.imagePage()->viewer();
+    EXPECT_TRUE(window.canRotate());
+
+    // Three quick presses come to one turn left.
+    press(window, key::letter('r'), ControlModifier);
+    EXPECT_EQ(viewer->quarterTurns(), 1);
+    press(window, key::letter('r'), ControlModifier);
+    press(window, key::letter('r'), ControlModifier);
+    EXPECT_EQ(viewer->quarterTurns(), 3);
+    ASSERT_TRUE(waitFor(loop(), [&] {
+        return readImageInfo(png, "image/png").width == 30 && window.imagePage()->shown().info.width == 30
+                && viewer->quarterTurns() == 0;
+    }));
+    EXPECT_EQ(readImageInfo(png, "image/png").height, 60);
+
+    // The folder watch reports the save too; it brings no second reload,
+    // which would fit the image again.
+    viewer->zoomTo(2, viewer->center(), false);
+    runFor(loop(), 400ms);
+    EXPECT_TRUE(viewer->isZoomed());
+
+    press(window, key::Right);
+    ASSERT_TRUE(showing(window, other));
+    EXPECT_FALSE(window.canRotate());
+    press(window, key::letter('l'), ControlModifier);
+    EXPECT_EQ(viewer->quarterTurns(), 0);
+}
