@@ -12,9 +12,14 @@
 
 #include <functional>
 #include <list>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace cutefish::ui {
+class Animation;
+}
 
 // The pages of a PDF in one column on the window's background, scrolled
 // vertically and zoomed as an image is, the keys about the middle. Zoom 1
@@ -142,4 +147,7 @@ private:
     cutefish::ui::PointF m_anchorView;
     int m_anchorPage = 0;
     cutefish::ui::PointF m_anchorPoint;
+    double m_animationFrom = 1;
+    double m_animationTo = 1;
+    std::unique_ptr<cutefish::ui::Animation> m_animation;
 };

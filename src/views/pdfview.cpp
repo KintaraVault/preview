@@ -3,6 +3,7 @@
 
 #include "pdfview.h"
 
+#include "ui/animation.h"
 #include "ui/painter.h"
 #include "ui/theme.h"
 #include "ui/window.h"
@@ -247,13 +248,31 @@ void PdfView::zoomTo(double target, ui::PointF at, bool animate)
     m_anchorPage = pagePoint(scrollPosition() + at, &m_anchorPoint);
     m_anchorView = at;
     m_fitted = std::abs(target - fitZoom()) < 0.0001;
+    if (m_animation)
+        m_animation->stop();
     m_anchored = true;
-    setZoom(target);
+    if (animate && std::abs(target - m_zoom) > 0.0001 && window()) {
+        if (!m_animation) {
+            m_animation = std::make_unique<ui::Animation>(window());
+            m_animation->setDuration(200ms);
+            m_animation->setEasing(ui::Animation::Easing::OutCubic);
+            m_animation->onUpdate = [this](double value) {
+                setZoom(m_animationFrom + (m_animationTo - m_animationFrom) * value);
+            };
+        }
+        m_animationFrom = m_zoom;
+        m_animationTo = target;
+        m_animation->start();
+    } else {
+        setZoom(target);
+    }
 }
 
+// Steps compound on an animation's target, so quick wheel clicks add up.
 void PdfView::zoomBy(double factor, ui::PointF at, bool animate)
 {
-    zoomTo(m_zoom * factor, at, animate);
+    const double base = m_animation && m_animation->isRunning() ? m_animationTo : m_zoom;
+    zoomTo(base * factor, at, animate);
 }
 
 void PdfView::setZoom(double zoom)
