@@ -244,6 +244,7 @@ Sidebar::Sidebar(double headerHeight)
     : m_headerHeight(headerHeight)
 {
     m_modes = addChild<ui::SegmentedControl>();
+    m_modes->setContentHeight(28);
     m_modes->setVisible(false);
     m_modes->onCurrentChanged = [this](int index) {
         setShowsContents(index == 1);
