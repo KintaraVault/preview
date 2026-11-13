@@ -14,6 +14,7 @@
 
 namespace cutefish::ui {
 class Window;
+struct ImageInfo;
 }
 
 class Application;
@@ -46,7 +47,8 @@ public:
     // One image: it and the other images of its folder. Several files, or a
     // file that is not an image: exactly those, in this order.
     void show(const std::vector<std::string>& paths);
-    // Shows and activates the window.
+    // Shows and activates the window; a window opening on a file maps once
+    // the file is ready, at the size it takes from it.
     void raise(const std::string& activationToken);
 
     void step(int delta);
@@ -77,6 +79,8 @@ private:
     void updateHeader();
     void updateTitle();
     void updateBackground();
+    cutefish::ui::SizeF windowSizeFor(const cutefish::ui::ImageInfo& info) const;
+    cutefish::ui::SizeF viewportFor(const cutefish::ui::ImageInfo& info) const;
 
     Application& m_application;
     std::unique_ptr<cutefish::ui::Window> m_window;
@@ -84,4 +88,10 @@ private:
     std::unique_ptr<ImageSequence> m_sequence;
     std::vector<cutefish::base::Subscription> m_sequenceConnections;
     bool m_sidebarShown = false;
+    // The window took its size from its file.
+    bool m_sized = false;
+    bool m_mapped = false;
+    // Shown once its first file is ready, which sizes it.
+    bool m_mapPending = false;
+    std::string m_activationToken;
 };

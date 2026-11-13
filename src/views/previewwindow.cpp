@@ -206,6 +206,7 @@ PreviewWindow::PreviewWindow(Application& application)
     m_window->setContentView(std::move(root));
 
     ImagePage* page = m_root->image;
+    page->viewportFor = [this](const ui::ImageInfo& info) { return viewportFor(info); };
     page->onShown = [this] { shown(); };
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
     m_root->sidebar->onActivated = [this](int index) { goTo(index); };
@@ -272,6 +273,7 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
     m_sidebarShown = m_application.settings().sidebarShown(kind());
+    m_mapPending = !m_mapped;
     m_root->sidebar->setItems(m_sequence->paths());
     m_root->image->load(m_sequence->currentPath());
     m_root->requestLayout();
@@ -280,7 +282,12 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
 
 void PreviewWindow::raise(const std::string& activationToken)
 {
+    if (m_mapPending) {
+        m_activationToken = activationToken;
+        return;
+    }
     m_window->show();
+    m_mapped = true;
     m_window->activate(activationToken);
 }
 
@@ -294,6 +301,17 @@ void PreviewWindow::sequenceChanged()
 
 void PreviewWindow::shown()
 {
+    if (!m_sized) {
+        m_sized = true;
+        if (!isFullScreen() && !m_window->states().maximized)
+            m_window->resize(windowSizeFor(m_root->image->shown().info));
+    }
+    if (m_mapPending) {
+        m_mapPending = false;
+        m_window->show();
+        m_mapped = true;
+        m_window->activate(std::exchange(m_activationToken, std::string()));
+    }
     const int index = currentIndex();
     std::vector<std::string> ahead;
     for (const int neighbour : {index + 1, index - 1}) {
@@ -343,6 +361,37 @@ void PreviewWindow::updateBackground()
                                                       : ui::ColorId::TranslucentWindowBackgroundInactive);
     // Views colour their text by it as they lay out.
     m_window->requestLayout();
+}
+
+ui::SizeF PreviewWindow::windowSizeFor(const ui::ImageInfo& info) const
+{
+    ui::SizeF area = m_window->availableSize();
+    if (area.width <= 0 || area.height <= 0)
+        area = {1280, 800};
+    const double sidebar = m_sidebarShown ? Sidebar::kWidth : 0;
+    ui::SizeF content {kMinimumContentWidth, kMinimumContentHeight};
+    if (info.readable && info.width > 0 && info.height > 0) {
+        // One image pixel to a device pixel, shrunk into a large share of the work area.
+        const double ratio = m_window->scale() > 0 ? m_window->scale() : 1;
+        const double width = info.width / ratio;
+        const double height = info.height / ratio;
+        const double scale = std::min({1.0, (std::floor(area.width * 0.75) - sidebar) / width,
+                                       (std::floor(area.height * 0.8) - kHeaderHeight) / height});
+        content = {std::max(kMinimumContentWidth, std::round(width * scale)),
+                   std::max(kMinimumContentHeight, std::round(height * scale))};
+    } else if (info.readable) {
+        // Without a size in its header the image fits this.
+        content = {720, 540};
+    }
+    return {content.width + sidebar, content.height + kHeaderHeight};
+}
+
+ui::SizeF PreviewWindow::viewportFor(const ui::ImageInfo& info) const
+{
+    if (m_sized || isFullScreen() || m_window->states().maximized)
+        return m_root->image->geometry().size();
+    const ui::SizeF size = windowSizeFor(info);
+    return {size.width - (m_sidebarShown ? Sidebar::kWidth : 0), size.height - kHeaderHeight};
 }
 
 void PreviewWindow::step(int delta)
