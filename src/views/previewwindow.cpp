@@ -44,10 +44,10 @@
 #include "ui/window_header.h"
 
 #include <algorithm>
-#include <optional>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
+#include <optional>
 #include <utility>
 
 
@@ -700,7 +700,7 @@ void PreviewWindow::updateHeader()
     row->showsPage = pdf && m_root->pdf->isReady();
     // TRANSLATORS: after a PDF's name on the header's line: the page most in sight and the number of pages.
     row->page->setText(format(tr("Page {page} of {count}"),
-                                  {{"page", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
+                              {{"page", std::to_string(index + 1)}, {"count", std::to_string(count())}}));
     row->title->setVisible(document);
     row->title->setText(shownName());
     row->zoomOut->setVisible(document);
