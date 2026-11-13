@@ -1,12 +1,12 @@
 [Desktop Entry]
 Version=1.0
 Name=Preview
-Comment=View images
+Comment=View images and PDF documents
 Exec=cutefish-preview %F
 Icon=accessories-document-viewer
 Terminal=false
 Type=Application
-Categories=Graphics;Viewer;
-Keywords=Image;Picture;Photo;Viewer;
-MimeType=image/png;image/apng;image/jpeg;image/gif;image/webp;image/bmp;image/svg+xml;image/svg+xml-compressed;image/tiff;image/heif;image/avif;image/jxl;image/vnd.microsoft.icon;image/x-tga;image/x-portable-pixmap;image/x-portable-graymap;image/x-portable-bitmap;image/x-xbitmap;image/x-icns;
+Categories=Graphics;Viewer;Office;
+Keywords=Image;Picture;Photo;Viewer;PDF;Document;
+MimeType=image/png;image/apng;image/jpeg;image/gif;image/webp;image/bmp;image/svg+xml;image/svg+xml-compressed;image/tiff;image/heif;image/avif;image/jxl;image/vnd.microsoft.icon;image/x-tga;image/x-portable-pixmap;image/x-portable-graymap;image/x-portable-bitmap;image/x-xbitmap;image/x-icns;application/pdf;
 StartupNotify=true

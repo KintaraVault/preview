@@ -892,7 +892,7 @@ void PreviewWindow::showAbout()
     if (!m_about) {
         m_about = std::make_unique<ui::AboutDialog>(m_window.get());
         m_about->setName(tr("Preview"));
-        m_about->setDescription(tr("View images"));
+        m_about->setDescription(tr("View images and PDF documents"));
         m_about->setIconSource("accessories-document-viewer");
     }
     m_about->show();

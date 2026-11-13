@@ -154,7 +154,7 @@ TEST(PreviewSettingsTest, SidebarAndRecentFilesAreKept)
     EXPECT_TRUE(PreviewSettings(file).recentFiles().empty());
 }
 
-TEST(DesktopEntryTest, ClaimsTheTypesTheToolkitDecodes)
+TEST(DesktopEntryTest, ClaimsTheImageTypesAndPdf)
 {
     std::ifstream file(PREVIEW_SOURCE_DIR "/cutefish-preview.desktop");
     std::string line;
@@ -166,5 +166,5 @@ TEST(DesktopEntryTest, ClaimsTheTypesTheToolkitDecodes)
     std::string expected;
     for (const std::string& type : cutefish::ui::imageMimeTypes())
         expected += type + ";";
-    EXPECT_EQ(types, expected);
+    EXPECT_EQ(types, expected + "application/pdf;");
 }
