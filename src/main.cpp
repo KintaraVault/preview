@@ -7,19 +7,56 @@
 
 #include "base/dbus.h"
 #include "base/i18n.h"
+#include "base/url.h"
 #include "ui/application.h"
 #include "ui/icon.h"
 
 #include <chrono>
+#include <cstdio>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 using namespace cutefish;
 using namespace std::chrono_literals;
 
+// The files to open as absolute paths; false when the program is done.
+static bool parseArguments(int argc, char** argv, std::vector<std::string>* paths, int* status)
+{
+    *status = 0;
+    for (int i = 1; i < argc; ++i) {
+        const std::string argument = argv[i];
+        if (argument == "-h" || argument == "--help" || argument == "-?") {
+            std::printf("Usage: %s [options] [files...]\nCutefish Preview\n\nOptions:\n"
+                        "  -h, --help     Displays help on commandline options.\n"
+                        "  -v, --version  Displays version information.\n\n"
+                        "Arguments:\n"
+                        "  files          Images to open.\n",
+                        argv[0]);
+            return false;
+        }
+        if (argument == "-v" || argument == "--version") {
+            std::printf("cutefish-preview %s\n", PREVIEW_VERSION);
+            return false;
+        }
+        if (argument.size() > 1 && argument[0] == '-') {
+            std::fprintf(stderr, "Unknown option '%s'.\n", argument.substr(argument.find_first_not_of('-')).c_str());
+            *status = 1;
+            return false;
+        }
+        std::error_code error;
+        const std::string path = base::url::toLocalFile(argument).value_or(argument);
+        paths->push_back(std::filesystem::absolute(path, error).lexically_normal().string());
+    }
+    return true;
+}
+
 int main(int argc, char** argv)
 {
-    const std::vector<std::string> paths(argv + 1, argv + argc);
+    std::vector<std::string> paths;
+    int status = 0;
+    if (!parseArguments(argc, argv, &paths, &status))
+        return status;
 
     ui::Application app(argc, argv);
     app.setApplicationId("cutefish-preview");
