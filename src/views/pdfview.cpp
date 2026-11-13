@@ -25,6 +25,10 @@ static constexpr int64_t kScaleSteps = 4096;
 // Once the zoom stops this long, pages are rendered at it.
 static constexpr auto kRestDelay = 150ms;
 static constexpr double kDragDistance = 3;
+static constexpr double kShadowSigma = 6;
+static constexpr double kShadowOffset = 2;
+// How far a page's shadow reaches past it.
+static constexpr double kShadowReach = 3 * kShadowSigma + kShadowOffset;
 static constexpr auto kAutoScrollInterval = 30ms;
 
 static const ui::Color kPageColor {255, 255, 255, 255};
@@ -222,9 +226,21 @@ void PdfView::Canvas::paint(ui::Painter& painter)
     const int64_t sharp = std::llround(m_view->m_renderScale * kScaleSteps);
     const double line = 1 / painter.scale();
     const ui::Theme& theme = ui::Theme::current();
-    const ui::Color edge = theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15);
+    const ui::Color edge = theme.text.withAlpha(theme.darkMode ? 0.1 : 0.075);
     const TextPosition start = m_view->selectionStart();
     const TextPosition end = m_view->selectionEnd();
+    // The shadows first, each under its neighbours' edges as well.
+    if (m_view->m_pageShadows) {
+        const ui::Color shadow = ui::Color {0, 0, 0, 255}.withAlpha(theme.darkMode ? 0.4 : 0.12);
+        for (int page = m_view->pageAt(std::max(0.0, top - kShadowReach)); page < document->pageCount(); ++page) {
+            const ui::RectF rect = m_view->pageRect(page);
+            const ui::RectF content {rect.x + pan.x, rect.y + pan.y, rect.width, rect.height};
+            if (content.y > bottom + kShadowReach)
+                break;
+            if (content.bottom() >= top - kShadowReach)
+                painter.drawShadow(content, 0, kShadowSigma, shadow, {0, kShadowOffset});
+        }
+    }
     for (int page = m_view->pageAt(top); page < document->pageCount(); ++page) {
         const ui::RectF rect = m_view->pageRect(page);
         const ui::RectF content {rect.x + pan.x, rect.y + pan.y, rect.width, rect.height};
@@ -419,6 +435,14 @@ void PdfView::setDocument(PdfDocument* document)
     m_canvas->requestLayout();
     requestLayout();
     setScrollPosition({0, 0});
+}
+
+void PdfView::setPageShadows(bool shadows)
+{
+    if (shadows == m_pageShadows)
+        return;
+    m_pageShadows = shadows;
+    m_canvas->requestPaint();
 }
 
 void PdfView::setTopInset(double inset)

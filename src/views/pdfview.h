@@ -35,8 +35,9 @@ class Animation;
 class PdfView : public cutefish::ui::ScrollView
 {
 public:
-    static constexpr double kMargin = 12;
-    static constexpr double kPageGap = 12;
+    // Room for each page's shadow too.
+    static constexpr double kMargin = 16;
+    static constexpr double kPageGap = 16;
     static constexpr int kTileSize = 512;
     static constexpr size_t kTileBytes = size_t(128) * 1024 * 1024;
 
@@ -63,6 +64,8 @@ public:
     // it and scroll under it, and what is gone to lands below it.
     void setTopInset(double inset);
     double topInset() const { return m_topInset; }
+    // Pages float on soft shadows; full screen shows them flat.
+    void setPageShadows(bool shadows);
     // Device pixels per point that the tiles drawn last were asked at.
     double renderScale() const { return m_renderScale; }
 
@@ -176,6 +179,7 @@ private:
     double m_widest = 0;
     double m_zoom = 1;
     double m_topInset = 0;
+    bool m_pageShadows = true;
     bool m_fitted = true;
     cutefish::ui::SizeF m_lastSize;
     double m_renderScale = 0;

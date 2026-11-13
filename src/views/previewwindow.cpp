@@ -252,6 +252,7 @@ protected:
         image->setTopInset(inset);
         image->setGeometry(content);
         pdf->setTopInset(inset);
+        pdf->view()->setPageShadows(!fullScreen);
         pdf->setGeometry(content);
         welcome->setGeometry({left, kHeaderHeight, width, std::max(0.0, rect.height - kHeaderHeight)});
         imageBackdrop->setVisible(!fullScreen && image->isVisible());
