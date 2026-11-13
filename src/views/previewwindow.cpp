@@ -845,11 +845,15 @@ void PreviewWindow::turnWritten(const std::string& path, int error)
     if (error) {
         if (!m_toast)
             m_toast = std::make_unique<ui::Toast>(m_window.get());
-        const std::string reason = error == rotation::kUnreadable
-                ? std::string(tr("it cannot be read as a JPEG or PNG image"))
-                : std::string(std::strerror(error));
-        m_toast->show(format(tr("Could not rotate {name}: {reason}"),
-                             {{"name", std::filesystem::path(path).filename().string()}, {"reason", reason}}));
+        const std::string name = std::filesystem::path(path).filename().string();
+        if (error == rotation::kUnreadable) {
+            m_toast->show(format(tr("Could not rotate {name}: it cannot be read as a JPEG or PNG image"),
+                                 {{"name", name}}));
+        } else {
+            // TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+            m_toast->show(format(tr("Could not rotate {name}: {reason}"),
+                                 {{"name", name}, {"reason", std::strerror(error)}}));
+        }
     }
     m_root->sidebar->refresh();
     // Decoded again as the file now is, which looks as it did turned; the
