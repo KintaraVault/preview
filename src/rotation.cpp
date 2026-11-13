@@ -306,6 +306,9 @@ static void copyChunks(png_structp read, png_infop info, png_structp write, png_
     png_color_16p background = nullptr;
     if (png_get_bKGD(read, info, &background))
         png_set_bKGD(write, out, background);
+    png_uint_16p histogram = nullptr;
+    if (png_get_hIST(read, info, &histogram))
+        png_set_hIST(write, out, histogram);
     png_fixed_point gamma = 0;
     if (png_get_gAMA_fixed(read, info, &gamma))
         png_set_gAMA_fixed(write, out, gamma);
@@ -321,6 +324,24 @@ static void copyChunks(png_structp read, png_infop info, png_structp write, png_
     png_uint_32 profileLength = 0;
     if (png_get_iCCP(read, info, &profileName, &compression, &profile, &profileLength))
         png_set_iCCP(write, out, profileName, compression, profile, profileLength);
+#ifdef PNG_cICP_SUPPORTED
+    png_byte primaries = 0, transfer = 0, matrix = 0, fullRange = 0;
+    if (png_get_cICP(read, info, &primaries, &transfer, &matrix, &fullRange))
+        png_set_cICP(write, out, primaries, transfer, matrix, fullRange);
+#endif
+#ifdef PNG_mDCV_SUPPORTED
+    png_fixed_point mWhiteX, mWhiteY, mRedX, mRedY, mGreenX, mGreenY, mBlueX, mBlueY;
+    png_uint_32 maxLuminance = 0, minLuminance = 0;
+    if (png_get_mDCV_fixed(read, info, &mWhiteX, &mWhiteY, &mRedX, &mRedY, &mGreenX, &mGreenY, &mBlueX, &mBlueY,
+                           &maxLuminance, &minLuminance))
+        png_set_mDCV_fixed(write, out, mWhiteX, mWhiteY, mRedX, mRedY, mGreenX, mGreenY, mBlueX, mBlueY,
+                           maxLuminance, minLuminance);
+#endif
+#ifdef PNG_cLLI_SUPPORTED
+    png_uint_32 maxContent = 0, maxFrame = 0;
+    if (png_get_cLLI_fixed(read, info, &maxContent, &maxFrame))
+        png_set_cLLI_fixed(write, out, maxContent, maxFrame);
+#endif
     png_color_8p significant = nullptr;
     if (png_get_sBIT(read, info, &significant))
         png_set_sBIT(write, out, significant);
@@ -328,6 +349,21 @@ static void copyChunks(png_structp read, png_infop info, png_structp write, png_
     int unit = 0;
     if (png_get_pHYs(read, info, &resX, &resY, &unit))
         png_set_pHYs(write, out, swapsAxes ? resY : resX, swapsAxes ? resX : resY, unit);
+    png_charp scaleWidth = nullptr;
+    png_charp scaleHeight = nullptr;
+    if (png_get_sCAL_s(read, info, &unit, &scaleWidth, &scaleHeight))
+        png_set_sCAL_s(write, out, unit, swapsAxes ? scaleHeight : scaleWidth, swapsAxes ? scaleWidth : scaleHeight);
+    png_charp purpose = nullptr;
+    png_int_32 x0 = 0, x1 = 0;
+    int type = 0, parameterCount = 0;
+    png_charp units = nullptr;
+    png_charpp parameters = nullptr;
+    if (png_get_pCAL(read, info, &purpose, &x0, &x1, &type, &parameterCount, &units, &parameters))
+        png_set_pCAL(write, out, purpose, x0, x1, type, parameterCount, units, parameters);
+    png_sPLT_tp palettes = nullptr;
+    const int paletteCount = png_get_sPLT(read, info, &palettes);
+    if (paletteCount > 0)
+        png_set_sPLT(write, out, palettes, paletteCount);
     png_timep time = nullptr;
     if (png_get_tIME(read, info, &time))
         png_set_tIME(write, out, time);
