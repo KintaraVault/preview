@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-11 19:18+0800\n"
+"POT-Creation-Date: 2026-11-11 19:22+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -14,6 +14,12 @@ msgstr ""
 
 #: src/views/cards.cpp
 msgid "Find"
+msgstr ""
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
 msgstr ""
 
 #: src/views/imagepage.cpp

@@ -79,6 +79,7 @@ public:
     void selectAll();
     void showFind();
     void findNext(bool backwards);
+    void showGoToPage();
     // A JPEG or PNG that may be written, still.
     bool canRotate() const;
     // Quarters clockwise; -1 turns left.

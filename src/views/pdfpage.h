@@ -19,11 +19,13 @@ class Label;
 }
 
 class FindCard;
+class GoToPageCard;
 class PasswordDialog;
 class PdfView;
 
-// A PDF under the header: its pages; a file that cannot be read, or stays
-// locked, says so instead.
+// A PDF under the header: its pages, the find and go to page cards over
+// their top right, and the password dialog of a protected file; a file that
+// cannot be read, or stays locked, says so instead.
 class PdfPage : public cutefish::ui::View
 {
 public:
@@ -48,9 +50,11 @@ public:
 
     void showFind();
     void findNext(bool backwards);
+    void showGoToPage();
     // The find or go to page card is open.
     bool showsCard() const;
     FindCard* findCard() const { return m_find; }
+    GoToPageCard* goToPageCard() const { return m_goToPage; }
 
     // Opened, locked or unreadable.
     std::function<void()> onStateChanged;
@@ -71,6 +75,7 @@ private:
     std::vector<cutefish::base::Subscription> m_subscriptions;
     PdfView* m_view;
     FindCard* m_find;
+    GoToPageCard* m_goToPage;
     cutefish::ui::Label* m_message;
     cutefish::ui::DialogButton* m_unlock;
     std::unique_ptr<PasswordDialog> m_password;

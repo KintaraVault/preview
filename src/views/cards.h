@@ -103,3 +103,33 @@ private:
     RoundButton* m_next;
     RoundButton* m_close;
 };
+
+// "Page" in a small card where the find card floats; Enter goes there,
+// Escape closes it.
+class GoToPageCard : public FloatingCard
+{
+public:
+    static constexpr double implicitWidth = 300;
+    static constexpr double implicitHeight = 32 + padding * 2;
+
+    GoToPageCard();
+
+    void open(int pageCount);
+    void retranslate();
+
+    // From 0.
+    std::function<void(int page)> onAccepted;
+    std::function<void()> onClose;
+
+protected:
+    void layout() override;
+
+private:
+    // From 0; -1 when the text is no page.
+    int target() const;
+    void refresh();
+
+    CardField* m_field;
+    RoundButton* m_close;
+    int m_pageCount = 0;
+};

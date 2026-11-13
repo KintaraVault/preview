@@ -27,6 +27,7 @@ PdfPage::PdfPage()
 {
     m_view = addChild<PdfView>();
     m_find = addChild<FindCard>();
+    m_goToPage = addChild<GoToPageCard>();
     m_message = addChild<ui::Label>();
     m_message->setVisible(false);
     m_unlock = addChild<ui::DialogButton>();
@@ -41,6 +42,11 @@ PdfPage::PdfPage()
     };
     m_find->onFind = [this](bool backwards) { findNext(backwards); };
     m_find->onClose = [this] { closeCards(); };
+    m_goToPage->onAccepted = [this](int page) {
+        closeCards();
+        m_view->goToPage(page);
+    };
+    m_goToPage->onClose = [this] { closeCards(); };
     retranslate();
 }
 
@@ -85,6 +91,7 @@ bool PdfPage::isReady() const
 void PdfPage::retranslate()
 {
     m_find->retranslate();
+    m_goToPage->retranslate();
     m_unlock->setText(tr("Enter Password…"));
     if (m_password)
         m_password->retranslate();
@@ -150,6 +157,7 @@ void PdfPage::showFind()
 {
     if (!isReady())
         return;
+    m_goToPage->setVisible(false);
     const bool wasShown = m_find->isVisible();
     m_find->open();
     if (!wasShown && !m_find->text().empty())
@@ -157,9 +165,20 @@ void PdfPage::showFind()
     requestLayout();
 }
 
+void PdfPage::showGoToPage()
+{
+    if (!isReady())
+        return;
+    m_find->setVisible(false);
+    m_document->setSearch({}, 0);
+    m_view->setCurrentMatch(-1, -1);
+    m_goToPage->open(m_document->pageCount());
+    requestLayout();
+}
+
 bool PdfPage::showsCard() const
 {
-    return m_find->isVisible();
+    return m_find->isVisible() || m_goToPage->isVisible();
 }
 
 void PdfPage::closeCards()
@@ -169,6 +188,7 @@ void PdfPage::closeCards()
         m_view->setCurrentMatch(-1, -1);
     }
     m_find->setVisible(false);
+    m_goToPage->setVisible(false);
     requestLayout();
 }
 
@@ -251,6 +271,7 @@ void PdfPage::layout()
         card->setGeometry({rect.width - kCardInset - width, kCardInset, width, height});
     };
     place(m_find, FindCard::implicitWidth, FindCard::implicitHeight);
+    place(m_goToPage, GoToPageCard::implicitWidth, GoToPageCard::implicitHeight);
 
     const ui::Theme& theme = ui::Theme::current();
     m_message->setColor(theme.text);

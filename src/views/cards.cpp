@@ -17,6 +17,7 @@
 #include <cstdint>
 
 using namespace cutefish::ui;
+using cutefish::i18n::format;
 using cutefish::i18n::tr;
 
 static constexpr double kButtonSize = 28;
@@ -235,4 +236,71 @@ void FindCard::layout()
                               size.width, size.height});
     }
     m_field->setTextMargins(Theme::current().largeSpacing, inside + 8);
+}
+
+GoToPageCard::GoToPageCard()
+    : m_field(addChild<CardField>())
+    , m_close(addChild<RoundButton>(kButtonSize))
+{
+    m_field->setValidator([](const std::string& text) {
+        return std::all_of(text.begin(), text.end(), [](char c) { return (c >= '0' && c <= '9') || c == ' '; });
+    });
+    m_field->onTextEdited = [this] { refresh(); };
+    m_field->onReturn = [this](bool) {
+        const int page = target();
+        if (page >= 0 && onAccepted)
+            onAccepted(page);
+    };
+    m_field->onEscape = [this] {
+        if (onClose)
+            onClose();
+    };
+    m_close->setGlyph("close");
+    m_close->onClicked = [this] {
+        if (onClose)
+            onClose();
+    };
+}
+
+void GoToPageCard::open(int pageCount)
+{
+    m_pageCount = pageCount;
+    setVisible(true);
+    m_field->setText({});
+    refresh();
+    m_field->setFocus();
+}
+
+void GoToPageCard::retranslate()
+{
+    refresh();
+}
+
+int GoToPageCard::target() const
+{
+    std::string digits;
+    for (const char c : m_field->text()) {
+        if (c != ' ')
+            digits += c;
+    }
+    if (digits.empty() || digits.size() > 9)
+        return -1;
+    const int page = std::stoi(digits);
+    return page >= 1 && page <= m_pageCount ? page - 1 : -1;
+}
+
+void GoToPageCard::refresh()
+{
+    // TRANSLATORS: {count} is the number of pages of the document.
+    m_field->setPlaceholder(format(tr("Go to page (1\xE2\x80\x93{count})"), {{"count", std::to_string(m_pageCount)}}));
+    m_field->setTextColor(!m_field->text().empty() && target() < 0 ? std::optional<ColorRecipe>(accent::red)
+                                                                   : std::nullopt);
+}
+
+void GoToPageCard::layout()
+{
+    const double width = geometry().width - padding * 2;
+    m_field->setGeometry({padding, padding, std::max(0.0, width - kSpacing - kButtonSize), kFieldHeight});
+    m_close->setGeometry({padding + width - kButtonSize, padding + rounding::centeredStart(kFieldHeight, kButtonSize),
+                          kButtonSize, kButtonSize});
 }

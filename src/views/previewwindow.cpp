@@ -739,6 +739,12 @@ void PreviewWindow::findNext(bool backwards)
         m_root->pdf->findNext(backwards);
 }
 
+void PreviewWindow::showGoToPage()
+{
+    if (m_kind == DocumentKind::Pdf)
+        m_root->pdf->showGoToPage();
+}
+
 bool PreviewWindow::canRotate() const
 {
     const ShownFile& file = m_root->image->shown();
