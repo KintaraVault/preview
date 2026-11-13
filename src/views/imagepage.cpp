@@ -3,8 +3,11 @@
 
 #include "imagepage.h"
 
+#include "cutefish/files/file_item.h"
+
 #include "base/mime_database.h"
 #include "ui/cell_layout.h"
+#include "ui/icon.h"
 #include "ui/image_view.h"
 #include "ui/theme.h"
 #include "ui/window.h"
@@ -16,15 +19,76 @@
 using namespace cutefish;
 using ui::rounding::centeredStart;
 
+static constexpr double kIconSize = 96;
+static constexpr double kCardSpacing = 20;
+
 static ShownFile describe(const std::string& path)
 {
     ShownFile file;
     file.path = path;
     file.name = std::filesystem::path(path).filename().string();
+    std::error_code error;
+    const uintmax_t size = std::filesystem::file_size(path, error);
+    if (!error)
+        file.size = files::convertSize(size);
     file.mimeType = base::mime::typeForFile(path);
     file.info = ui::readImageInfo(path, file.mimeType);
     return file;
 }
+
+// The file's icon beside its name and size, as Quick Look shows a file it
+// cannot preview.
+class FileCard : public ui::View
+{
+public:
+    FileCard()
+    {
+        m_icon = addChild<ui::ThemeIcon>(std::string(), kIconSize);
+        m_icon->setImageProviderLookup(true);
+        m_name = addChild<ui::Label>();
+        m_name->setWeight(700);
+        m_name->setFontSize(16);
+        m_name->setElide(ui::Label::Elide::Middle);
+        m_detail = addChild<ui::Label>();
+    }
+
+    void setFile(const ShownFile& file)
+    {
+        const std::string icon = file.mimeType.empty() ? std::string() : base::mime::iconName(file.mimeType);
+        m_icon->setIconName(icon.empty() ? "application-octet-stream" : icon);
+        m_name->setText(file.name);
+        m_detail->setText(file.size);
+        requestLayout();
+    }
+
+    ui::SizeF sizeHint() const override
+    {
+        const double text = std::max(m_name->sizeHint().width, m_detail->sizeHint().width);
+        return {kIconSize + kCardSpacing + std::ceil(text), kIconSize};
+    }
+
+protected:
+    void layout() override
+    {
+        const ui::Theme& theme = ui::Theme::current();
+        m_name->setColor(theme.text);
+        m_detail->setColor(theme.text);
+        const double height = geometry().height;
+        m_icon->setGeometry({0, centeredStart(height, kIconSize), kIconSize, kIconSize});
+        const double x = kIconSize + kCardSpacing;
+        const double width = std::max(0.0, geometry().width - x);
+        const double nameHeight = m_name->sizeHint().height;
+        const double detailHeight = m_detail->heightForWidth(width);
+        const double y = centeredStart(height, nameHeight + 6 + detailHeight);
+        m_name->setGeometry({x, y, width, nameHeight});
+        m_detail->setGeometry({x, y + nameHeight + 6, width, detailHeight});
+    }
+
+private:
+    ui::ThemeIcon* m_icon;
+    ui::Label* m_name;
+    ui::Label* m_detail;
+};
 
 static ui::ImageView* addPreloader(ui::View* parent)
 {
@@ -40,6 +104,8 @@ static ui::ImageView* addPreloader(ui::View* parent)
 ImagePage::ImagePage()
 {
     m_viewer = addChild<ImageViewer>();
+    m_card = addChild<FileCard>();
+    m_card->setVisible(false);
     m_preloader = addPreloader(this);
     for (int i = 0; i < 2; ++i)
         m_ahead.push_back(addPreloader(this));
@@ -88,6 +154,7 @@ void ImagePage::clear()
     m_preloader->setSource({});
     m_shown = {};
     m_viewer->setImage({}, {}, {}, ratio());
+    m_card->setVisible(false);
 }
 
 double ImagePage::ratio() const
@@ -134,6 +201,8 @@ void ImagePage::present(ShownFile file)
             : ui::SizeF();
     m_shown = std::move(file);
     m_viewer->setImage(m_shown.info.readable ? m_shown.path : std::string(), m_shown.info, prepared, ratio());
+    m_card->setVisible(!m_shown.info.readable);
+    m_card->setFile(m_shown);
     m_preloader->onStatusChanged = nullptr;
     m_preloader->setSource({});
     requestLayout();
@@ -145,6 +214,10 @@ void ImagePage::layout()
 {
     const ui::RectF rect = localRect();
     m_viewer->setGeometry(rect);
+    const ui::SizeF card = m_card->sizeHint();
+    const double cardWidth = std::min(card.width, std::max(0.0, rect.width - 2 * kCardSpacing));
+    m_card->setGeometry({centeredStart(rect.width, cardWidth), centeredStart(rect.height, card.height), cardWidth,
+                         card.height});
     m_preloader->setGeometry({0, 0, 1, 1});
     for (ui::ImageView* ahead : m_ahead)
         ahead->setGeometry({0, 0, 1, 1});

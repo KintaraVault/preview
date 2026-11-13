@@ -17,6 +17,8 @@ namespace cutefish::ui {
 class ImageView;
 }
 
+class FileCard;
+
 // A file as the page shows it, read on a worker.
 struct ShownFile
 {
@@ -34,7 +36,8 @@ class ImageViewer : public cutefish::ui::ZoomableImageView
 
 // The current file under the header. An image replaces the one shown once
 // it is decoded at the size it is shown at, so the step that brings it
-// changes everything in one frame.
+// changes everything in one frame; its neighbours are decoded ahead. A file
+// that is not an image gets a card with its icon, name and size.
 class ImagePage : public cutefish::ui::View
 {
 public:
@@ -71,6 +74,7 @@ private:
     static bool decodesAhead(const cutefish::ui::ImageInfo& info);
 
     ImageViewer* m_viewer;
+    FileCard* m_card;
     // Decode into the image cache: the image staged, and the neighbours.
     cutefish::ui::ImageView* m_preloader;
     std::vector<cutefish::ui::ImageView*> m_ahead;
