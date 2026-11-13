@@ -94,6 +94,7 @@ PdfView::PdfView()
 {
     setScrollDirections(true, true);
     setClipsChildren(true);
+    setTracksHover(true);
     m_canvas = setContent<Canvas>(this);
 
     m_restTimer.setSingleShot(true);
@@ -458,4 +459,42 @@ void PdfView::tileArrived(Tile tile)
         m_tiles.pop_back();
     }
     m_canvas->requestPaint();
+}
+
+bool PdfView::scroll(const ui::ScrollEvent& event)
+{
+    if (!(event.modifiers & ui::ControlModifier)) {
+        // A pan ends a running zoom, or its anchor would pull the view back.
+        if (m_animation && m_animation->isRunning()) {
+            m_animation->stop();
+            setZoom(m_animationTo);
+        }
+        m_anchored = false;
+        return ScrollView::scroll(event);
+    }
+    if (event.value120Y != 0)
+        zoomBy(std::pow(1.25, -event.value120Y / 120.0), m_pointer, true);
+    else if (event.deltaY != 0)
+        zoomBy(std::pow(1.006, -event.deltaY), m_pointer, false);
+    return true;
+}
+
+bool PdfView::gesture(const ui::GestureEvent& event)
+{
+    if (event.type == ui::GestureEvent::Type::PinchBegin) {
+        m_pinchScale = 1;
+        return true;
+    }
+    if (event.type == ui::GestureEvent::Type::PinchUpdate) {
+        const double delta = event.scale / m_pinchScale;
+        m_pinchScale = event.scale;
+        zoomTo(m_zoom * delta, m_pointer, false);
+        return true;
+    }
+    return event.type == ui::GestureEvent::Type::PinchEnd;
+}
+
+void PdfView::hoverMove(const ui::PointerEvent& event)
+{
+    m_pointer = event.position;
 }

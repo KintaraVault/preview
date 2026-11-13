@@ -22,12 +22,12 @@ class Animation;
 }
 
 // The pages of a PDF in one column on the window's background, scrolled
-// vertically and zoomed as an image is, the keys about the middle. Zoom 1
-// is one point to a logical
+// vertically and zoomed as an image is: Ctrl+wheel and pinch about the
+// pointer, the keys about the middle. Zoom 1 is one point to a logical
 // pixel; a document opens fitted to the view's width and follows it until
 // the user zooms. Pages are drawn in tiles of 512 device pixels rendered on
 // the document's worker at the zoom things come to rest at, the ones in
-// sight first, then half a screen above and below; while a zoom
+// sight first, then half a screen above and below; while a pinch or a zoom
 // moves, the tiles there are scaled. At most 128 MiB of tiles stay, the
 // least recently wanted going first.
 class PdfView : public cutefish::ui::ScrollView
@@ -75,6 +75,9 @@ public:
 
 protected:
     void layout() override;
+    bool scroll(const cutefish::ui::ScrollEvent& event) override;
+    bool gesture(const cutefish::ui::GestureEvent& event) override;
+    void hoverMove(const cutefish::ui::PointerEvent& event) override;
     void positionChanged() override;
 
 private:
@@ -147,7 +150,9 @@ private:
     cutefish::ui::PointF m_anchorView;
     int m_anchorPage = 0;
     cutefish::ui::PointF m_anchorPoint;
+    cutefish::ui::PointF m_pointer;
     double m_animationFrom = 1;
     double m_animationTo = 1;
     std::unique_ptr<cutefish::ui::Animation> m_animation;
+    double m_pinchScale = 1;
 };
