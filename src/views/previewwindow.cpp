@@ -671,6 +671,10 @@ void PreviewWindow::toggleFullScreen()
 // the file; read and encoded on a worker.
 void PreviewWindow::copy()
 {
+    if (m_kind == DocumentKind::Pdf) {
+        m_root->pdf->view()->copy();
+        return;
+    }
     if (!m_root->image->showsImage())
         return;
     const ShownFile& file = m_root->image->shown();
@@ -698,6 +702,12 @@ void PreviewWindow::copy()
                 data.setUrls({base::url::fromLocalFile(path)});
                 ui::Clipboard::setMimeData(data);
             });
+}
+
+void PreviewWindow::selectAll()
+{
+    if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
+        m_root->pdf->view()->selectAll();
 }
 
 bool PreviewWindow::canRotate() const

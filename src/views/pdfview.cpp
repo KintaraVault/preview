@@ -4,12 +4,14 @@
 #include "pdfview.h"
 
 #include "ui/animation.h"
+#include "ui/clipboard.h"
 #include "ui/painter.h"
 #include "ui/theme.h"
 #include "ui/window.h"
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace cutefish;
 using namespace std::chrono_literals;
@@ -17,8 +19,67 @@ using namespace std::chrono_literals;
 static constexpr int64_t kScaleSteps = 4096;
 // Once the zoom stops this long, pages are rendered at it.
 static constexpr auto kRestDelay = 150ms;
+static constexpr double kDragDistance = 3;
 
 static const ui::Color kPageColor {255, 255, 255, 255};
+// Pages stay white in both modes, so these are the light ones.
+static const ui::Color kSelectionColor = ui::Color::rgb(0x0A84FF).withAlpha(0.3);
+
+static ui::RectF toRect(const base::RectF& rect)
+{
+    return {rect.x(), rect.y(), rect.width(), rect.height()};
+}
+
+// The rects of the characters from `first` to `last`, one per stretch of a line.
+static std::vector<ui::RectF> rangeRects(const pdf::PageText& text, size_t first, size_t last)
+{
+    std::vector<ui::RectF> rects;
+    last = std::min(last, text.characters.size());
+    for (size_t i = first; i < last; ++i) {
+        const base::RectF& box = text.characters[i].box;
+        if (box.isEmpty())
+            continue;
+        const ui::RectF rect = toRect(box);
+        if (!rects.empty()) {
+            ui::RectF& line = rects.back();
+            const double overlap = std::min(line.bottom(), rect.bottom()) - std::max(line.y, rect.y);
+            if (overlap > 0.5 * std::min(line.height, rect.height) && rect.x >= line.x - 1
+                && rect.x <= line.right() + rect.height) {
+                const double left = std::min(line.x, rect.x);
+                const double top = std::min(line.y, rect.y);
+                line = {left, top, std::max(line.right(), rect.right()) - left,
+                        std::max(line.bottom(), rect.bottom()) - top};
+                continue;
+            }
+        }
+        rects.push_back(rect);
+    }
+    return rects;
+}
+
+// Before or after the character nearest the point, by which half it is in;
+// a character on the point's line wins over a nearer one above or below.
+static size_t caretAt(const pdf::PageText& text, ui::PointF point)
+{
+    size_t best = text.characters.size();
+    double bestDistance = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < text.characters.size(); ++i) {
+        const base::RectF& box = text.characters[i].box;
+        if (box.isEmpty())
+            continue;
+        const double dx = std::max({0.0, box.x() - point.x, point.x - box.right()});
+        const double dy = std::max({0.0, box.y() - point.y, point.y - box.bottom()});
+        const double distance = dy * 4 + dx;
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            best = i;
+        }
+    }
+    if (best == text.characters.size())
+        return 0;
+    const base::RectF& box = text.characters[best].box;
+    return point.x > box.x() + box.width() / 2 ? best + 1 : best;
+}
 
 size_t PdfView::TileHash::operator()(const TileKey& key) const
 {
@@ -42,13 +103,38 @@ public:
         return {m_view->contentWidth(m_view->m_zoom), m_view->contentHeight(m_view->m_zoom)};
     }
     double heightForWidth(double) const override { return sizeHint().height; }
+    bool acceptsPointer() const override { return true; }
 
 protected:
     void paint(ui::Painter& painter) override;
+    void pointerPress(const ui::PointerEvent& event) override;
+    void pointerMove(const ui::PointerEvent& event) override;
+    void pointerRelease(const ui::PointerEvent& event) override;
 
 private:
+    // Where a press or a drag is, as a place in the text: false where the
+    // page's text is not read yet.
+    bool caret(ui::PointF content, TextPosition* position, const pdf::PageText** text = nullptr);
+
     PdfView* m_view;
+    bool m_pressed = false;
+    bool m_dragged = false;
+    bool m_selecting = false;
+    ui::PointF m_pressAt;
 };
+
+bool PdfView::Canvas::caret(ui::PointF content, TextPosition* position, const pdf::PageText** text)
+{
+    ui::PointF point;
+    const int page = m_view->pagePoint(content, &point);
+    const pdf::PageText* pageText = page >= 0 ? m_view->m_document->text(page, PdfWorker::Urgency::Now) : nullptr;
+    if (!pageText)
+        return false;
+    *position = {page, caretAt(*pageText, point)};
+    if (text)
+        *text = pageText;
+    return true;
+}
 
 void PdfView::Canvas::paint(ui::Painter& painter)
 {
@@ -63,6 +149,8 @@ void PdfView::Canvas::paint(ui::Painter& painter)
     const double line = 1 / painter.scale();
     const ui::Theme& theme = ui::Theme::current();
     const ui::Color edge = theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15);
+    const TextPosition start = m_view->selectionStart();
+    const TextPosition end = m_view->selectionEnd();
     for (int page = m_view->pageAt(top); page < document->pageCount(); ++page) {
         const ui::RectF rect = m_view->pageRect(page);
         const ui::RectF content {rect.x + pan.x, rect.y + pan.y, rect.width, rect.height};
@@ -86,8 +174,63 @@ void PdfView::Canvas::paint(ui::Painter& painter)
                                    tile.image.height() * factor});
             }
         }
+        const auto fill = [&](const ui::RectF& points, ui::Color color) {
+            painter.fillRect({content.x + points.x * zoom, content.y + points.y * zoom, points.width * zoom,
+                              points.height * zoom},
+                             color);
+        };
+        if (m_view->hasSelection() && page >= start.page && page <= end.page) {
+            if (const pdf::PageText* text = document->text(page)) {
+                const size_t first = page == start.page ? start.index : 0;
+                const size_t last = page == end.page ? end.index : text->characters.size();
+                for (const ui::RectF& points : rangeRects(*text, first, last))
+                    fill(points, kSelectionColor);
+            }
+        }
         painter.restore();
     }
+}
+
+void PdfView::Canvas::pointerPress(const ui::PointerEvent& event)
+{
+    if (!m_view->m_document)
+        return;
+    if (event.button != ui::MouseButton::Left)
+        return;
+    m_pressed = true;
+    m_dragged = false;
+    m_pressAt = event.position;
+    TextPosition position;
+    const pdf::PageText* text = nullptr;
+    m_selecting = caret(event.position, &position, &text);
+    if (!m_selecting) {
+        m_view->clearSelection();
+        return;
+    }
+    size_t first = position.index;
+    size_t last = position.index;
+    if (event.clickCount == 1 && (event.modifiers & ui::ShiftModifier) && m_view->hasSelection())
+        m_view->setSelection(m_view->m_anchor, position);
+    else
+        m_view->setSelection({position.page, first}, {position.page, last});
+}
+
+void PdfView::Canvas::pointerMove(const ui::PointerEvent& event)
+{
+    if (!m_pressed)
+        return;
+    if (std::hypot(event.position.x - m_pressAt.x, event.position.y - m_pressAt.y) > kDragDistance)
+        m_dragged = true;
+    TextPosition position;
+    if (m_dragged && m_selecting && caret(event.position, &position))
+        m_view->setSelection(m_view->m_anchor, position);
+}
+
+void PdfView::Canvas::pointerRelease(const ui::PointerEvent& event)
+{
+    if (!m_pressed)
+        return;
+    m_pressed = false;
 }
 
 PdfView::PdfView()
@@ -114,6 +257,7 @@ void PdfView::setDocument(PdfDocument* document)
     m_document = document;
     m_heightsBefore.clear();
     m_widest = 0;
+    m_anchor = m_focus = {};
     m_currentPage = 0;
     m_fitted = true;
     m_renderScale = 0;
@@ -125,6 +269,7 @@ void PdfView::setDocument(PdfDocument* document)
             m_widest = std::max(m_widest, size.width);
         }
         m_heightsBefore.push_back(height);
+        m_subscriptions.push_back(document->pageDataChanged.connect([this](int) { m_canvas->requestPaint(); }));
     }
     m_zoom = fitZoom();
     m_lastSize = {};
@@ -378,6 +523,38 @@ void PdfView::scrollScreen(int direction)
     setPosition({position.x, position.y + direction * std::max(1.0, geometry().height - 40)});
 }
 
+void PdfView::setSelection(TextPosition anchor, TextPosition focus)
+{
+    if (anchor == m_anchor && focus == m_focus)
+        return;
+    m_anchor = anchor;
+    m_focus = focus;
+    m_canvas->requestPaint();
+    if (onSelectionChanged)
+        onSelectionChanged();
+}
+
+void PdfView::selectAll()
+{
+    if (m_document)
+        setSelection({0, 0}, {m_document->pageCount() - 1, std::numeric_limits<size_t>::max()});
+}
+
+void PdfView::clearSelection()
+{
+    setSelection({}, {});
+}
+
+void PdfView::copy()
+{
+    if (!m_document || !hasSelection())
+        return;
+    m_copy = m_document->readText(selectionStart(), selectionEnd(), [](std::string text) {
+        if (!text.empty())
+            ui::Clipboard::setText(text);
+    });
+}
+
 void PdfView::updateTiles()
 {
     if (!m_document || m_renderScale <= 0 || geometry().width <= 0 || geometry().height <= 0)
@@ -389,6 +566,8 @@ void PdfView::updateTiles()
     const double nearTop = shown.y - shown.height / 2;
     const double nearBottom = shown.bottom() + shown.height / 2;
     std::unordered_map<TileKey, PdfRequest, TileHash> pending;
+    int firstShown = -1;
+    int lastShown = -1;
     for (int page = pageAt(std::max(0.0, nearTop)); page < m_document->pageCount(); ++page) {
         const ui::SizeF size = m_document->pageSizes()[size_t(page)];
         const double top = snap(pageTop(page, m_zoom));
@@ -398,6 +577,13 @@ void PdfView::updateTiles()
             break;
         if (bottom < nearTop)
             continue;
+        const bool inSight = top < shown.bottom() && bottom > shown.y;
+        if (inSight) {
+            if (firstShown < 0)
+                firstShown = page;
+            lastShown = page;
+            m_document->text(page);
+        }
         const int pixelWidth = int(std::ceil(size.width * scale));
         const int pixelHeight = int(std::ceil(size.height * scale));
         // The part of the page wanted, in its pixels at the scale.
@@ -445,6 +631,8 @@ void PdfView::updateTiles()
     }
     // What scrolled away is not drawn after all.
     m_pendingTiles = std::move(pending);
+    if (firstShown >= 0)
+        m_document->keepPageRequests(firstShown, lastShown);
 }
 
 void PdfView::tileArrived(Tile tile)

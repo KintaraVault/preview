@@ -74,8 +74,9 @@ public:
     void toggleSidebar();
     bool isFullScreen() const;
     void toggleFullScreen();
-    // The image and its file's URL.
+    // The image and its file's URL, or the PDF's selected text.
     void copy();
+    void selectAll();
     // A JPEG or PNG that may be written, still.
     bool canRotate() const;
     // Quarters clockwise; -1 turns left.

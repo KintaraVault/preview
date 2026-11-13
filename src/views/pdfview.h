@@ -63,6 +63,15 @@ public:
     // A screenful down, or up.
     void scrollScreen(int direction);
 
+    bool hasSelection() const { return m_anchor != m_focus; }
+    void selectAll();
+    void clearSelection();
+    // The selected text to the clipboard, read on the worker.
+    void copy();
+    void setSelection(TextPosition anchor, TextPosition focus);
+    TextPosition selectionStart() const { return std::min(m_anchor, m_focus); }
+    TextPosition selectionEnd() const { return std::max(m_anchor, m_focus); }
+
     // In the view's coordinates.
     cutefish::ui::RectF pageRect(int page) const;
     cutefish::ui::PointF viewPoint(int page, cutefish::ui::PointF point) const;
@@ -72,6 +81,7 @@ public:
     bool hasPendingTiles() const;
 
     std::function<void()> onCurrentPageChanged;
+    std::function<void()> onSelectionChanged;
 
 protected:
     void layout() override;
@@ -155,4 +165,8 @@ private:
     double m_animationTo = 1;
     std::unique_ptr<cutefish::ui::Animation> m_animation;
     double m_pinchScale = 1;
+
+    TextPosition m_anchor;
+    TextPosition m_focus;
+    PdfRequest m_copy;
 };

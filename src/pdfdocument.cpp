@@ -12,9 +12,12 @@
 using namespace cutefish;
 using Urgency = PdfWorker::Urgency;
 
+static constexpr size_t kPagesKept = 64;
+
 PdfDocument::PdfDocument(std::string path)
     : m_path(std::move(path))
     , m_worker(std::make_unique<PdfWorker>())
+    , m_pages(kPagesKept)
 {
     m_opening = m_worker->open(m_path, {}, [this](int status) { opened(status); });
 }
@@ -55,4 +58,60 @@ void PdfDocument::opened(int status)
         return;
     }
     stateChanged();
+}
+
+PdfDocument::PageData& PdfDocument::data(int page)
+{
+    if (PageData* found = m_pages.find(page))
+        return *found;
+    m_pages.insert(page, std::make_unique<PageData>());
+    return *m_pages.find(page);
+}
+
+const pdf::PageText* PdfDocument::text(int page, Urgency urgency)
+{
+    if (m_state != State::Ready || page < 0 || page >= pageCount())
+        return nullptr;
+    PageData& entry = data(page);
+    if (entry.text)
+        return &*entry.text;
+    PdfRequest& request = m_textRequests[page];
+    if (!request.isPending()) {
+        request = m_worker->run(
+                urgency, [page](const pdf::Document* document, const std::atomic<bool>*) { return document->text(page); },
+                [this, page](pdf::PageText text) {
+                    m_textRequests.erase(page);
+                    data(page).text = std::move(text);
+                    pageDataChanged(page);
+                });
+    }
+    return nullptr;
+}
+
+void PdfDocument::keepPageRequests(int first, int last)
+{
+    const auto outside = [first, last](const auto& entry) { return entry.first < first || entry.first > last; };
+    std::erase_if(m_textRequests, outside);
+}
+
+PdfRequest PdfDocument::readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done)
+{
+    if (m_state != State::Ready || to <= from)
+        return {};
+    return m_worker->run(
+            Urgency::Now,
+            [from, to](const pdf::Document* document, const std::atomic<bool>* cancelled) {
+                std::string text;
+                for (int page = from.page; page <= to.page && !cancelled->load(); ++page) {
+                    const pdf::PageText pageText = document->text(page);
+                    const size_t size = pageText.characters.size();
+                    const size_t first = page == from.page ? std::min(from.index, size) : 0;
+                    const size_t last = page == to.page ? std::min(to.index, size) : size;
+                    if (!text.empty() && page != from.page)
+                        text += '\n';
+                    text += pageText.text(first, last - first);
+                }
+                return text;
+            },
+            std::move(done));
 }

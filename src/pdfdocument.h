@@ -7,12 +7,25 @@
 
 #include "cutefish/pdf/document.h"
 
+#include "base/lru_cache.h"
 #include "base/signal.h"
 #include "ui/geometry.h"
 
+#include <functional>
 #include <map>
+#include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+// A place in the text of the document: before character `index` of `page`.
+struct TextPosition
+{
+    int page = 0;
+    size_t index = 0;
+
+    auto operator<=>(const TextPosition&) const = default;
+};
 
 // A PDF as the UI sees it, everything read on its worker. Asking for
 // something not there yet asks the worker and tells by a signal when it
@@ -45,12 +58,28 @@ public:
     // In points, as shown.
     const std::vector<cutefish::ui::SizeF>& pageSizes() const { return m_sizes; }
 
+    // Null until it arrives.
+    const cutefish::pdf::PageText* text(int page, PdfWorker::Urgency urgency = PdfWorker::Urgency::Near);
+    // Text and links asked for pages outside these are not read after all.
+    void keepPageRequests(int first, int last);
+
+    // UTF-8 from `from` up to `to`, lines of separate pages apart.
+    [[nodiscard]] PdfRequest readText(TextPosition from, TextPosition to, std::function<void(std::string text)> done);
+
     PdfWorker& worker() { return *m_worker; }
 
     cutefish::base::Signal<> stateChanged;
+    // Its text or links arrived.
+    cutefish::base::Signal<int> pageDataChanged;
 
 private:
+    struct PageData
+    {
+        std::optional<cutefish::pdf::PageText> text;
+    };
+
     void opened(int status);
+    PageData& data(int page);
 
     std::string m_path;
     std::unique_ptr<PdfWorker> m_worker;
@@ -58,4 +87,7 @@ private:
     std::vector<cutefish::ui::SizeF> m_sizes;
     PdfRequest m_opening;
     PdfRequest m_info;
+    // The pages near what was asked for last; far ones are read again.
+    cutefish::base::LruCache<int, PageData> m_pages;
+    std::unordered_map<int, PdfRequest> m_textRequests;
 };
