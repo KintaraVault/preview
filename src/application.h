@@ -7,13 +7,22 @@
 #include <string>
 #include <vector>
 
+namespace cutefish::base::dbus {
+class Connection;
+class Object;
+}
+
 class PreviewSettings;
 class PreviewWindow;
 
-// The process: its windows and the settings they share.
+// The process: its windows, the settings they share, and the D-Bus service
+// later launches hand their files to.
 class Application
 {
 public:
+    static constexpr const char* kService = "org.cutefish.Preview";
+    static constexpr const char* kPath = "/Preview";
+
     explicit Application(PreviewSettings& settings);
     ~Application();
 
@@ -35,6 +44,10 @@ public:
 
     void showInFiles(const std::string& path) const;
 
+    // Publishes org.cutefish.Preview at /Preview; false when another process
+    // has the name.
+    bool registerService(cutefish::base::dbus::Connection* bus);
+
 private:
     PreviewWindow* windowShowing(const std::string& path) const;
     // A window on its welcome page, or a new one.
@@ -42,4 +55,5 @@ private:
 
     PreviewSettings& m_settings;
     std::vector<std::unique_ptr<PreviewWindow>> m_windows;
+    std::unique_ptr<cutefish::base::dbus::Object> m_service;
 };

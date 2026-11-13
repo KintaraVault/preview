@@ -5,14 +5,17 @@
 #include "icons.h"
 #include "previewsettings.h"
 
+#include "base/dbus.h"
 #include "base/i18n.h"
 #include "ui/application.h"
 #include "ui/icon.h"
 
+#include <chrono>
 #include <string>
 #include <vector>
 
 using namespace cutefish;
+using namespace std::chrono_literals;
 
 int main(int argc, char** argv)
 {
@@ -26,6 +29,15 @@ int main(int argc, char** argv)
 
     PreviewSettings settings(PreviewSettings::defaultPath());
     Application application(settings);
+    if (base::dbus::Connection* bus = app.sessionBus()) {
+        if (!application.registerService(bus)) {
+            base::dbus::Proxy running(bus, Application::kService, Application::kPath, Application::kService);
+            running.setTimeout(3s);
+            // A Preview that does not answer leaves the files to this one.
+            if (!running.call("Open", paths, app.takeActivationToken()).isError())
+                return 0;
+        }
+    }
     application.open(paths, app.takeActivationToken());
     return app.run();
 }

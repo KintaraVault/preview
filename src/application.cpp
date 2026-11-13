@@ -23,6 +23,7 @@ Application::Application(PreviewSettings& settings)
 
 Application::~Application()
 {
+    m_service.reset();
     m_windows.clear();
 }
 
@@ -101,4 +102,19 @@ void Application::showInFiles(const std::string& path) const
     base::dbus::Proxy proxy(bus, "org.freedesktop.FileManager1", "/org/freedesktop/FileManager1",
                             "org.freedesktop.FileManager1");
     proxy.send("ShowItems", std::vector<std::string> {base::url::fromLocalFile(path)}, std::string());
+}
+
+bool Application::registerService(base::dbus::Connection* bus)
+{
+    // The object goes up before the name, so a second launch that finds the
+    // name always finds someone to hand its files to.
+    m_service = std::make_unique<base::dbus::Object>(bus, kPath, kService);
+    m_service->addMethod(
+            "Open",
+            [this](const std::vector<std::string>& paths, const std::string& activationToken) {
+                open(paths, activationToken);
+            },
+            base::dbus::ArgumentNames {{"paths", "activationToken"}, {}});
+    m_service->publish();
+    return bus->requestName(kService);
 }
