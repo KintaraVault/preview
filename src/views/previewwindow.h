@@ -10,6 +10,7 @@
 #include "ui/geometry.h"
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -108,6 +109,9 @@ private:
     Root* m_root = nullptr;
     std::unique_ptr<ImageSequence> m_sequence;
     std::vector<cutefish::base::Subscription> m_sequenceConnections;
+    // The files opened that the window has not displayed yet, for the
+    // recent files.
+    std::set<std::string> m_opened;
     bool m_sidebarShown = false;
     // The window took its size from its file.
     bool m_sized = false;

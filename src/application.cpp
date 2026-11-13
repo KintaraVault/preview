@@ -32,7 +32,6 @@ void Application::open(const std::vector<std::string>& paths, const std::string&
     std::vector<std::string> images;
     std::vector<std::vector<std::string>> requests;
     for (const std::string& path : paths) {
-        m_settings.addRecentFile(path);
         if (ImageSequence::isImage(path))
             images.push_back(path);
         else

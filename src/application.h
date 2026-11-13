@@ -36,6 +36,7 @@ public:
     // page: the images in one, every other file in its own. A file a window
     // shows already raises that window instead. No paths, a welcome page.
     // The token activates the window, for a request from another process.
+    // A file joins the recent files once a window displays it.
     void open(const std::vector<std::string>& paths, const std::string& activationToken = {});
     // Destroys a closed window after the event it closed in; the last one
     // ends the process.

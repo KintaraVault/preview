@@ -336,6 +336,7 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequenceConnections.push_back(
             m_sequence->currentWritten.connect([this] { m_root->image->load(m_sequence->currentPath()); }));
     m_sidebarShown = m_application.settings().sidebarShown(kind());
+    m_opened = std::set<std::string>(paths.begin(), paths.end());
     m_mapPending = !m_mapped;
     m_root->sidebar->setItems(m_sequence->paths());
     m_root->image->load(m_sequence->currentPath());
@@ -391,6 +392,9 @@ void PreviewWindow::shown()
         m_mapped = true;
         m_window->activate(std::exchange(m_activationToken, std::string()));
     }
+    const std::string& path = m_root->image->shown().path;
+    if (m_root->image->showsImage() && m_opened.erase(path))
+        m_application.settings().addRecentFile(path);
     const int index = currentIndex();
     std::vector<std::string> ahead;
     for (const int neighbour : {index + 1, index - 1}) {
