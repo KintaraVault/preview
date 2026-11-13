@@ -86,6 +86,8 @@ private:
     cutefish::ui::ImageView* m_preloader;
     std::vector<cutefish::ui::ImageView*> m_ahead;
     ShownFile m_shown;
+    // The device pixel ratio the shown image was laid out for.
+    double m_shownRatio = 1;
     std::optional<ShownFile> m_pending;
     cutefish::base::Job m_describe;
     std::vector<cutefish::base::Job> m_aheadJobs;

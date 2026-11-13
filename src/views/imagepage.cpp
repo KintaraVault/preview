@@ -228,6 +228,7 @@ void ImagePage::present(ShownFile file)
             ? fittedPixels(file.info, viewportFor ? viewportFor(file.info) : geometry().size())
             : ui::SizeF();
     m_shown = std::move(file);
+    m_shownRatio = ratio();
     m_viewer->setImage(m_shown.info.readable ? m_shown.path : std::string(), m_shown.info, prepared, ratio());
     m_card->setVisible(!m_shown.info.readable);
     m_card->setFile(m_shown);
@@ -256,6 +257,10 @@ void ImagePage::updateStatus()
 
 void ImagePage::layout()
 {
+    // On a screen of another scale the image is decoded again, one image
+    // pixel to a device pixel there.
+    if (showsImage() && ratio() != m_shownRatio && !m_describe.isPending() && !m_pending)
+        load(m_shown.path);
     const ui::RectF rect = localRect();
     m_viewer->setGeometry(rect);
     m_busy->setGeometry({centeredStart(rect.width, 22), centeredStart(rect.height, 22), 22, 22});
