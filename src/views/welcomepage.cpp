@@ -212,7 +212,7 @@ WelcomePage::WelcomePage()
 
 void WelcomePage::retranslate()
 {
-    m_title->setText(tr("Drop an Image Here"));
+    m_title->setText(tr("Drop an Image or PDF Here"));
     m_subtitle->setText(tr("Or open a file to view it."));
     m_open->setText(tr("Open…"));
     m_recentLabel->setText(tr("Recent"));
