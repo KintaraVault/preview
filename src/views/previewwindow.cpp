@@ -300,8 +300,7 @@ protected:
         sidebar->setGeometry({0, 0, left, rect.height});
         divider->setVisible(left > 0);
         divider->setSidebarWidth(left);
-        divider->setGeometry({left - ui::SidebarDivider::kWidth / 2, kHeaderHeight, ui::SidebarDivider::kWidth,
-                              std::max(0.0, rect.height - kHeaderHeight)});
+        divider->setGeometry({left - ui::SidebarDivider::kWidth / 2, 0, ui::SidebarDivider::kWidth, rect.height});
         const double width = std::max(0.0, rect.width - left);
         const ui::RectF content {left, 0, width, rect.height};
         image->setTopInset(inset);
