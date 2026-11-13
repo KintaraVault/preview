@@ -109,6 +109,7 @@ public:
         zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
         zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
         rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
+        search = addButton("search", [&owner] { owner.showFind(); });
     }
 
     ui::HeaderButton* sidebar;
@@ -119,6 +120,7 @@ public:
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
     ui::HeaderButton* rotate;
+    ui::HeaderButton* search;
     double sidebarWidth = 0;
 
 protected:
@@ -141,7 +143,9 @@ protected:
             x += hint.width;
         }
         double right = geometry().width - 4;
+        // Rotate for an image, search for a PDF, in one place.
         rotate->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
+        search->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         right -= kButtonSize;
         zoomIn->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         right -= kButtonSize;
@@ -525,7 +529,10 @@ void PreviewWindow::updateHeader()
     row->zoomIn->setEnabled(zoomable);
     row->rotate->setVisible(document && !pdf);
     row->rotate->setEnabled(canRotate());
-    m_root->sidebar->setCurrent(index);
+    row->search->setVisible(pdf);
+    row->search->setEnabled(pdf && m_root->pdf->isReady());
+    if (m_root->sidebar->current() != index)
+        m_root->sidebar->setCurrent(index);
     row->requestLayout();
 }
 
@@ -718,6 +725,18 @@ void PreviewWindow::selectAll()
 {
     if (m_kind == DocumentKind::Pdf && m_root->pdf->isReady())
         m_root->pdf->view()->selectAll();
+}
+
+void PreviewWindow::showFind()
+{
+    if (m_kind == DocumentKind::Pdf)
+        m_root->pdf->showFind();
+}
+
+void PreviewWindow::findNext(bool backwards)
+{
+    if (m_kind == DocumentKind::Pdf)
+        m_root->pdf->findNext(backwards);
 }
 
 bool PreviewWindow::canRotate() const

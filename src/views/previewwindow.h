@@ -77,6 +77,8 @@ public:
     // The image and its file's URL, or the PDF's selected text.
     void copy();
     void selectAll();
+    void showFind();
+    void findNext(bool backwards);
     // A JPEG or PNG that may be written, still.
     bool canRotate() const;
     // Quarters clockwise; -1 turns left.

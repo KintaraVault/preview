@@ -18,6 +18,7 @@ class DialogButton;
 class Label;
 }
 
+class FindCard;
 class PasswordDialog;
 class PdfView;
 
@@ -45,6 +46,12 @@ public:
     bool asksPassword() const;
     PasswordDialog* passwordDialog() const { return m_password.get(); }
 
+    void showFind();
+    void findNext(bool backwards);
+    // The find or go to page card is open.
+    bool showsCard() const;
+    FindCard* findCard() const { return m_find; }
+
     // Opened, locked or unreadable.
     std::function<void()> onStateChanged;
     // The document is about to go, for a new one or none.
@@ -55,12 +62,15 @@ protected:
 
 private:
     void stateChanged();
+    void searchChanged();
+    void closeCards();
     void updateMessage();
 
     std::string m_path;
     std::unique_ptr<PdfDocument> m_document;
     std::vector<cutefish::base::Subscription> m_subscriptions;
     PdfView* m_view;
+    FindCard* m_find;
     cutefish::ui::Label* m_message;
     cutefish::ui::DialogButton* m_unlock;
     std::unique_ptr<PasswordDialog> m_password;

@@ -43,6 +43,7 @@ add_custom_command(OUTPUT ${PREVIEW_EMBEDDED}
 
 add_library(preview-ui STATIC
     src/application.cpp
+    src/views/cards.cpp
     src/views/imagepage.cpp
     src/views/passworddialog.cpp
     src/views/pdfpage.cpp
