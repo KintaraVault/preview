@@ -62,6 +62,17 @@ void PdfDocument::opened(int status)
                     m_sizes = std::move(sizes);
                     m_state = m_sizes.empty() ? State::Unreadable : State::Ready;
                     stateChanged();
+                    if (m_state != State::Ready)
+                        return;
+                    // Behind the first pages, which are asked for as the state changes.
+                    m_outlineRequest = m_worker->run(
+                            Urgency::Background,
+                            [](const pdf::Document* document, const std::atomic<bool>*) { return document->outline(); },
+                            [this](std::vector<pdf::OutlineItem> outline) {
+                                m_outline = std::move(outline);
+                                m_outlineRead = true;
+                                outlineChanged();
+                            });
                 });
         return;
     }

@@ -61,6 +61,9 @@ public:
     int pageCount() const { return int(m_sizes.size()); }
     // In points, as shown.
     const std::vector<cutefish::ui::SizeF>& pageSizes() const { return m_sizes; }
+    // Empty until read, after the first pages are drawn.
+    const std::vector<cutefish::pdf::OutlineItem>& outline() const { return m_outline; }
+    bool outlineRead() const { return m_outlineRead; }
 
     // Null until it arrives.
     const cutefish::pdf::PageText* text(int page, PdfWorker::Urgency urgency = PdfWorker::Urgency::Near);
@@ -91,6 +94,7 @@ public:
     PdfWorker& worker() { return *m_worker; }
 
     cutefish::base::Signal<> stateChanged;
+    cutefish::base::Signal<> outlineChanged;
     // Its text or links arrived.
     cutefish::base::Signal<int> pageDataChanged;
     cutefish::base::Signal<int> thumbnailChanged;
@@ -122,8 +126,11 @@ private:
     std::unique_ptr<PdfWorker> m_worker;
     State m_state = State::Opening;
     std::vector<cutefish::ui::SizeF> m_sizes;
+    std::vector<cutefish::pdf::OutlineItem> m_outline;
+    bool m_outlineRead = false;
     PdfRequest m_opening;
     PdfRequest m_info;
+    PdfRequest m_outlineRequest;
     // The pages near what was asked for last; far ones are read again.
     cutefish::base::LruCache<int, PageData> m_pages;
     std::unordered_map<int, PdfRequest> m_textRequests;
