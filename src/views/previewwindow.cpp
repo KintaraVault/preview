@@ -5,6 +5,7 @@
 #include "application.h"
 #include "imagepage.h"
 #include "imagesequence.h"
+#include "shortcutsdialog.h"
 #include "sidebar.h"
 #include "welcomepage.h"
 
@@ -635,6 +636,13 @@ void PreviewWindow::showAbout()
     m_about->show();
 }
 
+void PreviewWindow::showShortcuts()
+{
+    if (!m_shortcuts)
+        m_shortcuts = std::make_unique<ShortcutsDialog>(m_window.get());
+    m_shortcuts->show();
+}
+
 void PreviewWindow::poke()
 {
     m_pointerActive = true;
@@ -804,6 +812,11 @@ void PreviewWindow::buildMainMenu()
     windowMenu->addItem(tr("Minimize"), [this] { m_window->minimize(); });
     windowMenu->addItem(tr("Zoom"), [this] { m_window->setMaximized(!m_window->states().maximized); });
 
+    ui::Menu* help = m_mainMenu->addSubmenu(tr("Help"));
+    help->setRole(ui::MenuRole::Help);
+    const size_t shortcuts = help->addItem(tr("Keyboard Shortcuts"), [this] { showShortcuts(); });
+    help->setItemKeyEquivalent(shortcuts, "?", ctrl);
+
     m_window->setMainMenu(m_mainMenu.get());
 }
 
@@ -836,6 +849,10 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('o'), [this] { openDialog(); });
     window.addShortcut(ctrl, ui::key::letter('w'), [this] { close(); });
     window.addShortcut(ctrl, ui::key::letter('q'), [this] { m_application.quit(); });
+    // Ctrl+? whichever way the keyboard makes the question mark.
+    window.addShortcut(ctrl | shift, '?', [this] { showShortcuts(); });
+    window.addShortcut(ctrl, '?', [this] { showShortcuts(); });
+    window.addShortcut(ctrl | shift, '/', [this] { showShortcuts(); });
     // F and F11, as in the Video Player.
     window.addShortcut(none, ui::key::letter('f'), [this] { toggleFullScreen(); });
     window.addShortcut(none, ui::key::F1 + 10, [this] { toggleFullScreen(); });

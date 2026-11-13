@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-04 20:20+0800\n"
+"POT-Creation-Date: 2026-11-06 19:51+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -30,11 +30,11 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "Images"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "Copy"
 msgstr ""
 
@@ -42,7 +42,7 @@ msgstr ""
 msgid "Show in Files"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "Move to Trash"
 msgstr ""
 
@@ -170,7 +170,7 @@ msgstr ""
 msgid "Go to Page…"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "Window"
 msgstr ""
 
@@ -178,8 +178,77 @@ msgstr ""
 msgid "Minimize"
 msgstr ""
 
-#: src/views/previewwindow.cpp
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
 msgid "Zoom"
+msgstr ""
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr ""
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#. TRANSLATORS: key names stay as they are.
+#: src/views/shortcutsdialog.cpp
+msgid "Delete"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Page Up, Page Down"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Shift+Space, Space"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Home, End"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
 msgstr ""
 
 #: src/views/welcomepage.cpp

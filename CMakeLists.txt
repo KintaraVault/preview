@@ -36,6 +36,7 @@ add_library(preview-ui STATIC
     src/application.cpp
     src/views/imagepage.cpp
     src/views/previewwindow.cpp
+    src/views/shortcutsdialog.cpp
     src/views/sidebar.cpp
     src/views/welcomepage.cpp
     ${PREVIEW_EMBEDDED}

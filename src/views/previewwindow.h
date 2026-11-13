@@ -26,6 +26,7 @@ struct ImageInfo;
 
 class Application;
 class ImagePage;
+class ShortcutsDialog;
 class ImageSequence;
 class Sidebar;
 
@@ -99,6 +100,7 @@ private:
     void updateBackground();
     void openContextMenu(cutefish::ui::PointF position);
     void showAbout();
+    void showShortcuts();
     // The full screen header: it fades out two seconds after the pointer stops.
     void poke();
     void updateChrome();
@@ -126,6 +128,7 @@ private:
     std::unique_ptr<cutefish::ui::Menu> m_contextMenu;
     std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     std::unique_ptr<cutefish::ui::AboutDialog> m_about;
+    std::unique_ptr<ShortcutsDialog> m_shortcuts;
     bool m_pointerActive = true;
     double m_chromeOpacity = 1;
     double m_chromeFrom = 1;
