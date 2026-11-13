@@ -1,0 +1,31 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-02 19:18+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr ""
+
+#. TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr ""
+
+#: cutefish-preview.desktop
+msgid "View images"
+msgstr ""
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;"
+msgstr ""
