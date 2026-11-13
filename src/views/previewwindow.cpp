@@ -264,6 +264,13 @@ void PreviewWindow::sequenceChanged()
 
 void PreviewWindow::shown()
 {
+    const int index = currentIndex();
+    std::vector<std::string> ahead;
+    for (const int neighbour : {index + 1, index - 1}) {
+        if (neighbour >= 0 && neighbour < count())
+            ahead.push_back(m_sequence->paths()[size_t(neighbour)]);
+    }
+    m_root->image->preload(ahead);
     updateHeader();
     updateTitle();
 }

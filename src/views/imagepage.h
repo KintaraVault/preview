@@ -44,6 +44,8 @@ public:
     // Reads the file's header on a worker and decodes it to fit
     // viewportFor(), then shows it.
     void load(const std::string& path);
+    // Decodes these ahead, to fit the page as it is now.
+    void preload(const std::vector<std::string>& paths);
     void clear();
 
     // What is on screen; it trails load() while the next image decodes.
@@ -71,7 +73,9 @@ private:
     ImageViewer* m_viewer;
     // Decode into the image cache: the image staged, and the neighbours.
     cutefish::ui::ImageView* m_preloader;
+    std::vector<cutefish::ui::ImageView*> m_ahead;
     ShownFile m_shown;
     std::optional<ShownFile> m_pending;
     cutefish::base::Job m_describe;
+    std::vector<cutefish::base::Job> m_aheadJobs;
 };

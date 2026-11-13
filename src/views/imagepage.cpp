@@ -41,6 +41,9 @@ ImagePage::ImagePage()
 {
     m_viewer = addChild<ImageViewer>();
     m_preloader = addPreloader(this);
+    for (int i = 0; i < 2; ++i)
+        m_ahead.push_back(addPreloader(this));
+    m_aheadJobs.resize(m_ahead.size());
 }
 
 ImagePage::~ImagePage() = default;
@@ -51,9 +54,35 @@ void ImagePage::load(const std::string& path)
                                                 [this](ShownFile file) { stage(std::move(file)); });
 }
 
+void ImagePage::preload(const std::vector<std::string>& paths)
+{
+    for (size_t i = 0; i < m_ahead.size(); ++i) {
+        ui::ImageView* ahead = m_ahead[i];
+        if (i >= paths.size()) {
+            m_aheadJobs[i].cancel();
+            ahead->setSource({});
+            continue;
+        }
+        m_aheadJobs[i] = base::ThreadPool::global().run(
+                [path = paths[i]] { return describe(path); },
+                [this, ahead](ShownFile file) {
+                    if (!decodesAhead(file.info))
+                        return;
+                    const ui::SizeF pixels = fittedPixels(file.info, geometry().size());
+                    ahead->setSourceSize({pixels.width / ratio(), pixels.height / ratio()});
+                    ahead->setSource(file.path);
+                    requestLayout();
+                });
+    }
+}
+
 void ImagePage::clear()
 {
     m_describe.cancel();
+    for (base::Job& job : m_aheadJobs)
+        job.cancel();
+    for (ui::ImageView* ahead : m_ahead)
+        ahead->setSource({});
     m_pending.reset();
     m_preloader->onStatusChanged = nullptr;
     m_preloader->setSource({});
@@ -117,4 +146,6 @@ void ImagePage::layout()
     const ui::RectF rect = localRect();
     m_viewer->setGeometry(rect);
     m_preloader->setGeometry({0, 0, 1, 1});
+    for (ui::ImageView* ahead : m_ahead)
+        ahead->setGeometry({0, 0, 1, 1});
 }
