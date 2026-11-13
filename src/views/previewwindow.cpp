@@ -9,11 +9,13 @@
 #include "welcomepage.h"
 
 #include "base/event_loop.h"
+#include "base/file.h"
 #include "base/i18n.h"
 #include "base/url.h"
 #include "ui/cell_layout.h"
 #include "ui/animation.h"
 #include "ui/application.h"
+#include "ui/clipboard.h"
 #include "ui/color_provider.h"
 #include "ui/file_chooser.h"
 #include "ui/file_drop_area.h"
@@ -522,6 +524,18 @@ void PreviewWindow::toggleFullScreen()
         m_window->setFullScreen(!isFullScreen());
 }
 
+void PreviewWindow::copy()
+{
+    if (!m_root->image->showsImage())
+        return;
+    const ShownFile& file = m_root->image->shown();
+    ui::MimeData data;
+    if (const std::optional<std::string> bytes = base::file::read(file.path))
+        data.setData(file.mimeType, *bytes);
+    data.setUrls({base::url::fromLocalFile(file.path)});
+    ui::Clipboard::setMimeData(data);
+}
+
 void PreviewWindow::openDialog()
 {
     m_chooser = std::make_unique<ui::FileChooser>(m_window.get());
@@ -596,6 +610,7 @@ void PreviewWindow::bindShortcuts()
     window.addShortcut(ctrl, ui::key::letter('-'), [this] { zoomOut(); });
     window.addShortcut(ctrl, ui::key::letter('0'), [this] { zoomToFit(); });
     window.addShortcut(ctrl, ui::key::letter('9'), [this] { zoomToActualSize(); });
+    window.addShortcut(ctrl, ui::key::letter('c'), [this] { copy(); });
     window.addShortcut(ctrl, ui::key::letter('o'), [this] { openDialog(); });
     window.addShortcut(ctrl, ui::key::letter('w'), [this] { close(); });
     window.addShortcut(ctrl, ui::key::letter('q'), [this] { m_application.quit(); });

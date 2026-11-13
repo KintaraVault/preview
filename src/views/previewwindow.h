@@ -64,6 +64,8 @@ public:
     void toggleSidebar();
     bool isFullScreen() const;
     void toggleFullScreen();
+    // The image and its file's URL.
+    void copy();
     void openDialog();
     void close();
 
