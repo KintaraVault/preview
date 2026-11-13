@@ -3,6 +3,7 @@
 
 #include "application.h"
 #include "cards.h"
+#include "imagepage.h"
 #include "passworddialog.h"
 #include "pdfdocument.h"
 #include "pdfpage.h"
@@ -97,9 +98,10 @@ protected:
 
     PreviewWindow& openPdf(const std::string& path)
     {
+        const size_t before = application.windows().size();
         application.open({path});
-        EXPECT_EQ(application.windows().size(), 1u);
-        PreviewWindow& window = *application.windows().front();
+        EXPECT_EQ(application.windows().size(), before + 1);
+        PreviewWindow& window = *application.windows().back();
         EXPECT_TRUE(waitFor(loop(), [&] { return window.pdfPage()->isReady(); }));
         window.window().grab();
         return window;
@@ -510,4 +512,30 @@ TEST_F(PdfUiTest, PagesRestBelowTheHeaderAndScrollUnderItsBackdrop)
     const double top = view->mapToWindow(view->pageRect(0).topLeft()).y;
     EXPECT_EQ(top, header + PdfView::kMargin);
     EXPECT_EQ(top * 2, std::round(top * 2));
+}
+
+// A PDF has no arrows; its page number starts where an image's first arrow does.
+TEST_F(PdfUiTest, APdfHeaderHasNoArrows)
+{
+    std::filesystem::create_directory(directory.filePath("images"));
+    writePng(directory.filePath("images/a.png"), 40, 30);
+    const std::string image = writePng(directory.filePath("images/b.png"), 40, 30);
+    application.open({image});
+    PreviewWindow& images = *application.windows().front();
+    ASSERT_TRUE(waitFor(loop(), [&] { return images.imagePage()->shown().path == image && images.count() == 2; }));
+    images.window().grab();
+    ASSERT_TRUE(images.showsArrows());
+    const RectF arrow = images.previousArrowGeometry();
+
+    PreviewWindow& pdf = openPdf(writeFile(directory.filePath("sample.pdf"), samplePdf()));
+    ASSERT_NE(&pdf, &images);
+    EXPECT_FALSE(pdf.showsArrows());
+    EXPECT_EQ(pdf.positionText(), "1 of 3");
+    // Both without the sidebar.
+    ASSERT_FALSE(images.sidebarShown());
+    if (pdf.sidebarShown())
+        pdf.toggleSidebar();
+    pdf.window().grab();
+    EXPECT_EQ(pdf.positionGeometry().x, arrow.x);
+    EXPECT_EQ(pdf.positionGeometry().x, std::round(pdf.positionGeometry().x));
 }

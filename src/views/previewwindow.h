@@ -98,6 +98,10 @@ public:
     std::string positionText() const;
     std::string titleText() const;
     double chromeOpacity() const { return m_chromeOpacity; }
+    // The header's previous arrow and place label, in the window.
+    bool showsArrows() const;
+    cutefish::ui::RectF previousArrowGeometry() const;
+    cutefish::ui::RectF positionGeometry() const;
     bool hasShownToast() const { return m_toast != nullptr; }
 
 private:

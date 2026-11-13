@@ -142,6 +142,9 @@ protected:
             x += kButtonSize;
             next->setGeometry({x, top, kButtonSize, kButtonSize});
             x += kButtonSize + 4;
+        }
+        // Without the arrows, a PDF's page number where they would start.
+        if (position->isVisible()) {
             const ui::SizeF hint = position->sizeHint();
             position->setColor(ui::ColorId::Text);
             position->setGeometry({x, centeredStart(height, hint.height), hint.width, hint.height});
@@ -365,6 +368,25 @@ std::string PreviewWindow::positionText() const
     return m_root->row->position->isVisible() ? m_root->row->position->text() : std::string();
 }
 
+bool PreviewWindow::showsArrows() const
+{
+    return m_root->row->previous->isVisible();
+}
+
+ui::RectF PreviewWindow::previousArrowGeometry() const
+{
+    const ui::View* arrow = m_root->row->previous;
+    const ui::PointF origin = arrow->mapToWindow({});
+    return {origin.x, origin.y, arrow->geometry().width, arrow->geometry().height};
+}
+
+ui::RectF PreviewWindow::positionGeometry() const
+{
+    const ui::View* label = m_root->row->position;
+    const ui::PointF origin = label->mapToWindow({});
+    return {origin.x, origin.y, label->geometry().width, label->geometry().height};
+}
+
 std::string PreviewWindow::titleText() const
 {
     return m_root->row->title->text();
@@ -542,8 +564,10 @@ void PreviewWindow::updateHeader()
     const bool zoomable = pdf ? m_root->pdf->isReady() : document && m_root->image->showsImage();
     row->sidebar->setVisible(document);
     row->sidebar->setChecked(m_sidebarShown);
-    for (ui::View* view : std::initializer_list<ui::View*> {row->previous, row->next, row->position})
-        view->setVisible(multiple);
+    // A PDF goes through its pages in other ways; its arrows would step pages.
+    row->previous->setVisible(multiple && !pdf);
+    row->next->setVisible(multiple && !pdf);
+    row->position->setVisible(multiple);
     const int index = currentIndex();
     row->previous->setEnabled(index > 0);
     row->next->setEnabled(index + 1 < count());
