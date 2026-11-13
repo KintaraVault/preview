@@ -19,6 +19,7 @@ class Window;
 class Application;
 class ImagePage;
 class ImageSequence;
+class Sidebar;
 
 // A window of one document, or of a sequence of images: the header, the
 // content under it and its keys.
@@ -54,10 +55,13 @@ public:
     void zoomOut();
     void zoomToFit();
     void zoomToActualSize();
+    bool sidebarShown() const { return m_sidebarShown; }
+    void toggleSidebar();
     bool isFullScreen() const;
     void close();
 
     ImagePage* imagePage() const;
+    Sidebar* sidebar() const;
     // The header's "3 of 24" and file name.
     std::string positionText() const;
     std::string titleText() const;
@@ -79,4 +83,5 @@ private:
     Root* m_root = nullptr;
     std::unique_ptr<ImageSequence> m_sequence;
     std::vector<cutefish::base::Subscription> m_sequenceConnections;
+    bool m_sidebarShown = false;
 };

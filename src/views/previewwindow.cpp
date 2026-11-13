@@ -5,6 +5,7 @@
 #include "application.h"
 #include "imagepage.h"
 #include "imagesequence.h"
+#include "sidebar.h"
 
 #include "base/i18n.h"
 #include "ui/cell_layout.h"
@@ -33,6 +34,7 @@ static constexpr double kButtonSize = 32;
 static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
 static constexpr double kZoomStep = 1.5;
+static constexpr double kSidebarGap = 9;
 
 namespace {
 
@@ -68,14 +70,16 @@ protected:
 
 } // namespace
 
-// The header's own part: the arrows with the place in the sequence and the
-// file name after the window buttons, the zoom buttons at the end.
+// The header's own part: the sidebar toggle after the window buttons, the
+// arrows with the place in the sequence and the file name from the
+// sidebar's edge, the zoom buttons at the end.
 class PreviewWindow::HeaderRow : public ui::View
 {
 public:
     explicit HeaderRow(PreviewWindow& owner, ui::WindowHeader* header)
         : m_header(header)
     {
+        sidebar = addButton("sidebar-left", [&owner] { owner.toggleSidebar(); });
         previous = addButton("chevron-left", [&owner] { owner.step(-1); });
         next = addButton("chevron-right", [&owner] { owner.step(1); });
         position = addChild<ui::Label>();
@@ -86,12 +90,14 @@ public:
         zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
     }
 
+    ui::HeaderButton* sidebar;
     ui::HeaderButton* previous;
     ui::HeaderButton* next;
     ui::Label* position;
     ui::Label* title;
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
+    double sidebarWidth = 0;
 
 protected:
     void layout() override
@@ -99,6 +105,9 @@ protected:
         const double height = geometry().height;
         const double top = centeredStart(height, kButtonSize);
         double x = m_header->leadingInset() + 4;
+        sidebar->setGeometry({x, top, kButtonSize, kButtonSize});
+        // From the sidebar's edge as the Files header's buttons are.
+        x = std::max(x + kButtonSize + 4, sidebarWidth + kSidebarGap);
         if (previous->isVisible()) {
             previous->setGeometry({x, top, kButtonSize, kButtonSize});
             x += kButtonSize;
@@ -140,11 +149,15 @@ public:
     explicit Root(PreviewWindow& owner)
         : m_owner(owner)
     {
+        sidebar = addChild<Sidebar>(kHeaderHeight);
         image = addChild<ImagePage>();
         bar = addChild<HeaderBar>(kHeaderHeight);
         row = bar->header->setContent<HeaderRow>(owner, bar->header);
     }
 
+    double sidebarWidth() const { return sidebar->isVisible() ? Sidebar::kWidth : 0; }
+
+    Sidebar* sidebar;
     ImagePage* image;
     HeaderBar* bar;
     HeaderRow* row;
@@ -153,19 +166,26 @@ protected:
     void layout() override
     {
         const ui::RectF rect = localRect();
+        sidebar->setVisible(m_owner.m_sidebarShown && !m_owner.isWelcome());
         image->setVisible(!m_owner.isWelcome());
+        const double left = sidebarWidth();
         const double top = m_owner.isFullScreen() ? 0 : kHeaderHeight;
-        const ui::RectF content {0, top, rect.width, std::max(0.0, rect.height - top)};
+        sidebar->setGeometry({0, 0, left, rect.height});
+        const ui::RectF content {left, top, std::max(0.0, rect.width - left), std::max(0.0, rect.height - top)};
         image->setGeometry(content);
+        bar->contentLeft = left;
         bar->setGeometry({0, 0, rect.width, kHeaderHeight});
+        row->sidebarWidth = left;
+        row->requestLayout();
         if (window())
             window()->setBackgroundBlur(rect, ui::Theme::current().windowRadius);
     }
 
     void paint(ui::Painter& painter) override
     {
+        const double left = sidebarWidth();
         const ui::RectF rect = localRect();
-        painter.fillRect(rect,
+        painter.fillRect({left, 0, rect.width - left, rect.height},
                          m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255} : ui::Theme::current().background);
     }
 
@@ -188,6 +208,7 @@ PreviewWindow::PreviewWindow(Application& application)
     ImagePage* page = m_root->image;
     page->onShown = [this] { shown(); };
     page->viewer()->onSwipe = [this](int delta) { step(delta); };
+    m_root->sidebar->onActivated = [this](int index) { goTo(index); };
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };
@@ -206,6 +227,11 @@ PreviewWindow::~PreviewWindow() = default;
 ImagePage* PreviewWindow::imagePage() const
 {
     return m_root->image;
+}
+
+Sidebar* PreviewWindow::sidebar() const
+{
+    return m_root->sidebar;
 }
 
 std::string PreviewWindow::positionText() const
@@ -245,6 +271,8 @@ void PreviewWindow::show(const std::vector<std::string>& paths)
     m_sequenceConnections.clear();
     m_sequence = folder ? ImageSequence::folderOf(paths.front()) : ImageSequence::files(paths);
     m_sequenceConnections.push_back(m_sequence->changed.connect([this] { sequenceChanged(); }));
+    m_sidebarShown = m_application.settings().sidebarShown(kind());
+    m_root->sidebar->setItems(m_sequence->paths());
     m_root->image->load(m_sequence->currentPath());
     m_root->requestLayout();
     updateHeader();
@@ -258,6 +286,7 @@ void PreviewWindow::raise(const std::string& activationToken)
 
 void PreviewWindow::sequenceChanged()
 {
+    m_root->sidebar->setItems(m_sequence->paths());
     if (m_sequence->currentPath() != m_root->image->shown().path)
         m_root->image->load(m_sequence->currentPath());
     updateHeader();
@@ -282,6 +311,8 @@ void PreviewWindow::updateHeader()
     const bool document = !isWelcome();
     const bool multiple = count() > 1;
     const bool image = document && m_root->image->showsImage();
+    row->sidebar->setVisible(document);
+    row->sidebar->setChecked(m_sidebarShown);
     for (ui::View* view : std::initializer_list<ui::View*> {row->previous, row->next, row->position})
         view->setVisible(multiple);
     const int index = currentIndex();
@@ -296,6 +327,7 @@ void PreviewWindow::updateHeader()
     row->zoomIn->setVisible(document);
     row->zoomOut->setEnabled(image);
     row->zoomIn->setEnabled(image);
+    m_root->sidebar->setCurrent(index);
     row->requestLayout();
 }
 
@@ -349,6 +381,17 @@ void PreviewWindow::zoomToActualSize()
 {
     if (m_root->image->showsImage())
         m_root->image->viewer()->zoomToActualSize();
+}
+
+void PreviewWindow::toggleSidebar()
+{
+    if (isWelcome())
+        return;
+    m_sidebarShown = !m_sidebarShown;
+    m_application.settings().setSidebarShown(kind(), m_sidebarShown);
+    m_root->requestLayout();
+    m_root->requestPaint();
+    updateHeader();
 }
 
 bool PreviewWindow::isFullScreen() const
