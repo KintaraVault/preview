@@ -55,6 +55,7 @@ public:
 
     const std::string& path() const { return m_path; }
     State state() const { return m_state; }
+    void unlock(const std::string& password);
 
     int pageCount() const { return int(m_sizes.size()); }
     // In points, as shown.

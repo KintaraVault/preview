@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cutefish-preview\n"
 "Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
-"POT-Creation-Date: 2026-11-10 20:37+0800\n"
+"POT-Creation-Date: 2026-11-11 18:55+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -14,6 +14,36 @@ msgstr ""
 
 #: src/views/imagepage.cpp
 msgid "This image could not be displayed."
+msgstr ""
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr ""
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr ""
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr ""
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr ""
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr ""
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr ""
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
 msgstr ""
 
 #: src/views/pdfpage.cpp
@@ -42,10 +72,6 @@ msgstr ""
 #: src/views/previewwindow.cpp
 #, python-brace-format
 msgid "Could not rotate {name}: {reason}"
-msgstr ""
-
-#: src/views/previewwindow.cpp
-msgid "Open"
 msgstr ""
 
 #: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp

@@ -14,9 +14,11 @@
 #include <vector>
 
 namespace cutefish::ui {
+class DialogButton;
 class Label;
 }
 
+class PasswordDialog;
 class PdfView;
 
 // A PDF under the header: its pages; a file that cannot be read, or stays
@@ -38,6 +40,11 @@ public:
     bool isReady() const;
     PdfView* view() const { return m_view; }
 
+    // The password dialog, over the window.
+    void askPassword();
+    bool asksPassword() const;
+    PasswordDialog* passwordDialog() const { return m_password.get(); }
+
     // Opened, locked or unreadable.
     std::function<void()> onStateChanged;
     // The document is about to go, for a new one or none.
@@ -55,4 +62,6 @@ private:
     std::vector<cutefish::base::Subscription> m_subscriptions;
     PdfView* m_view;
     cutefish::ui::Label* m_message;
+    cutefish::ui::DialogButton* m_unlock;
+    std::unique_ptr<PasswordDialog> m_password;
 };

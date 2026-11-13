@@ -477,6 +477,9 @@ void PreviewWindow::pdfStateChanged()
             m_application.settings().addRecentFile(document->path());
     }
     map();
+    // The dialog goes over the window, mapped first.
+    if (document->state() == PdfDocument::State::Locked && !page->asksPassword())
+        page->askPassword();
     m_root->requestLayout();
     m_root->requestPaint();
     updateHeader();

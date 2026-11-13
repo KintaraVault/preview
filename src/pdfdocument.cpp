@@ -31,6 +31,12 @@ bool PdfDocument::isPdf(const std::string& path)
     return base::mime::typeForFileName(std::filesystem::path(path).filename().string()) == "application/pdf";
 }
 
+void PdfDocument::unlock(const std::string& password)
+{
+    m_state = State::Opening;
+    m_opening = m_worker->open(m_path, password, [this](int status) { opened(status); });
+}
+
 void PdfDocument::opened(int status)
 {
     switch (pdf::Document::Status(status)) {
