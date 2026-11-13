@@ -48,7 +48,7 @@ public:
     void quit();
 
     void showInFiles(const std::string& path) const;
-    // With uriOpener when set, else the desktop's opener.
+    // With uriOpener when set, else the application the desktop has for its scheme.
     void openUri(const std::string& uri) const;
     std::function<void(const std::string& uri)> uriOpener;
 

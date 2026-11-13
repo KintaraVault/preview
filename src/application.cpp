@@ -9,7 +9,7 @@
 
 #include "base/dbus.h"
 #include "base/event_loop.h"
-#include "base/process.h"
+#include "base/mime_apps.h"
 #include "base/url.h"
 #include "ui/application.h"
 #include "ui/window.h"
@@ -112,7 +112,7 @@ void Application::openUri(const std::string& uri) const
     if (uriOpener)
         uriOpener(uri);
     else
-        base::Process::startDetached("xdg-open", {uri});
+        base::mimeapps::openUri(uri);
 }
 
 bool Application::registerService(base::dbus::Connection* bus)
