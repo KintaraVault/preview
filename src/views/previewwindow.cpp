@@ -187,6 +187,7 @@ PreviewWindow::PreviewWindow(Application& application)
 
     ImagePage* page = m_root->image;
     page->onShown = [this] { shown(); };
+    page->viewer()->onSwipe = [this](int delta) { step(delta); };
 
     m_window->onCloseRequested = [this] { close(); };
     m_window->onActiveChanged = [this] { updateBackground(); };

@@ -23,6 +23,7 @@ using namespace cutefish;
 using cutefish::i18n::tr;
 using ui::rounding::centeredStart;
 
+static constexpr double kSwipeDistance = 60;
 static constexpr double kIconSize = 96;
 static constexpr double kCardSpacing = 20;
 
@@ -38,6 +39,24 @@ static ShownFile describe(const std::string& path)
     file.mimeType = base::mime::typeForFile(path);
     file.info = ui::readImageInfo(path, file.mimeType);
     return file;
+}
+
+bool ImageViewer::scroll(const ui::ScrollEvent& event)
+{
+    if (!event.precise || (event.modifiers & ui::ControlModifier) || isZoomed())
+        return ZoomableImageView::scroll(event);
+    if (event.stop) {
+        m_swipe = 0;
+        m_swiped = false;
+        return true;
+    }
+    m_swipe += event.deltaX;
+    if (!m_swiped && std::abs(m_swipe) >= kSwipeDistance && std::abs(event.deltaX) > std::abs(event.deltaY)) {
+        m_swiped = true;
+        if (onSwipe)
+            onSwipe(m_swipe > 0 ? 1 : -1);
+    }
+    return true;
 }
 
 // The file's icon beside its name and size, as Quick Look shows a file it

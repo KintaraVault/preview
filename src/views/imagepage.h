@@ -32,9 +32,20 @@ struct ShownFile
     cutefish::ui::ImageInfo info;
 };
 
-// The zoomable image.
+// The zoomable image, and on a fitted one a horizontal two-finger swipe
+// that steps once per gesture.
 class ImageViewer : public cutefish::ui::ZoomableImageView
 {
+public:
+    // -1 for the previous image, 1 for the next.
+    std::function<void(int step)> onSwipe;
+
+protected:
+    bool scroll(const cutefish::ui::ScrollEvent& event) override;
+
+private:
+    double m_swipe = 0;
+    bool m_swiped = false;
 };
 
 // The current file under the header. An image replaces the one shown once
