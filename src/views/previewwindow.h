@@ -15,6 +15,7 @@
 
 namespace cutefish::ui {
 class Animation;
+class FileChooser;
 class Window;
 struct ImageInfo;
 }
@@ -63,6 +64,7 @@ public:
     void toggleSidebar();
     bool isFullScreen() const;
     void toggleFullScreen();
+    void openDialog();
     void close();
 
     ImagePage* imagePage() const;
@@ -101,6 +103,7 @@ private:
     // Shown once its first file is ready, which sizes it.
     bool m_mapPending = false;
     std::string m_activationToken;
+    std::unique_ptr<cutefish::ui::FileChooser> m_chooser;
     bool m_pointerActive = true;
     double m_chromeOpacity = 1;
     double m_chromeFrom = 1;
