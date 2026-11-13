@@ -376,6 +376,8 @@ void PreviewWindow::sequenceChanged()
     m_root->sidebar->setItems(m_sequence->paths());
     if (m_sequence->currentPath() != m_root->image->shown().path)
         m_root->image->load(m_sequence->currentPath());
+    else
+        preloadNeighbours();
     updateHeader();
 }
 
@@ -395,6 +397,13 @@ void PreviewWindow::shown()
     const std::string& path = m_root->image->shown().path;
     if (m_root->image->showsImage() && m_opened.erase(path))
         m_application.settings().addRecentFile(path);
+    preloadNeighbours();
+    updateHeader();
+    updateTitle();
+}
+
+void PreviewWindow::preloadNeighbours()
+{
     const int index = currentIndex();
     std::vector<std::string> ahead;
     for (const int neighbour : {index + 1, index - 1}) {
@@ -402,8 +411,6 @@ void PreviewWindow::shown()
             ahead.push_back(m_sequence->paths()[size_t(neighbour)]);
     }
     m_root->image->preload(ahead);
-    updateHeader();
-    updateTitle();
 }
 
 void PreviewWindow::updateHeader()

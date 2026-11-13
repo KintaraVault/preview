@@ -91,6 +91,7 @@ private:
     void retranslate();
     void shown();
     void sequenceChanged();
+    void preloadNeighbours();
     void updateHeader();
     void updateTitle();
     void updateBackground();
