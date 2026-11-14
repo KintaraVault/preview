@@ -26,6 +26,7 @@ static constexpr double kCardInset = 12;
 PdfPage::PdfPage()
 {
     m_view = addChild<PdfView>();
+    m_view->setBottomCornerRadius(ui::Theme::current().windowRadius);
     m_find = addChild<FindCard>();
     m_goToPage = addChild<GoToPageCard>();
     m_message = addChild<ui::Label>();

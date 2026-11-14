@@ -183,6 +183,7 @@ private:
 WelcomePage::WelcomePage()
 {
     setScrollDirections(false, true);
+    setBottomCornerRadius(ui::Theme::current().windowRadius);
     setClipsChildren(true);
     m_column = setContent<Column>(*this);
     m_icon = m_column->addChild<ui::ThemeIcon>("cutefish-preview", kIconSize);

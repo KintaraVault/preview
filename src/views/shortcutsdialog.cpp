@@ -141,6 +141,7 @@ public:
         : scroll(addChild<ui::ScrollView>())
     {
         scroll->setScrollDirections(false, true);
+        scroll->setBottomCornerRadius(ui::Theme::current().windowRadius);
     }
 
     double heightForWidth(double) const override { return 600 - 44 - 16; }

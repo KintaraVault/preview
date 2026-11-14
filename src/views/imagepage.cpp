@@ -127,6 +127,7 @@ static ui::ImageView* addPreloader(ui::View* parent)
 ImagePage::ImagePage()
 {
     m_viewer = addChild<ImageViewer>();
+    m_viewer->setBottomCornerRadius(ui::Theme::current().windowRadius);
     m_viewer->onStatusChanged = [this] { updateStatus(); };
     m_busy = addChild<ui::BusyIndicator>();
     m_busy->setVisible(false);
