@@ -1,0 +1,378 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-13 18:50+0800\n"
+"PO-Revision-Date: 2026-11-13 18:50+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
+msgid "Find"
+msgstr "Najít"
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
+msgstr "Přejít na stránku (1–{count})"
+
+#: src/views/imagepage.cpp
+msgid "This image could not be displayed."
+msgstr "Tento obrázek nelze zobrazit."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr "Heslo k „{name}“ je nesprávné. Zkuste to znovu."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr "Soubor „{name}“ je chráněn. Zadejte heslo, abyste ho otevřeli."
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr "Heslo"
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr "Zrušit"
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr "Otevřít"
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr "Vyžadováno heslo"
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
+msgstr "Zadat heslo…"
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr "Tento dokument je chráněn heslem."
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
+msgstr "Tento dokument nelze otevřít."
+
+#: src/views/pdfpage.cpp
+msgid "No matches"
+msgstr "Žádné shody"
+
+#. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
+#. TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+#: src/views/pdfpage.cpp src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr "{index} z {count}"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr "Náhled"
+
+#. TRANSLATORS: after a PDF's name on the header's line: the page most in sight and the number of pages.
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Page {page} of {count}"
+msgstr "Stránka {page} z {count}"
+
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
+msgstr "{name} nelze otočit: nelze ho načíst jako obrázek JPEG nebo PNG"
+
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: {reason}"
+msgstr "{name} nelze otočit: {reason}"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Images"
+msgstr "Obrázky"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "PDF Documents"
+msgstr "Dokumenty PDF"
+
+#: src/views/previewwindow.cpp
+msgid "Images and PDF Documents"
+msgstr "Obrázky a dokumenty PDF"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Copy"
+msgstr "Kopírovat"
+
+#: src/views/previewwindow.cpp
+msgid "Show in Files"
+msgstr "Zobrazit v Souborech"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Move to Trash"
+msgstr "Přesunout do koše"
+
+#: src/views/previewwindow.cpp
+msgid "Copy Link"
+msgstr "Kopírovat odkaz"
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr "Vybrat vše"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images and PDF documents"
+msgstr "Prohlížení obrázků a dokumentů PDF"
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr "O aplikaci Náhled"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr "Skrýt Náhled"
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr "Ukončit Náhled"
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr "Soubor"
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr "Otevřít…"
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr "Otevřít nedávné"
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr "Vymazat nedávné soubory"
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr "Zavřít okno"
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr "Úpravy"
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr "Najít…"
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr "Najít další"
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr "Najít předchozí"
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr "Zobrazení"
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr "Zobrazit postranní panel"
+
+#: src/views/previewwindow.cpp
+msgid "Thumbnails"
+msgstr "Miniatury"
+
+#: src/views/previewwindow.cpp
+msgid "Contents"
+msgstr "Obsah"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr "Přiblížit"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr "Oddálit"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr "Přizpůsobit velikosti"
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr "Skutečná velikost"
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr "Přejít na celou obrazovku"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr "Skrýt postranní panel"
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr "Ukončit celou obrazovku"
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr "Přejít"
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr "Předchozí"
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr "Další"
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr "První"
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr "Poslední"
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr "Přejít na stránku…"
+
+#: src/views/previewwindow.cpp
+msgid "Tools"
+msgstr "Nástroje"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Left"
+msgstr "Otočit doleva"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Right"
+msgstr "Otočit doprava"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Window"
+msgstr "Okno"
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr "Minimalizovat"
+
+#: src/views/previewwindow.cpp
+msgctxt "window command"
+msgid "Zoom"
+msgstr "Zvětšit"
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr "Nápověda"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr "Klávesové zkratky"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr "Předchozí nebo další obrázek"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr "První nebo poslední obrázek"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Rotate left or right"
+msgstr "Otočit doleva nebo doprava"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr "Předchozí nebo další stránka"
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr "O obrazovku nahoru nebo dolů"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr "První nebo poslední stránka"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr "Přejít na stránku"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr "Další nebo předchozí shoda"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
+msgstr "Vybrat vše"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
+msgstr "Zvětšení"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr "Přiblížit nebo oddálit"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr "Přizpůsobit velikosti"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr "Skutečná velikost"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr "Celá obrazovka"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr "Opustit celou obrazovku"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr "Otevřít soubor"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr "Zavřít"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr "Klávesové zkratky"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
+msgstr "Ukončit"
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image or PDF Here"
+msgstr "Sem přetáhněte obrázek nebo PDF"
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr "Nebo otevřete soubor k zobrazení."
+
+#: src/views/welcomepage.cpp
+msgid "Recent"
+msgstr "Nedávné"
+
+#: src/views/welcomepage.cpp
+msgid "Clear"
+msgstr "Vymazat"
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;PDF;Document;"
+msgstr "Obrázek;Fotografie;Foto;Prohlížeč;PDF;Dokument;Image;Picture;Photo;Viewer;"

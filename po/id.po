@@ -1,0 +1,377 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: cutefish-preview\n"
+"Report-Msgid-Bugs-To: https://github.com/cutefishos\n"
+"POT-Creation-Date: 2026-11-13 18:50+0800\n"
+"PO-Revision-Date: 2026-11-13 18:50+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: id\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/views/cards.cpp src/views/shortcutsdialog.cpp
+msgid "Find"
+msgstr "Cari"
+
+#. TRANSLATORS: {count} is the number of pages of the document.
+#: src/views/cards.cpp
+#, python-brace-format
+msgid "Go to page (1–{count})"
+msgstr "Buka halaman (1–{count})"
+
+#: src/views/imagepage.cpp
+msgid "This image could not be displayed."
+msgstr "Gambar ini tidak dapat ditampilkan."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "The password for “{name}” is incorrect. Try again."
+msgstr "Kata sandi untuk “{name}” salah. Coba lagi."
+
+#: src/views/passworddialog.cpp
+#, python-brace-format
+msgid "“{name}” is protected. Enter its password to open it."
+msgstr "“{name}” dilindungi. Masukkan kata sandinya untuk membukanya."
+
+#: src/views/passworddialog.cpp
+msgid "Password"
+msgstr "Kata sandi"
+
+#: src/views/passworddialog.cpp
+msgid "Cancel"
+msgstr "Batal"
+
+#: src/views/passworddialog.cpp src/views/previewwindow.cpp
+msgid "Open"
+msgstr "Buka"
+
+#: src/views/passworddialog.cpp
+msgid "Password Required"
+msgstr "Kata Sandi Diperlukan"
+
+#: src/views/pdfpage.cpp
+msgid "Enter Password…"
+msgstr "Masukkan Kata Sandi…"
+
+#: src/views/pdfpage.cpp
+msgid "This document is protected by a password."
+msgstr "Dokumen ini dilindungi kata sandi."
+
+#: src/views/pdfpage.cpp
+msgid "This document could not be opened."
+msgstr "Dokumen ini tidak dapat dibuka."
+
+#: src/views/pdfpage.cpp
+msgid "No matches"
+msgstr "Tidak ada yang cocok"
+
+#. TRANSLATORS: the current match and the number of matches, such as "2 of 5".
+#. TRANSLATORS: the shown image's place among the window's images, such as "3 of 24".
+#: src/views/pdfpage.cpp src/views/previewwindow.cpp
+#, python-brace-format
+msgid "{index} of {count}"
+msgstr "{index} dari {count}"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "Preview"
+msgstr "Pratinjau"
+
+#. TRANSLATORS: after a PDF's name on the header's line: the page most in sight and the number of pages.
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Page {page} of {count}"
+msgstr "Halaman {page} dari {count}"
+
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: it cannot be read as a JPEG or PNG image"
+msgstr "Tidak dapat memutar {name}: file tidak dapat dibaca sebagai gambar JPEG atau PNG"
+
+#. TRANSLATORS: {reason} is the system's error text, such as "Permission denied".
+#: src/views/previewwindow.cpp
+#, python-brace-format
+msgid "Could not rotate {name}: {reason}"
+msgstr "Tidak dapat memutar {name}: {reason}"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Images"
+msgstr "Gambar"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "PDF Documents"
+msgstr "Dokumen PDF"
+
+#: src/views/previewwindow.cpp
+msgid "Images and PDF Documents"
+msgstr "Gambar dan Dokumen PDF"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Copy"
+msgstr "Salin"
+
+#: src/views/previewwindow.cpp
+msgid "Show in Files"
+msgstr "Tampilkan di File"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Move to Trash"
+msgstr "Pindahkan ke Tempat Sampah"
+
+#: src/views/previewwindow.cpp
+msgid "Copy Link"
+msgstr "Salin Tautan"
+
+#: src/views/previewwindow.cpp
+msgid "Select All"
+msgstr "Pilih Semua"
+
+#: src/views/previewwindow.cpp cutefish-preview.desktop
+msgid "View images and PDF documents"
+msgstr "Lihat gambar dan dokumen PDF"
+
+#: src/views/previewwindow.cpp
+msgid "About Preview"
+msgstr "Tentang Pratinjau"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Preview"
+msgstr "Sembunyikan Pratinjau"
+
+#: src/views/previewwindow.cpp
+msgid "Quit Preview"
+msgstr "Keluar dari Pratinjau"
+
+#: src/views/previewwindow.cpp
+msgid "File"
+msgstr "File"
+
+#: src/views/previewwindow.cpp src/views/welcomepage.cpp
+msgid "Open…"
+msgstr "Buka…"
+
+#: src/views/previewwindow.cpp
+msgid "Open Recent"
+msgstr "Buka Terbaru"
+
+#: src/views/previewwindow.cpp
+msgid "Clear Recent Files"
+msgstr "Hapus Daftar File Terbaru"
+
+#: src/views/previewwindow.cpp
+msgid "Close Window"
+msgstr "Tutup Jendela"
+
+#: src/views/previewwindow.cpp
+msgid "Edit"
+msgstr "Edit"
+
+#: src/views/previewwindow.cpp
+msgid "Find…"
+msgstr "Cari…"
+
+#: src/views/previewwindow.cpp
+msgid "Find Next"
+msgstr "Cari Berikutnya"
+
+#: src/views/previewwindow.cpp
+msgid "Find Previous"
+msgstr "Cari Sebelumnya"
+
+#: src/views/previewwindow.cpp
+msgid "View"
+msgstr "Tampilan"
+
+#: src/views/previewwindow.cpp
+msgid "Show Sidebar"
+msgstr "Tampilkan Bilah Samping"
+
+#: src/views/previewwindow.cpp
+msgid "Thumbnails"
+msgstr "Gambar Mini"
+
+#: src/views/previewwindow.cpp
+msgid "Contents"
+msgstr "Daftar Isi"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom In"
+msgstr "Perbesar"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom Out"
+msgstr "Perkecil"
+
+#: src/views/previewwindow.cpp
+msgid "Zoom to Fit"
+msgstr "Sesuaikan dengan Jendela"
+
+#: src/views/previewwindow.cpp
+msgid "Actual Size"
+msgstr "Ukuran Asli"
+
+#: src/views/previewwindow.cpp
+msgid "Enter Full Screen"
+msgstr "Masuk Layar Penuh"
+
+#: src/views/previewwindow.cpp
+msgid "Hide Sidebar"
+msgstr "Sembunyikan Bilah Samping"
+
+#: src/views/previewwindow.cpp
+msgid "Exit Full Screen"
+msgstr "Keluar dari Layar Penuh"
+
+#: src/views/previewwindow.cpp
+msgid "Go"
+msgstr "Pergi"
+
+#: src/views/previewwindow.cpp
+msgid "Previous"
+msgstr "Sebelumnya"
+
+#: src/views/previewwindow.cpp
+msgid "Next"
+msgstr "Berikutnya"
+
+#: src/views/previewwindow.cpp
+msgid "First"
+msgstr "Pertama"
+
+#: src/views/previewwindow.cpp
+msgid "Last"
+msgstr "Terakhir"
+
+#: src/views/previewwindow.cpp
+msgid "Go to Page…"
+msgstr "Buka Halaman…"
+
+#: src/views/previewwindow.cpp
+msgid "Tools"
+msgstr "Alat"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Left"
+msgstr "Putar ke Kiri"
+
+#: src/views/previewwindow.cpp
+msgid "Rotate Right"
+msgstr "Putar ke Kanan"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Window"
+msgstr "Jendela"
+
+#: src/views/previewwindow.cpp
+msgid "Minimize"
+msgstr "Minimalkan"
+
+#: src/views/previewwindow.cpp
+msgctxt "window command"
+msgid "Zoom"
+msgstr "Zoom"
+
+#: src/views/previewwindow.cpp
+msgid "Help"
+msgstr "Bantuan"
+
+#: src/views/previewwindow.cpp src/views/shortcutsdialog.cpp
+msgid "Keyboard Shortcuts"
+msgstr "Pintasan Keyboard"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next image"
+msgstr "Gambar sebelumnya atau berikutnya"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last image"
+msgstr "Gambar pertama atau terakhir"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Rotate left or right"
+msgstr "Putar ke kiri atau kanan"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Previous or next page"
+msgstr "Halaman sebelumnya atau berikutnya"
+
+#: src/views/shortcutsdialog.cpp
+msgid "A screenful up or down"
+msgstr "Satu layar ke atas atau ke bawah"
+
+#: src/views/shortcutsdialog.cpp
+msgid "First or last page"
+msgstr "Halaman pertama atau terakhir"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Go to page"
+msgstr "Buka halaman"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Next or previous match"
+msgstr "Kecocokan berikutnya atau sebelumnya"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Select all"
+msgstr "Pilih semua"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom"
+msgstr "Zoom"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom in or out"
+msgstr "Perbesar atau perkecil"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Zoom to fit"
+msgstr "Sesuaikan dengan jendela"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Actual size"
+msgstr "Ukuran asli"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Full screen"
+msgstr "Layar penuh"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Leave full screen"
+msgstr "Keluar dari layar penuh"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Open a file"
+msgstr "Buka file"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Close"
+msgstr "Tutup"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Keyboard shortcuts"
+msgstr "Pintasan keyboard"
+
+#: src/views/shortcutsdialog.cpp
+msgid "Quit"
+msgstr "Keluar"
+
+#: src/views/welcomepage.cpp
+msgid "Drop an Image or PDF Here"
+msgstr "Letakkan Gambar atau PDF di Sini"
+
+#: src/views/welcomepage.cpp
+msgid "Or open a file to view it."
+msgstr "Atau buka file untuk melihatnya."
+
+#: src/views/welcomepage.cpp
+msgid "Recent"
+msgstr "Terbaru"
+
+#: src/views/welcomepage.cpp
+msgid "Clear"
+msgstr "Hapus"
+
+#: cutefish-preview.desktop
+msgid "Image;Picture;Photo;Viewer;PDF;Document;"
+msgstr "Image;Picture;Photo;Viewer;PDF;Document;Gambar;Foto;Penampil;Dokumen;"
