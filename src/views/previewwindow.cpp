@@ -61,6 +61,8 @@ using ui::rounding::centeredStart;
 static constexpr double kButtonSize = 32;
 static constexpr double kMinimumContentWidth = 480;
 static constexpr double kMinimumContentHeight = 360;
+// The terminal's default window shape, at nine tenths of its size.
+static constexpr ui::SizeF kWelcomeSize {684, 405};
 static constexpr double kZoomStep = 1.5;
 static constexpr double kSidebarGap = 9;
 // From the sidebar toggle to a title after it: room for text, which the
@@ -540,6 +542,8 @@ int PreviewWindow::count() const
 
 void PreviewWindow::show(const std::vector<std::string>& paths)
 {
+    // Only the welcome page's size is kept.
+    m_window->setRestoresSize({});
     std::error_code error;
     const bool folder = paths.size() == 1 && ImageSequence::isImage(paths.front())
             && std::filesystem::is_regular_file(paths.front(), error);
@@ -571,6 +575,10 @@ void PreviewWindow::raise(const std::string& activationToken)
     if (m_mapPending) {
         m_activationToken = activationToken;
         return;
+    }
+    if (!m_mapped && isWelcome()) {
+        m_window->resize(kWelcomeSize);
+        m_window->setRestoresSize("Welcome");
     }
     m_window->show();
     m_mapped = true;

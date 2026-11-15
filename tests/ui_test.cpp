@@ -10,6 +10,7 @@
 #include "turnsaver.h"
 #include "waitfor.h"
 
+#include "base/paths.h"
 #include "ui/application.h"
 #include "ui/clipboard.h"
 #include "ui/header_button.h"
@@ -23,6 +24,8 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <filesystem>
+#include <unistd.h>
 
 using namespace cutefish::ui;
 using namespace std::chrono_literals;
@@ -36,6 +39,19 @@ protected:
         : settings(directory.filePath("preview.conf"))
         , application(settings)
     {
+        previousId = cutefish::ui::Application::instance()->applicationId();
+        // Window sizes are kept under the application id; one file per
+        // process, as ctest runs the tests side by side.
+        const std::string name = "preview-ui-test-" + std::to_string(getpid());
+        cutefish::ui::Application::instance()->setApplicationId("cutefish-" + name);
+        windowSizes = cutefish::base::paths::cutefishConfig(name);
+        std::filesystem::remove(windowSizes);
+    }
+
+    ~UiTest() override
+    {
+        std::filesystem::remove(windowSizes);
+        cutefish::ui::Application::instance()->setApplicationId(previousId);
     }
 
     cutefish::base::EventLoop& loop() { return cutefish::ui::Application::instance()->loop(); }
@@ -60,6 +76,8 @@ protected:
     TemporaryDir directory;
     PreviewSettings settings;
     ::Application application;
+    std::string previousId;
+    std::string windowSizes;
 };
 
 } // namespace
@@ -153,6 +171,40 @@ TEST_F(UiTest, AWelcomeWindowIsReusedAndAShownFileRaisesItsWindow)
     EXPECT_EQ(application.windows().size(), 1u);
     application.open({});
     EXPECT_EQ(application.windows().size(), 2u);
+}
+
+TEST_F(UiTest, TheWelcomeWindowReopensAtTheSizeItWasLeftAt)
+{
+    // Keeps the application running once the welcome window closes.
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    application.open({});
+    ASSERT_EQ(application.windows().size(), 2u);
+    PreviewWindow& welcome = *application.windows().back();
+    EXPECT_TRUE(welcome.isWelcome());
+    EXPECT_EQ(welcome.window().size(), (SizeF {684, 405}));
+    TestInput::resizeInteractively(welcome.window(), {900, 600});
+    runFor(loop(), 400ms);
+    welcome.close();
+
+    application.open({});
+    ASSERT_EQ(application.windows().size(), 2u);
+    EXPECT_EQ(application.windows().back()->window().size(), (SizeF {900, 600}));
+}
+
+TEST_F(UiTest, AWelcomeWindowGivenAFileLeavesTheWelcomeSizeAlone)
+{
+    application.open({});
+    PreviewWindow& window = onlyWindow();
+    const std::string path = writePng(directory.filePath("a.png"), 40, 30);
+    application.open({path});
+    ASSERT_TRUE(showing(window, path));
+    TestInput::resizeInteractively(window.window(), {900, 600});
+    runFor(loop(), 400ms);
+
+    application.open({});
+    ASSERT_EQ(application.windows().size(), 2u);
+    EXPECT_EQ(application.windows().back()->window().size(), (SizeF {684, 405}));
 }
 
 TEST_F(UiTest, TheSidebarIsKeptForImages)
