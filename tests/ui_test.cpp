@@ -529,9 +529,9 @@ TEST_F(UiTest, TheSidebarToggleIsCentredOnTheHeaderLine)
     EXPECT_EQ(toggleTop.y, zoomTop.y);
     for (const double scale : {1.0, 2.0}) {
         const Rect ink = TestInput::inkRect(*toggle, scale);
-        // The glyph's frame, 15 x 11 on a 24 grid with a one-pixel line.
-        EXPECT_EQ(ink.width, int(16 * scale));
-        EXPECT_EQ(ink.height, int(12 * scale));
+        // The glyph's frame, 13 x 9 on a 24 grid with a one-pixel line.
+        EXPECT_EQ(ink.width, int(14 * scale));
+        EXPECT_EQ(ink.height, int(10 * scale));
         EXPECT_EQ(ink.x * 2 + ink.width, int(toggle->geometry().width * scale));
         EXPECT_EQ(ink.y * 2 + ink.height, int(toggle->geometry().height * scale));
     }

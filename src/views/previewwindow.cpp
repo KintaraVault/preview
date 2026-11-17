@@ -31,6 +31,7 @@
 #include "ui/file_drop_area.h"
 #include "ui/header_backdrop.h"
 #include "ui/header_button.h"
+#include "ui/header_button_group.h"
 #include "ui/image.h"
 #include "ui/keys.h"
 #include "ui/label.h"
@@ -117,23 +118,35 @@ public:
     explicit HeaderRow(PreviewWindow& owner, ui::WindowHeader* header)
         : m_header(header)
     {
+        sidebarGroup = addChild<ui::HeaderButtonGroup>();
         // The toolkit's sidebar glyph is drawn on 24 pixels with a one-pixel line.
-        sidebar = addButton("sidebar", [&owner] { owner.toggleSidebar(); }, 24);
-        previous = addButton("chevron-left", [&owner] { owner.step(-1); });
-        next = addButton("chevron-right", [&owner] { owner.step(1); });
+        sidebar = addButton(sidebarGroup, "sidebar", [&owner] { owner.toggleSidebar(); }, 24);
+        arrows = addChild<ui::HeaderButtonGroup>();
+        previous = addButton(arrows, "chevron-left", [&owner] { owner.step(-1); });
+        next = addButton(arrows, "chevron-right", [&owner] { owner.step(1); });
         position = addChild<ui::Label>();
         title = addChild<ui::Label>();
         title->setWeight(700);
         title->setElide(ui::Label::Elide::Middle);
         page = addChild<ui::Label>();
         page->setVisible(false);
-        zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
-        zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
-        rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
-        search = addButton("search", [&owner] { owner.showFind(); });
+        tools = addChild<ui::HeaderButtonGroup>();
+        zoomOut = addButton(tools, "zoom-out", [&owner] { owner.zoomOut(); });
+        zoomIn = addButton(tools, "zoom-in", [&owner] { owner.zoomIn(); });
+        rotate = addButton(tools, "rotate-left", [&owner] { owner.rotate(-1); });
+        search = addButton(tools, "search", [&owner] { owner.showFind(); });
     }
 
+    // Each plate shows while one of its buttons does.
+    void updateGroups()
+    {
+        for (ui::HeaderButtonGroup* group : {sidebarGroup, arrows, tools})
+            group->setVisible(group->sizeHint().width > 0);
+    }
+
+    ui::HeaderButtonGroup* sidebarGroup;
     ui::HeaderButton* sidebar;
+    ui::HeaderButtonGroup* arrows;
     ui::HeaderButton* previous;
     ui::HeaderButton* next;
     ui::Label* position;
@@ -141,6 +154,7 @@ public:
     // "Page 5 of 120", shown while showsPage is set and it fits.
     ui::Label* page;
     bool showsPage = false;
+    ui::HeaderButtonGroup* tools;
     ui::HeaderButton* zoomOut;
     ui::HeaderButton* zoomIn;
     ui::HeaderButton* rotate;
@@ -151,16 +165,16 @@ protected:
     void layout() override
     {
         const double height = geometry().height;
-        const double top = centeredStart(height, kButtonSize);
+        const double top = centeredStart(height, ui::HeaderButtonGroup::kSegment);
+        // The plates keep the glyphs where the buttons' own plates had them.
+        const double plateInset = (kButtonSize - ui::HeaderButtonGroup::kSegment) / 2;
         double x = m_header->leadingInset() + 4;
-        sidebar->setGeometry({x, top, kButtonSize, kButtonSize});
+        place(sidebarGroup, x + plateInset, top);
         // From the sidebar's edge as the Files header's buttons are.
-        x = std::max(x + kButtonSize + 4, sidebarWidth + kSidebarGap);
-        if (previous->isVisible()) {
-            previous->setGeometry({x, top, kButtonSize, kButtonSize});
-            x += kButtonSize;
-            next->setGeometry({x, top, kButtonSize, kButtonSize});
-            x += kButtonSize + 4;
+        x = std::max(sidebarGroup->geometry().right() + 4, sidebarWidth + kSidebarGap);
+        if (arrows->isVisible()) {
+            place(arrows, x, top);
+            x += arrows->geometry().width + 4 + 2 * plateInset;
         }
         // Without the arrows, a PDF's page number where they would start.
         if (position->isVisible()) {
@@ -171,13 +185,11 @@ protected:
         }
         double right = geometry().width - 4;
         // Rotate for an image, search for a PDF, in one place.
-        rotate->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        search->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        right -= kButtonSize;
-        zoomIn->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        right -= kButtonSize;
-        zoomOut->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        right -= kButtonSize;
+        if (tools->isVisible()) {
+            const double width = tools->sizeHint().width;
+            place(tools, right - plateInset - width, top);
+            right -= width + 2 * plateInset;
+        }
         const ui::SizeF hint = title->sizeHint();
         title->setColor(ui::ColorId::Text);
         if (showsPage) {
@@ -185,7 +197,7 @@ protected:
             if (sidebarWidth > 0)
                 x = std::max(x, sidebarWidth + PdfView::kMargin);
             else
-                x = sidebar->geometry().right() + kTitleGap;
+                x = sidebarGroup->geometry().right() + kTitleGap;
             // The page text stays whole while it fits; the name takes the rest.
             const double available = std::max(0.0, right - 8 - x);
             const ui::SizeF pageHint = page->sizeHint();
@@ -206,18 +218,24 @@ protected:
         page->setVisible(false);
         // A lone title after the toggle keeps the same room as a PDF's.
         const double left = !previous->isVisible() && !position->isVisible() && sidebarWidth <= 0
-                ? sidebar->geometry().right() + kTitleGap
+                ? sidebarGroup->geometry().right() + kTitleGap
                 : x + 8;
         title->setGeometry({left, centeredStart(height, hint.height), std::max(0.0, right - 8 - left), hint.height});
     }
 
 private:
-    ui::HeaderButton* addButton(const char* glyph, std::function<void()> action, double glyphSize = 16)
+    static ui::HeaderButton* addButton(ui::HeaderButtonGroup* group, const char* glyph,
+                                       std::function<void()> action, double glyphSize = 16)
     {
-        auto* button = addChild<ui::HeaderButton>(std::string(), kButtonSize);
-        button->setGlyph(glyph, glyphSize);
+        ui::HeaderButton* button = group->addButton(glyph, glyphSize);
         button->onClicked = std::move(action);
         return button;
+    }
+
+    static void place(ui::HeaderButtonGroup* group, double x, double y)
+    {
+        const ui::SizeF size = group->sizeHint();
+        group->setGeometry({x, y, size.width, size.height});
     }
 
     ui::WindowHeader* m_header;
@@ -720,6 +738,7 @@ void PreviewWindow::updateHeader()
     row->search->setEnabled(pdf && m_root->pdf->isReady());
     if (m_root->sidebar->current() != index)
         m_root->sidebar->setCurrent(index);
+    row->updateGroups();
     row->requestLayout();
 }
 
