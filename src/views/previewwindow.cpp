@@ -352,7 +352,7 @@ protected:
         const ui::RectF rect = localRect();
         painter.fillRect({left, 0, rect.width - left, rect.height},
                          m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255}
-                                                : ui::color(ui::ColorId::DocumentBackground));
+                                                : ui::color(ui::ColorId::Background));
     }
 
     void hoverMove(const ui::PointerEvent& event) override
