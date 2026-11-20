@@ -11,6 +11,7 @@
 #include "ui/label.h"
 #include "ui/painter.h"
 #include "ui/theme.h"
+#include "ui/toolbar_surface.h"
 
 #include <algorithm>
 #include <cmath>
@@ -122,6 +123,24 @@ bool CardField::keyPress(const KeyEvent& event)
     return TextField::keyPress(event);
 }
 
+CardField::CardField(bool search)
+    : m_search(search)
+{
+    if (search)
+        setFrameVisible(false);
+}
+
+void CardField::paint(Painter& painter)
+{
+    if (m_search) {
+        const auto& theme = Theme::current();
+        toolbar_surface::searchField(painter, localRect(), theme.darkMode);
+        if (hasFocus())
+            toolbar_surface::searchFocus(painter, localRect(), theme.highlight);
+    }
+    TextField::paint(painter);
+}
+
 // A shadow radius of 16 is a Gaussian of deviation (16 + 1) / 3.3333.
 static constexpr double kShadowSigma = 17 / 3.3333;
 
@@ -149,7 +168,7 @@ void FloatingCard::paint(Painter& painter)
 }
 
 FindCard::FindCard()
-    : m_field(addChild<CardField>())
+    : m_field(addChild<CardField>(true))
     , m_count(addChild<Label>())
     , m_previous(addChild<RoundButton>(kButtonSize))
     , m_next(addChild<RoundButton>(kButtonSize))

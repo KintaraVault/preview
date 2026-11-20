@@ -119,9 +119,11 @@ public:
         : m_header(header)
     {
         sidebarGroup = addChild<ui::HeaderButtonGroup>();
+        sidebarGroup->setToolbarAppearance(true);
         // The toolkit's sidebar glyph is drawn on 24 pixels with a one-pixel line.
         sidebar = addButton(sidebarGroup, "sidebar", [&owner] { owner.toggleSidebar(); }, 24);
         arrows = addChild<ui::HeaderButtonGroup>();
+        arrows->setToolbarAppearance(true);
         previous = addButton(arrows, "chevron-left", [&owner] { owner.step(-1); });
         next = addButton(arrows, "chevron-right", [&owner] { owner.step(1); });
         position = addChild<ui::Label>();
@@ -131,6 +133,7 @@ public:
         page = addChild<ui::Label>();
         page->setVisible(false);
         tools = addChild<ui::HeaderButtonGroup>();
+        tools->setToolbarAppearance(true);
         zoomOut = addButton(tools, "zoom-out", [&owner] { owner.zoomOut(); });
         zoomIn = addButton(tools, "zoom-in", [&owner] { owner.zoomIn(); });
         rotate = addButton(tools, "rotate-left", [&owner] { owner.rotate(-1); });
@@ -348,7 +351,8 @@ protected:
         const double left = sidebarWidth();
         const ui::RectF rect = localRect();
         painter.fillRect({left, 0, rect.width - left, rect.height},
-                         m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255} : ui::Theme::current().background);
+                         m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255}
+                                                : ui::color(ui::ColorId::DocumentBackground));
     }
 
     void hoverMove(const ui::PointerEvent& event) override

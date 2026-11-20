@@ -49,11 +49,17 @@ private:
 class CardField : public cutefish::ui::TextField
 {
 public:
+    explicit CardField(bool search = false);
+
     std::function<void(bool shift)> onReturn;
     std::function<void()> onEscape;
 
 protected:
     bool keyPress(const cutefish::ui::KeyEvent& event) override;
+    void paint(cutefish::ui::Painter& painter) override;
+
+private:
+    bool m_search;
 };
 
 // The menus' surface colour, rounded, a hairline edge and a soft shadow, as
