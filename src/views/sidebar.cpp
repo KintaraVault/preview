@@ -32,24 +32,24 @@ static constexpr double kNumberGap = 4;
 static constexpr double kPageGap = 6;
 static constexpr double kPageMaximumAspect = 1.5;
 static constexpr double kNumberFontSize = 11;
-static constexpr double kOutlineRowHeight = 28;
+static constexpr double kOutlineRowHeight = ui::design::sidebarRowHeight;
 static constexpr double kOutlineIndent = 14;
 static constexpr double kChevronSize = 12;
 
-// The Files sidebar's: one and a half small spacings, on whole device pixels.
+// The thumbnail plate inset, on whole device pixels.
 static double plateInset(const ui::View* view)
 {
     const double scale = view->window() ? view->window()->scale() : 1;
-    return std::round(kSmallSpacing * 1.5 * scale) / scale;
+    return std::round(10 * scale) / scale;
 }
 
-// The selected thumbnail's plate is the accent, pressed or not.
+// Keep the page number readable on the tinted selection plate.
 static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed, bool selected, bool accent,
                        ui::Corners corners = ui::Corners::Circular)
 {
     ui::Color fill {0, 0, 0, 0};
     if (selected && accent)
-        fill = ui::Theme::current().highlight;
+        fill = ui::Theme::current().highlight.withAlpha(ui::Theme::current().darkMode ? .26 : .16);
     else if (pressed)
         fill = ui::color(ui::ColorId::ItemPressed);
     else if (selected)
@@ -58,7 +58,7 @@ static void paintPlate(ui::Painter& painter, const ui::View* view, bool pressed,
         return;
     const double inset = plateInset(view);
     painter.drawRoundedRect({inset, 0, view->geometry().width - inset * 2, view->geometry().height},
-                            {ui::Theme::current().mediumRadius, 0, corners}, fill);
+                            {ui::design::menuItemRadius, 0, corners}, fill);
 }
 
 // One thumbnail on the selection's rounded plate: a file's, or a page's
@@ -99,7 +99,7 @@ protected:
         const ui::RectF area = thumbnailArea();
         m_thumbnail->setGeometry(area);
         const ui::SizeF number = m_number->sizeHint();
-        m_number->setColor(m_row == m_sidebar.m_current ? ui::ColorRecipe(ui::ColorId::HighlightedText)
+        m_number->setColor(m_row == m_sidebar.m_current ? ui::ColorRecipe(ui::ColorId::Text)
                                                         : ui::ColorRecipe(ui::ColorId::DisabledText));
         m_number->setGeometry({inset, area.bottom() + kNumberGap, std::max(0.0, geometry().width - 2 * inset),
                                std::ceil(number.height)});
@@ -121,7 +121,7 @@ protected:
         const ui::RectF rect = pageRect(painter.scale());
         const double line = 1 / painter.scale();
         // Concentric with the plate, a page gap inside it.
-        const double radius = theme.mediumRadius - kPageGap;
+        const double radius = ui::design::menuItemRadius - kPageGap + 2;
         painter.drawRoundedRect(rect.adjusted(-line, -line, line, line), {radius + line, 0, corners},
                                 theme.text.withAlpha(theme.darkMode ? 0.2 : 0.15));
         painter.drawRoundedRect(rect, {radius, 0, corners}, {255, 255, 255, 255});
@@ -519,7 +519,7 @@ void Sidebar::paint(ui::Painter& painter)
     // As the Files sidebar: a step below the window's colour in both modes,
     // and the header backdrop's hairline down the edge, 0.5 px, below 2x a
     // device pixel with its alpha scaled to the same weight.
-    painter.fillRect(localRect(), ui::Theme::current().background.withAlpha(0.7));
+    painter.fillRect(localRect(), ui::color(ui::ColorId::PanelBackground));
     const double scale = painter.scale();
     const double devicePixels = std::max(1.0, std::round(0.5 * scale));
     const double lineWidth = devicePixels / scale;

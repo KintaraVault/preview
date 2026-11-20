@@ -611,13 +611,13 @@ TEST_F(PdfUiTest, PageThumbnailsKeepOneGapToTheirPlate)
         const RectF thumbnail = sidebar->pageThumbnailGeometry(1, scale);
         const RectF number = sidebar->pageNumberGeometry(1);
         ASSERT_GT(row.height, 0);
-        // The plate is 9 in from the sidebar's sides.
-        const double plateLeft = row.x + 9;
-        const double plateRight = row.right() - 9;
+        // The plate is 10 in from the sidebar's sides.
+        const double plateLeft = row.x + 10;
+        const double plateRight = row.right() - 10;
         EXPECT_EQ(thumbnail.x - plateLeft, 6);
         EXPECT_EQ(plateRight - thumbnail.right(), 6);
         EXPECT_EQ(thumbnail.y - row.y, 6);
-        EXPECT_EQ(thumbnail.width, 160);
+        EXPECT_EQ(thumbnail.width, 158);
         EXPECT_EQ(number.y - thumbnail.bottom(), 4);
         EXPECT_EQ(row.bottom() - number.bottom(), 6);
         // On whole device pixels, as many as the render has.
@@ -699,10 +699,10 @@ TEST_F(PdfUiTest, PageThumbnailsFollowTheSidebarsWidth)
         const RectF row = sidebar->rowGeometry(1);
         const RectF thumbnail = sidebar->pageThumbnailGeometry(1, scale);
         const RectF number = sidebar->pageNumberGeometry(1);
-        EXPECT_EQ(thumbnail.x - (row.x + 9), 6);
-        EXPECT_EQ(row.right() - 9 - thumbnail.right(), 6);
+        EXPECT_EQ(thumbnail.x - (row.x + 10), 6);
+        EXPECT_EQ(row.right() - 10 - thumbnail.right(), 6);
         EXPECT_EQ(thumbnail.y - row.y, 6);
-        EXPECT_EQ(thumbnail.width, 271 - 30);
+        EXPECT_EQ(thumbnail.width, 271 - 32);
         EXPECT_EQ(number.y - thumbnail.bottom(), 4);
         EXPECT_EQ(row.bottom() - number.bottom(), 6);
         EXPECT_EQ(thumbnail.height * scale, std::round(thumbnail.height * scale));
