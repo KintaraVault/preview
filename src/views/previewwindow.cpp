@@ -101,7 +101,7 @@ protected:
         if (!strip)
             return;
         const ui::RectF rect = localRect();
-        painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::Theme::current().background);
+        painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::color(ui::ColorId::Background));
         const double line = 1 / painter.scale();
         painter.drawRoundedRect({contentLeft, rect.height - line, rect.width - contentLeft, line}, {0},
                                 ui::color(ui::ColorId::HeaderSeparator));
