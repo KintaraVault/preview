@@ -521,19 +521,24 @@ TEST_F(UiTest, TheSidebarToggleIsCentredOnTheHeaderLine)
     PreviewWindow& window = onlyWindow();
     ASSERT_TRUE(showing(window, path));
     window.window().grab();
-    View* toggle = window.sidebarButton();
+    auto* toggle = static_cast<HeaderButton*>(window.sidebarButton());
     View* zoomIn = window.zoomInButton();
     const PointF toggleTop = toggle->mapToWindow({});
     const PointF zoomTop = zoomIn->mapToWindow({});
     EXPECT_EQ(toggle->geometry().size(), zoomIn->geometry().size());
     EXPECT_EQ(toggleTop.y, zoomTop.y);
     for (const double scale : {1.0, 2.0}) {
+        const Rect plate = TestInput::inkRect(*toggle, scale);
+        EXPECT_EQ(plate.width, int((toggle->geometry().width - 2) * scale));
+        EXPECT_EQ(plate.x * 2 + plate.width, int(toggle->geometry().width * scale));
+        toggle->setToolbarAppearance(false);
         const Rect ink = TestInput::inkRect(*toggle, scale);
-        // The glyph's frame, 15 x 11 on a 24 grid with a one-pixel line.
-        EXPECT_EQ(ink.width, int(16 * scale));
-        EXPECT_EQ(ink.height, int(12 * scale));
+        // The inked frame of the 24 px glyph, measured without the material.
+        EXPECT_EQ(ink.width, int(14 * scale));
+        EXPECT_EQ(ink.height, int(10 * scale));
         EXPECT_EQ(ink.x * 2 + ink.width, int(toggle->geometry().width * scale));
         EXPECT_EQ(ink.y * 2 + ink.height, int(toggle->geometry().height * scale));
+        toggle->setToolbarAppearance(true);
     }
 }
 

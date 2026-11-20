@@ -73,7 +73,7 @@ PasswordDialog::PasswordDialog(ui::Window* parent, std::string name)
     m_dialog = std::make_unique<ui::DialogWindow>(parent, tr("Password Required"), 400);
     // Cancel closes it.
     m_dialog->setCloseVisible(false);
-    m_dialog->window()->setBackgroundColor(ui::ColorId::SecondBackground);
+    m_dialog->window()->setBackgroundColor(ui::ColorId::PanelBackground);
     m_dialog->window()->addShortcut(ui::NoModifier, ui::key::Escape, [this] { m_dialog->close(); });
     build({});
 }

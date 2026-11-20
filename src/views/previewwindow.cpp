@@ -31,6 +31,8 @@
 #include "ui/file_drop_area.h"
 #include "ui/header_backdrop.h"
 #include "ui/header_button.h"
+#include "ui/header_button_group.h"
+#include "ui/navigation_buttons.h"
 #include "ui/image.h"
 #include "ui/keys.h"
 #include "ui/label.h"
@@ -100,7 +102,7 @@ protected:
         if (!strip)
             return;
         const ui::RectF rect = localRect();
-        painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::Theme::current().background);
+        painter.fillRect({contentLeft, 0, rect.width - contentLeft, rect.height}, ui::color(ui::ColorId::DocumentBackground));
         const double line = 1 / painter.scale();
         painter.drawRoundedRect({contentLeft, rect.height - line, rect.width - contentLeft, line}, {0},
                                 ui::color(ui::ColorId::HeaderSeparator));
@@ -119,16 +121,23 @@ public:
     {
         // The toolkit's sidebar glyph is drawn on 24 pixels with a one-pixel line.
         sidebar = addButton("sidebar", [&owner] { owner.toggleSidebar(); }, 24);
-        previous = addButton("chevron-left", [&owner] { owner.step(-1); });
-        next = addButton("chevron-right", [&owner] { owner.step(1); });
+        m_navigation = addChild<ui::NavigationButtons>();
+        previous = m_navigation->back();
+        next = m_navigation->forward();
+        previous->onClicked = [&owner] { owner.step(-1); };
+        next->onClicked = [&owner] { owner.step(1); };
         position = addChild<ui::Label>();
         title = addChild<ui::Label>();
         title->setWeight(700);
         title->setElide(ui::Label::Elide::Middle);
         page = addChild<ui::Label>();
         page->setVisible(false);
-        zoomOut = addButton("zoom-out", [&owner] { owner.zoomOut(); });
-        zoomIn = addButton("zoom-in", [&owner] { owner.zoomIn(); });
+        m_zoom = addChild<ui::HeaderButtonGroup>();
+        m_zoom->setToolbarAppearance(true);
+        zoomOut = m_zoom->addButton("zoom-out");
+        zoomIn = m_zoom->addButton("zoom-in");
+        zoomOut->onClicked = [&owner] { owner.zoomOut(); };
+        zoomIn->onClicked = [&owner] { owner.zoomIn(); };
         rotate = addButton("rotate-left", [&owner] { owner.rotate(-1); });
         search = addButton("search", [&owner] { owner.showFind(); });
     }
@@ -156,11 +165,12 @@ protected:
         sidebar->setGeometry({x, top, kButtonSize, kButtonSize});
         // From the sidebar's edge as the Files header's buttons are.
         x = std::max(x + kButtonSize + 4, sidebarWidth + kSidebarGap);
-        if (previous->isVisible()) {
-            previous->setGeometry({x, top, kButtonSize, kButtonSize});
-            x += kButtonSize;
-            next->setGeometry({x, top, kButtonSize, kButtonSize});
-            x += kButtonSize + 4;
+        const bool arrows = previous->isVisible() || next->isVisible();
+        m_navigation->setVisible(arrows);
+        if (arrows) {
+            const double width = 2 * kButtonSize;
+            m_navigation->setGeometry({x, top, width, kButtonSize});
+            x += width + 4;
         }
         // Without the arrows, a PDF's page number where they would start.
         if (position->isVisible()) {
@@ -174,10 +184,8 @@ protected:
         rotate->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         search->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
         right -= kButtonSize;
-        zoomIn->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        right -= kButtonSize;
-        zoomOut->setGeometry({right - kButtonSize, top, kButtonSize, kButtonSize});
-        right -= kButtonSize;
+        right -= 2 * kButtonSize + 3;
+        m_zoom->setGeometry({right, top, 2 * kButtonSize, kButtonSize});
         const ui::SizeF hint = title->sizeHint();
         title->setColor(ui::ColorId::Text);
         if (showsPage) {
@@ -216,11 +224,14 @@ private:
     {
         auto* button = addChild<ui::HeaderButton>(std::string(), kButtonSize);
         button->setGlyph(glyph, glyphSize);
+        button->setToolbarAppearance(true);
         button->onClicked = std::move(action);
         return button;
     }
 
     ui::WindowHeader* m_header;
+    ui::NavigationButtons* m_navigation;
+    ui::HeaderButtonGroup* m_zoom;
 };
 
 // The window's content: the sidebar down the left edge, the page beside it
@@ -330,7 +341,8 @@ protected:
         const double left = sidebarWidth();
         const ui::RectF rect = localRect();
         painter.fillRect({left, 0, rect.width - left, rect.height},
-                         m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255} : ui::Theme::current().background);
+                         m_owner.isFullScreen() ? ui::Color {0, 0, 0, 255}
+                                                : ui::color(ui::ColorId::DocumentBackground));
     }
 
     void hoverMove(const ui::PointerEvent& event) override
